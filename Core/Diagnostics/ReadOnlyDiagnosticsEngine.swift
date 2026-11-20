@@ -788,6 +788,14 @@ public final class ReadOnlyDiagnosticsEngine {
     }
 
     private static func magicFormat(bytes: [UInt8]) -> String? {
+        // Short-buffer signatures are matched by byte position before the
+        // four-byte tuple switch, whose patterns must all be four-element.
+        if bytes.count >= 3, bytes[0] == 0xFF, bytes[1] == 0xD8, bytes[2] == 0xFF {
+            return "jpeg"
+        }
+        if bytes.count >= 2, bytes[0] == 0x1F, bytes[1] == 0x8B {
+            return "gzip"
+        }
         guard bytes.count >= 4 else { return nil }
         let b0 = bytes[0], b1 = bytes[1], b2 = bytes[2], b3 = bytes[3]
         switch (b0, b1, b2, b3) {
@@ -799,9 +807,9 @@ public final class ReadOnlyDiagnosticsEngine {
             return "fat_macho"
         case (0x7F, 0x45, 0x4C, 0x46): return "elf"
         case (0x89, 0x50, 0x4E, 0x47): return "png"
-        case (0xFF, 0xD8, 0xFF): return "jpeg"
+        case (0xFF, 0xD8, 0xFF, _): return "jpeg"
         case (0x50, 0x4B, 0x03, 0x04): return "zip"
-        case (0x1F, 0x8B): return "gzip"
+        case (0x1F, 0x8B, _, _): return "gzip"
         case (0x25, 0x50, 0x44, 0x46): return "pdf"
         default: break
         }
@@ -930,7 +938,7 @@ public final class ReadOnlyDiagnosticsEngine {
             var p = (physical as NSString).standardizingPath
             if let root, p.hasPrefix(root) { p = String(p.dropFirst(root.count)) }
             if !p.hasPrefix("/") { p = "/" + p }
-            return p.standardizingPath
+            return (p as NSString).standardizingPath
         }
 
         func probe(_ path: String) -> [String: String] {
@@ -1060,15 +1068,17 @@ public final class ReadOnlyDiagnosticsEngine {
             let iconPath = iconName.isEmpty ? "" : (path as NSString).appendingPathComponent(iconName)
             #if canImport(UIKit)
             let iconDecoded = !iconPath.isEmpty && UIImage(contentsOfFile: iconPath) != nil
+            let iconSource = iconDecoded ? "bundle_file" : (iconPath.isEmpty ? "unresolved" : "bundle_file_candidate")
             #else
             let iconDecoded = false
+            let iconSource = iconPath.isEmpty ? "unresolved" : "bundle_file_candidate"
             #endif
             return ["bundle_id": bundleID, "name": name, "bundle_path": path,
                     "version": shortVersion ?? buildVersion ?? "unknown",
                     "version_source": shortVersion != nil ? "CFBundleShortVersionString" : (buildVersion != nil ? "CFBundleVersion" : "unknown"),
                     "build_version": buildVersion ?? "", "executable": info["CFBundleExecutable"] as? String ?? "",
                     "is_system": String(path.hasPrefix("/Applications/") || path.hasPrefix("/System/")),
-                    "icon_source": iconDecoded ? "bundle_file" : (iconPath.isEmpty ? "unresolved" : "bundle_file_candidate"),
+                    "icon_source": iconSource,
                     "icon_path": iconPath, "icon_decoded": String(iconDecoded)]
         }
         #else
