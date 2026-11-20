@@ -1,0 +1,20 @@
+#!/bin/sh
+#
+# postinst — R4-D 草稿（未打包、未安装、未验证）
+#
+# 唯一允许动作：configure 阶段通过 uicache 注册 App 到 LaunchServices。
+# 禁止：修改 ElleKit 配置 / 插件 plist；删除或移动 dylib；修改 dpkg 数据库；
+#       自动授予权限；修改系统 sandbox；创建常驻 daemon 或后台服务。
+#
+# 安装路径与 uicache 命令须按目标 RootHide Bootstrap 实测；
+# 不得未验证假设 /Applications 一定映射到预期 JBROOT 位置。
+
+set -e
+
+if [ "$1" = "configure" ]; then
+    if command -v uicache >/dev/null 2>&1; then
+        uicache -p /Applications/FilterKit.app
+    fi
+fi
+
+exit 0

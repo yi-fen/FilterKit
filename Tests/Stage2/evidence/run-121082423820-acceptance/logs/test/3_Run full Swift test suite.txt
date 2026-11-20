@@ -1,0 +1,1247 @@
+﻿2026-11-20T12:14:15.8699930Z ##[group]Run set -o pipefail
+2026-11-20T12:14:15.8700380Z [36;1mset -o pipefail[0m
+2026-11-20T12:14:15.8700610Z [36;1mmkdir -p .build[0m
+2026-11-20T12:14:15.8701020Z [36;1mswift test 2>&1 | tee .build/test-log.txt[0m
+2026-11-20T12:14:15.8746450Z shell: /bin/bash -e {0}
+2026-11-20T12:14:15.8746730Z ##[endgroup]
+2026-11-20T12:14:34.5044960Z Building for debugging...
+2026-11-20T12:14:34.5171020Z [0/15] /Users/runner/work/FilterKit/FilterKit/.build/arm64-apple-macosx/debug/FilterKitPackageTests.derived/runner.swift
+2026-11-20T12:14:34.5273540Z [1/15] Write sources
+2026-11-20T12:14:34.5380150Z [4/15] Write ReportRoundtripValidator-entitlement.plist
+2026-11-20T12:14:34.5482710Z [5/15] Write sources
+2026-11-20T12:14:34.7172710Z [9/15] Write swift-version-7974D3F7F03D5E95.txt
+2026-11-20T12:14:39.9362310Z [11/25] Emitting module Models
+2026-11-20T12:14:39.9533610Z [12/25] Compiling Models ProbeEvidence.swift
+2026-11-20T12:14:39.9547490Z [13/25] Compiling Models ProbeOperation.swift
+2026-11-20T12:14:39.9641880Z [14/25] Compiling Models ProbeStatus.swift
+2026-11-20T12:14:39.9707510Z [15/25] Compiling Models PluginEntryStatus.swift
+2026-11-20T12:14:39.9712670Z [16/25] Compiling Models EnvironmentAdvisor.swift
+2026-11-20T12:14:39.9713480Z [17/25] Compiling Models EnvironmentModels.swift
+2026-11-20T12:14:39.9714080Z [18/25] Compiling Models ModelEnums.swift
+2026-11-20T12:14:39.9717980Z [19/25] Compiling Models PermissionProbeReport.swift
+2026-11-20T12:14:39.9755930Z [20/25] Compiling Models ProbeCategory.swift
+2026-11-20T12:14:40.8977840Z [21/29] Compiling Models PluginFileEvidence.swift
+2026-11-20T12:14:40.9009880Z [22/29] Compiling Models PluginFileKind.swift
+2026-11-20T12:14:40.9043280Z [23/29] Compiling Models PluginModels.swift
+2026-11-20T12:14:40.9053780Z [24/29] Compiling Models ReportEnvelope.swift
+2026-11-20T12:14:41.4756380Z [25/39] Compiling Adapters RootHideAdapter.swift
+2026-11-20T12:14:41.5559440Z [26/40] Compiling Adapters ElleKitAdapter.swift
+2026-11-20T12:14:41.5641500Z [27/40] Emitting module Adapters
+2026-11-20T12:14:41.6145810Z [28/40] Compiling Adapters RootlessAdapter.swift
+2026-11-20T12:14:41.8616740Z [29/91] Compiling Core CoreServices.swift
+2026-11-20T12:14:41.8716950Z [30/91] Compiling Core EnvironmentDetector.swift
+2026-11-20T12:14:41.8818660Z [31/91] Compiling Core EnvironmentSnapshot.swift
+2026-11-20T12:14:42.0029050Z [32/93] Emitting module AppPresentation
+2026-11-20T12:14:42.0129920Z [33/93] Compiling Core VersionParser.swift
+2026-11-20T12:14:42.0231770Z [34/93] Compiling Core ElleKitDirectoryResolution.swift
+2026-11-20T12:14:42.0265260Z [35/93] Compiling Core ElleKitDirectoryResolver.swift
+2026-11-20T12:14:42.1069630Z [36/93] Compiling AppPresentation ReportLabels.swift
+2026-11-20T12:14:42.1171630Z [37/93] Compiling AppPresentation SyntheticReportFactory.swift
+2026-11-20T12:14:42.7233830Z [38/95] Emitting module Core
+2026-11-20T12:14:42.8957180Z [39/119] Emitting module ReportRoundtripValidator
+2026-11-20T12:14:42.9059600Z [40/119] Compiling ReportRoundtripValidator main.swift
+2026-11-20T12:14:42.9159920Z [40/119] Write Objects.LinkFileList
+2026-11-20T12:14:43.4856320Z [41/119] Linking ReportRoundtripValidator
+2026-11-20T12:14:43.5465660Z [42/119] Applying ReportRoundtripValidator
+2026-11-20T12:14:43.9423200Z [44/119] Compiling Core ProbeStatusClassifier.swift
+2026-11-20T12:14:43.9553250Z [45/119] Compiling Core JBRootPathComparison.swift
+2026-11-20T12:14:43.9654800Z [46/119] Compiling Core JBRootResolving.swift
+2026-11-20T12:14:43.9754950Z [47/119] Compiling Core UnavailableJBRootResolver.swift
+2026-11-20T12:14:43.9855590Z [48/119] Compiling Core DpkgDatabaseProbe.swift
+2026-11-20T12:14:43.9956230Z [49/119] Compiling Core ElleKitDirectoryProbe.swift
+2026-11-20T12:14:44.0094050Z [50/119] Compiling Core EntitlementProbe.swift
+2026-11-20T12:14:44.0193760Z [51/119] Compiling Core JBRootAPIProbe.swift
+2026-11-20T12:14:44.0294810Z [52/119] Compiling Core JBRootProbe.swift
+2026-11-20T12:14:44.0395780Z [53/119] Compiling Core PlistReadProbe.swift
+2026-11-20T12:14:44.0578950Z [54/119] Compiling Core PluginFileProbe.swift
+2026-11-20T12:14:44.0678640Z [55/119] Compiling Core SandboxAccessProbe.swift
+2026-11-20T12:14:44.0781210Z [56/119] Compiling Core PermissionProbeServiceProtocol.swift
+2026-11-20T12:14:44.0883110Z [57/119] Compiling Core PermissionProbing.swift
+2026-11-20T12:14:44.0984500Z [58/119] Compiling Core PermissionProbeReportBuilder.swift
+2026-11-20T12:14:44.1086390Z [59/119] Compiling Core PermissionProbeService.swift
+2026-11-20T12:14:44.1186140Z [60/119] Compiling Core ProbeTimestamp.swift
+2026-11-20T12:14:44.1287320Z [61/119] Compiling Core PlistDecodeResult.swift
+2026-11-20T12:14:44.1389540Z [62/119] Compiling Core PlistDecodeStatus.swift
+2026-11-20T12:14:44.1490130Z [63/119] Compiling Core PlistDecodedObject.swift
+2026-11-20T12:14:44.1592620Z [64/119] Compiling Core PlistDecoder.swift
+2026-11-20T12:14:44.1694900Z [65/119] Compiling Core PlistValueKind.swift
+2026-11-20T12:14:44.1793480Z [66/119] Compiling Core FilterParseIntegrationValidator.swift
+2026-11-20T12:14:44.1895680Z [67/119] Compiling Core FilterParseRoute.swift
+2026-11-20T12:14:44.1996120Z [68/119] Compiling Core FilterParseRouteResolver.swift
+2026-11-20T12:14:45.2749190Z [69/143] Compiling Core FilterParseSnapshotBuilder.swift
+2026-11-20T12:14:45.2849740Z [70/143] Compiling Core FilterParsing.swift
+2026-11-20T12:14:45.2950530Z [71/143] Compiling Core PluginFilterParseEngine.swift
+2026-11-20T12:14:45.3050750Z [72/143] Compiling Core PlistDataReader.swift
+2026-11-20T12:14:45.3151480Z [73/143] Compiling Core PlistReadResult.swift
+2026-11-20T12:14:45.3274440Z [74/143] Compiling Core PlistReadStatus.swift
+2026-11-20T12:14:45.3393070Z [75/143] Compiling Core FilterParseCounts.swift
+2026-11-20T12:14:45.3499700Z [76/143] Compiling Core FilterParseResult.swift
+2026-11-20T12:14:45.3605040Z [77/143] Compiling Core FilterParseSnapshot.swift
+2026-11-20T12:14:45.3706220Z [78/143] Compiling Core FilterParseStatus.swift
+2026-11-20T12:14:45.3807160Z [79/143] Compiling Core SkippedField.swift
+2026-11-20T12:14:45.3908080Z [80/143] Compiling Core RootHideFilterMapper.swift
+2026-11-20T12:14:45.4009260Z [81/143] Compiling Core RootHideFilterParser.swift
+2026-11-20T12:14:45.4114780Z [82/143] Compiling Core RootHideFilterTypeChecker.swift
+2026-11-20T12:14:45.4216150Z [83/143] Compiling Core RootHideFilterValidator.swift
+2026-11-20T12:14:45.4316560Z [84/143] Compiling Core RootlessFilterCodable.swift
+2026-11-20T12:14:45.4417990Z [85/143] Compiling Core RootlessFilterMapper.swift
+2026-11-20T12:14:45.4519300Z [86/143] Compiling Core RootlessFilterParser.swift
+2026-11-20T12:14:45.4619660Z [87/143] Compiling Core PluginPairingClassifier.swift
+2026-11-20T12:14:45.4720380Z [88/143] Compiling Core PluginPairingEngine.swift
+2026-11-20T12:14:45.4821800Z [89/143] Compiling Core PluginPairingSnapshotBuilder.swift
+2026-11-20T12:14:45.4923520Z [90/143] Compiling Core PluginPairingIndex.swift
+2026-11-20T12:14:45.5026410Z [91/143] Compiling Core PluginPairingIndexBuilder.swift
+2026-11-20T12:14:45.5128530Z [92/143] Compiling Core PluginPairingInput.swift
+2026-11-20T12:14:45.5229640Z [101/143] Compiling Core ElleKitPathDeriver.swift
+2026-11-20T12:14:45.5330870Z [102/143] Compiling Core ElleKitSymlinkInspector.swift
+2026-11-20T12:14:45.5432100Z [103/143] Compiling Core JBRootCandidateCollector.swift
+2026-11-20T12:14:45.5533100Z [104/143] Compiling Core JBRootCandidateSnapshot.swift
+2026-11-20T12:14:45.5633760Z [105/143] Compiling Core JBRootDecisionResolver.swift
+2026-11-20T12:14:45.5735250Z [106/143] Compiling Core JBRootNameValidator.swift
+2026-11-20T12:14:45.5836540Z [107/143] Compiling Core JBRootResolver.swift
+2026-11-20T12:14:45.5960080Z [108/143] Compiling Core JBRootStatusClassifier.swift
+2026-11-20T12:14:45.6061590Z [109/143] Compiling Core JBRootValidator.swift
+2026-11-20T12:14:45.6163390Z [110/143] Compiling Core ElleKitDirectoryPipeline.swift
+2026-11-20T12:14:45.6263600Z [111/143] Compiling Core EnvironmentRouteMapper.swift
+2026-11-20T12:14:45.6363760Z [112/143] Compiling Core JBRootToDirectoryBridge.swift
+2026-11-20T12:14:45.6464000Z [113/143] Compiling Core EntitlementEvidenceSource.swift
+2026-11-20T12:14:45.6565950Z [114/143] Compiling Core EntitlementInspecting.swift
+2026-11-20T12:14:45.6665930Z [115/143] Compiling Core UnavailableEntitlementInspector.swift
+2026-11-20T12:14:45.6767310Z [116/143] Compiling Core FileAccessChecking.swift
+2026-11-20T12:14:45.6868500Z [117/143] Compiling Core FoundationFileAccessChecker.swift
+2026-11-20T12:14:46.0879060Z [118/143] Compiling Core PluginPairingInputAdapter.swift
+2026-11-20T12:14:46.0880930Z [119/143] Compiling Core PluginPairingIntegrationResult.swift
+2026-11-20T12:14:46.0882210Z [120/143] Compiling Core PluginPairingIntegrationValidator.swift
+2026-11-20T12:14:46.0883340Z [121/143] Compiling Core PluginPairingPipeline.swift
+2026-11-20T12:14:46.0884570Z [122/143] Compiling Core PluginPairingKeyBuilder.swift
+2026-11-20T12:14:46.0885590Z [123/143] Compiling Core PairingCategory.swift
+2026-11-20T12:14:46.0886840Z [124/143] Compiling Core PairingEvidenceBasis.swift
+2026-11-20T12:14:46.0887850Z [125/143] Compiling Core PairingStatus.swift
+2026-11-20T12:14:46.0888950Z [126/143] Compiling Core PluginPairingCounts.swift
+2026-11-20T12:14:46.0889950Z [127/143] Compiling Core PluginPairingRecord.swift
+2026-11-20T12:14:46.0891090Z [128/143] Compiling Core PluginPairingSnapshot.swift
+2026-11-20T12:14:46.0892190Z [129/143] Compiling Core EnumerationStatus.swift
+2026-11-20T12:14:46.0893310Z [130/143] Compiling Core PluginDirectoryEnumerator.swift
+2026-11-20T12:14:46.0894490Z [131/143] Compiling Core PluginEntryClassifier.swift
+2026-11-20T12:14:46.0895540Z [132/143] Compiling Core PluginFileEvidenceBuilder.swift
+2026-11-20T12:14:46.0896700Z [133/143] Compiling Core PluginInventoryBuilder.swift
+2026-11-20T12:14:46.0897750Z [134/143] Compiling Core PluginInventoryFixtureSignal.swift
+2026-11-20T12:14:46.0900070Z [135/143] Compiling Core PluginInventorySnapshot.swift
+2026-11-20T12:14:46.0900970Z [136/143] Compiling Core PluginKindCounts.swift
+2026-11-20T12:14:46.0901910Z [137/143] Compiling Core ReportExporter.swift
+2026-11-20T12:14:46.0903010Z [138/143] Compiling Core ReportSerialization.swift
+2026-11-20T12:14:46.0903980Z [139/143] Compiling Core ReportBuilder.swift
+2026-11-20T12:14:46.0905000Z [140/143] Compiling Core ReportService.swift
+2026-11-20T12:14:46.0906050Z [141/143] Compiling Core ReportValidator.swift
+2026-11-20T12:15:04.3312560Z [142/178] Emitting module Stage2Tests
+2026-11-20T12:15:04.3412490Z [143/178] Compiling Stage2Tests EngineC2E-RegressionPlanTests.swift
+2026-11-20T12:15:04.3514540Z [144/178] Compiling Stage2Tests EngineC2E-RegressionRegistry.swift
+2026-11-20T12:15:04.3538830Z [145/178] Compiling Stage2Tests EngineC2EvidenceTraceTests.swift
+2026-11-20T12:15:04.3551310Z [146/178] Compiling Stage2Tests EngineC2RouteSymmetryTests.swift
+2026-11-20T12:15:04.3595100Z [147/178] Compiling Stage2Tests EnvironmentDetectionTests.swift
+2026-11-20T12:15:04.3642530Z [148/178] Compiling Stage2Tests FilterParseEngineTests.swift
+2026-11-20T12:15:04.3651270Z [149/178] Compiling Stage2Tests FilterParseResultTests.swift
+2026-11-20T12:15:04.3660750Z [150/178] Compiling Stage2Tests GUIPresentationTests.swift
+2026-11-20T12:15:04.3686210Z [151/178] Compiling Stage2Tests JBRootCandidateCollectionTests.swift
+2026-11-20T12:15:04.3693540Z [152/178] Compiling Stage2Tests JBRootValidationTests.swift
+2026-11-20T12:15:04.3700480Z [153/178] Compiling Stage2Tests ModelsCodableTests.swift
+2026-11-20T12:15:04.3717870Z [154/178] Compiling Stage2Tests PermissionProbeEvidenceTests.swift
+2026-11-20T12:15:04.3721960Z [155/178] Compiling Stage2Tests PermissionProbePresentationTests.swift
+2026-11-20T12:15:04.3744030Z [156/178] Compiling Stage2Tests PermissionProbeProbeTests.swift
+2026-11-20T12:15:04.3792520Z [157/178] Compiling Stage2Tests PermissionProbeReportTests.swift
+2026-11-20T12:15:04.3824890Z [158/178] Compiling Stage2Tests PermissionProbeStatusTests.swift
+2026-11-20T12:15:04.3829730Z [159/178] Compiling Stage2Tests PlistDecoderTests.swift
+2026-11-20T12:15:04.3836410Z [160/178] Compiling Stage2Tests B5DeterminismTests.swift
+2026-11-20T12:15:04.3844660Z [161/178] Compiling Stage2Tests B5FixtureComparisonTests.swift
+2026-11-20T12:15:04.3857760Z [162/178] Compiling Stage2Tests B5IntegrationTests.swift
+2026-11-20T12:15:04.3861880Z [163/178] Compiling Stage2Tests ElleKitDirectoryTests.swift
+2026-11-20T12:15:04.3869090Z [164/178] Compiling Stage2Tests EngineC1-BaselineLoader.swift
+2026-11-20T12:15:04.3883740Z [165/178] Compiling Stage2Tests EngineC1-BaselineModels.swift
+2026-11-20T12:15:04.3894940Z [166/178] Compiling Stage2Tests EngineC1-BaselineRegistry.swift
+2026-11-20T12:15:04.3912860Z [167/178] Compiling Stage2Tests EngineC1-EngineBaselineTests.swift
+2026-11-20T12:15:04.3929410Z [168/178] Compiling Stage2Tests EngineC1-EngineStubs.swift
+2026-11-20T12:15:04.3945140Z [169/178] Compiling Stage2Tests EngineC1-ParserBaselineTests.swift
+2026-11-20T12:15:04.3957140Z [170/178] Compiling Stage2Tests EngineC1-ResultComparator.swift
+2026-11-20T12:15:04.3966740Z [171/178] Compiling Stage2Tests EngineC2-BatchIsolationTests.swift
+2026-11-20T12:15:04.3975040Z [172/178] Compiling Stage2Tests EngineC2-EndToEndTests.swift
+2026-11-20T12:15:04.3978390Z [173/178] Compiling Stage2Tests EngineC2-SnapshotWarningsTests.swift
+2026-11-20T12:15:04.3986450Z [174/178] Compiling Stage2Tests EngineC2-TestSupport.swift
+2026-11-20T12:15:04.3989730Z [175/178] Compiling Stage2Tests EngineC2BaselineIntegrationTests.swift
+2026-11-20T12:15:04.3992720Z [176/178] Compiling Stage2Tests EngineC2CombinedScenarioTests.swift
+2026-11-20T12:15:08.7123880Z [177/195] Compiling Stage2Tests PlistReaderTests.swift
+2026-11-20T12:15:08.7126610Z [178/195] Compiling Stage2Tests PlistValueKindTests.swift
+2026-11-20T12:15:08.7127630Z [179/195] Compiling Stage2Tests PluginEnumerationTests.swift
+2026-11-20T12:15:08.7128230Z [180/195] Compiling Stage2Tests PluginInventoryCodableTests.swift
+2026-11-20T12:15:08.7134440Z [181/195] Compiling Stage2Tests PluginPairingCodableTests.swift
+2026-11-20T12:15:08.7136460Z [182/195] Compiling Stage2Tests PluginPairingEngineTests.swift
+2026-11-20T12:15:08.7138100Z [183/195] Compiling Stage2Tests PluginPairingIndexTests.swift
+2026-11-20T12:15:08.7140100Z [184/195] Compiling Stage2Tests PluginPairingIntegrationTests.swift
+2026-11-20T12:15:08.7141830Z [185/195] Compiling Stage2Tests PluginPairingKeyTests.swift
+2026-11-20T12:15:08.7143500Z [186/195] Compiling Stage2Tests PluginPairingS105FixtureTests.swift
+2026-11-20T12:15:08.7145530Z [187/195] Compiling Stage2Tests ReportBuilderTests.swift
+2026-11-20T12:15:08.7146940Z [188/195] Compiling Stage2Tests ReportExporterTests.swift
+2026-11-20T12:15:08.7148330Z [189/195] Compiling Stage2Tests ReportServiceTests.swift
+2026-11-20T12:15:08.7149490Z [190/195] Compiling Stage2Tests ReportValidatorTests.swift
+2026-11-20T12:15:08.7150800Z [191/195] Compiling Stage2Tests RootHideFilterParserTests.swift
+2026-11-20T12:15:08.7152280Z [192/195] Compiling Stage2Tests RootlessFilterParserTests.swift
+2026-11-20T12:15:08.7153790Z [193/195] Compiling Stage2Tests S105FixtureLoader.swift
+2026-11-20T12:15:10.5112670Z [194/197] Emitting module FilterKitPackageTests
+2026-11-20T12:15:10.5215320Z [195/197] Compiling FilterKitPackageTests runner.swift
+2026-11-20T12:15:10.5317910Z [195/197] Write Objects.LinkFileList
+2026-11-20T12:15:11.5371050Z [196/197] Linking FilterKitPackageTests
+2026-11-20T12:15:11.5396440Z Build complete! (38.59s)
+2026-11-20T12:15:12.2989000Z Test Suite 'All tests' started at 2026-11-20 12:15:12.209.
+2026-11-20T12:15:12.3089420Z Test Suite 'FilterKitPackageTests.xctest' started at 2026-11-20 12:15:12.222.
+2026-11-20T12:15:12.3190210Z Test Suite 'B5DeterminismTests' started at 2026-11-20 12:15:12.222.
+2026-11-20T12:15:12.3292290Z Test Case '-[Stage2Tests.B5DeterminismTests testBridgeDeterminism]' started.
+2026-11-20T12:15:12.3455550Z Test Case '-[Stage2Tests.B5DeterminismTests testBridgeDeterminism]' passed (0.004 seconds).
+2026-11-20T12:15:12.3558760Z Test Case '-[Stage2Tests.B5DeterminismTests testDirectoryResolverDeterminism]' started.
+2026-11-20T12:15:12.3661760Z Test Case '-[Stage2Tests.B5DeterminismTests testDirectoryResolverDeterminism]' passed (0.001 seconds).
+2026-11-20T12:15:12.3783200Z Test Case '-[Stage2Tests.B5DeterminismTests testEnvironmentRouteMapperCasesAndDeterminism]' started.
+2026-11-20T12:15:12.3889370Z Test Case '-[Stage2Tests.B5DeterminismTests testEnvironmentRouteMapperCasesAndDeterminism]' passed (0.000 seconds).
+2026-11-20T12:15:12.3992740Z Test Case '-[Stage2Tests.B5DeterminismTests testJBResolverDeterminism]' started.
+2026-11-20T12:15:12.4095580Z Test Case '-[Stage2Tests.B5DeterminismTests testJBResolverDeterminism]' passed (0.001 seconds).
+2026-11-20T12:15:12.4207720Z Test Case '-[Stage2Tests.B5DeterminismTests testPipelineDeterminism]' started.
+2026-11-20T12:15:12.4309160Z Test Case '-[Stage2Tests.B5DeterminismTests testPipelineDeterminism]' passed (0.000 seconds).
+2026-11-20T12:15:12.4415560Z Test Case '-[Stage2Tests.B5DeterminismTests testPipelineInputCodableRoundTripAndStableEncoding]' started.
+2026-11-20T12:15:12.4535310Z Test Case '-[Stage2Tests.B5DeterminismTests testPipelineInputCodableRoundTripAndStableEncoding]' passed (0.000 seconds).
+2026-11-20T12:15:12.4637940Z Test Suite 'B5DeterminismTests' passed at 2026-11-20 12:15:12.230.
+2026-11-20T12:15:12.4739100Z 	 Executed 6 tests, with 0 failures (0 unexpected) in 0.007 (0.008) seconds
+2026-11-20T12:15:12.4849370Z Test Suite 'B5FixtureComparisonTests' started at 2026-11-20 12:15:12.230.
+2026-11-20T12:15:12.4951610Z Test Case '-[Stage2Tests.B5FixtureComparisonTests testS101FixturesDeepComparison]' started.
+2026-11-20T12:15:12.5067850Z Test Case '-[Stage2Tests.B5FixtureComparisonTests testS101FixturesDeepComparison]' passed (0.005 seconds).
+2026-11-20T12:15:12.5195810Z Test Case '-[Stage2Tests.B5FixtureComparisonTests testS102CollectorDeepComparison]' started.
+2026-11-20T12:15:12.5300110Z Test Case '-[Stage2Tests.B5FixtureComparisonTests testS102CollectorDeepComparison]' passed (0.001 seconds).
+2026-11-20T12:15:12.5404900Z Test Case '-[Stage2Tests.B5FixtureComparisonTests testS102FixturesDeepComparison]' started.
+2026-11-20T12:15:12.5510050Z Test Case '-[Stage2Tests.B5FixtureComparisonTests testS102FixturesDeepComparison]' passed (0.002 seconds).
+2026-11-20T12:15:12.5612310Z Test Case '-[Stage2Tests.B5FixtureComparisonTests testS103FixturesDeepComparison]' started.
+2026-11-20T12:15:12.5713740Z Test Case '-[Stage2Tests.B5FixtureComparisonTests testS103FixturesDeepComparison]' passed (0.002 seconds).
+2026-11-20T12:15:12.5816120Z Test Suite 'B5FixtureComparisonTests' passed at 2026-11-20 12:15:12.242.
+2026-11-20T12:15:12.5917520Z 	 Executed 4 tests, with 0 failures (0 unexpected) in 0.010 (0.011) seconds
+2026-11-20T12:15:12.6018350Z Test Suite 'B5IntegrationTests' started at 2026-11-20 12:15:12.242.
+2026-11-20T12:15:12.6118730Z Test Case '-[Stage2Tests.B5IntegrationTests testINT001ValidRootHideResolved]' started.
+2026-11-20T12:15:12.6219660Z Test Case '-[Stage2Tests.B5IntegrationTests testINT001ValidRootHideResolved]' passed (0.000 seconds).
+2026-11-20T12:15:12.6321560Z Test Case '-[Stage2Tests.B5IntegrationTests testINT002AmbiguousDoesNotSelectCandidate]' started.
+2026-11-20T12:15:12.6434390Z Test Case '-[Stage2Tests.B5IntegrationTests testINT002AmbiguousDoesNotSelectCandidate]' passed (0.000 seconds).
+2026-11-20T12:15:12.6536760Z Test Case '-[Stage2Tests.B5IntegrationTests testINT003NoValidJBRootNoFallback]' started.
+2026-11-20T12:15:12.6637800Z Test Case '-[Stage2Tests.B5IntegrationTests testINT003NoValidJBRootNoFallback]' passed (0.000 seconds).
+2026-11-20T12:15:12.6851640Z Test Case '-[Stage2Tests.B5IntegrationTests testINT004RootlessIndependentPath]' started.
+2026-11-20T12:15:12.7077770Z Test Case '-[Stage2Tests.B5IntegrationTests testINT004RootlessIndependentPath]' passed (0.000 seconds).
+2026-11-20T12:15:12.7190600Z Test Case '-[Stage2Tests.B5IntegrationTests testINT005RootfulDiagnosticOnly]' started.
+2026-11-20T12:15:12.7292360Z Test Case '-[Stage2Tests.B5IntegrationTests testINT005RootfulDiagnosticOnly]' passed (0.000 seconds).
+2026-11-20T12:15:12.7395770Z Test Case '-[Stage2Tests.B5IntegrationTests testINT006ValidationFailureNoConfirmedPath]' started.
+2026-11-20T12:15:12.7497420Z Test Case '-[Stage2Tests.B5IntegrationTests testINT006ValidationFailureNoConfirmedPath]' passed (0.000 seconds).
+2026-11-20T12:15:12.8606110Z Test Case '-[Stage2Tests.B5IntegrationTests testINT007TweakInjectNotFoundPreserved]' started.
+2026-11-20T12:15:12.8607010Z Test Case '-[Stage2Tests.B5IntegrationTests testINT007TweakInjectNotFoundPreserved]' passed (0.000 seconds).
+2026-11-20T12:15:12.8709350Z Test Case '-[Stage2Tests.B5IntegrationTests testINT008BrokenSymlinkPreserved]' started.
+2026-11-20T12:15:12.8834840Z Test Case '-[Stage2Tests.B5IntegrationTests testINT008BrokenSymlinkPreserved]' passed (0.000 seconds).
+2026-11-20T12:15:12.8939250Z Test Case '-[Stage2Tests.B5IntegrationTests testINT009DeniedSymlinkPreserved]' started.
+2026-11-20T12:15:12.9041520Z Test Case '-[Stage2Tests.B5IntegrationTests testINT009DeniedSymlinkPreserved]' passed (0.000 seconds).
+2026-11-20T12:15:12.9140840Z Test Case '-[Stage2Tests.B5IntegrationTests testINT010UnverifiedFieldsRemainNil]' started.
+2026-11-20T12:15:12.9242920Z Test Case '-[Stage2Tests.B5IntegrationTests testINT010UnverifiedFieldsRemainNil]' passed (0.000 seconds).
+2026-11-20T12:15:12.9344120Z Test Suite 'B5IntegrationTests' passed at 2026-11-20 12:15:12.246.
+2026-11-20T12:15:12.9448200Z 	 Executed 10 tests, with 0 failures (0 unexpected) in 0.003 (0.004) seconds
+2026-11-20T12:15:12.9549320Z Test Suite 'ElleKitDirectoryTests' started at 2026-11-20 12:15:12.246.
+2026-11-20T12:15:12.9652910Z Test Case '-[Stage2Tests.ElleKitDirectoryTests testDeterminismDIR012]' started.
+2026-11-20T12:15:12.9755380Z Test Case '-[Stage2Tests.ElleKitDirectoryTests testDeterminismDIR012]' passed (0.000 seconds).
+2026-11-20T12:15:12.9858980Z Test Case '-[Stage2Tests.ElleKitDirectoryTests testEvidenceCodableRoundTrip]' started.
+2026-11-20T12:15:12.9962400Z Test Case '-[Stage2Tests.ElleKitDirectoryTests testEvidenceCodableRoundTrip]' passed (0.000 seconds).
+2026-11-20T12:15:13.0077880Z Test Case '-[Stage2Tests.ElleKitDirectoryTests testIdMismatchDIR013]' started.
+2026-11-20T12:15:13.0179280Z Test Case '-[Stage2Tests.ElleKitDirectoryTests testIdMismatchDIR013]' passed (0.000 seconds).
+2026-11-20T12:15:13.0280610Z Test Case '-[Stage2Tests.ElleKitDirectoryTests testRhBrokenLinkPartial]' started.
+2026-11-20T12:15:13.0392260Z Test Case '-[Stage2Tests.ElleKitDirectoryTests testRhBrokenLinkPartial]' passed (0.000 seconds).
+2026-11-20T12:15:13.0494950Z Test Case '-[Stage2Tests.ElleKitDirectoryTests testRhLoopPartial]' started.
+2026-11-20T12:15:13.0596190Z Test Case '-[Stage2Tests.ElleKitDirectoryTests testRhLoopPartial]' passed (0.000 seconds).
+2026-11-20T12:15:13.0697800Z Test Case '-[Stage2Tests.ElleKitDirectoryTests testRhMissingNotFound]' started.
+2026-11-20T12:15:13.0799240Z Test Case '-[Stage2Tests.ElleKitDirectoryTests testRhMissingNotFound]' passed (0.000 seconds).
+2026-11-20T12:15:13.0899740Z Test Case '-[Stage2Tests.ElleKitDirectoryTests testRhNotSymlinkPartial]' started.
+2026-11-20T12:15:13.1001090Z Test Case '-[Stage2Tests.ElleKitDirectoryTests testRhNotSymlinkPartial]' passed (0.000 seconds).
+2026-11-20T12:15:13.1102540Z Test Case '-[Stage2Tests.ElleKitDirectoryTests testRhTargetDeniedPartial]' started.
+2026-11-20T12:15:13.1203900Z Test Case '-[Stage2Tests.ElleKitDirectoryTests testRhTargetDeniedPartial]' passed (0.000 seconds).
+2026-11-20T12:15:13.1305460Z Test Case '-[Stage2Tests.ElleKitDirectoryTests testRhUnreadablePartialLayered]' started.
+2026-11-20T12:15:13.1406800Z Test Case '-[Stage2Tests.ElleKitDirectoryTests testRhUnreadablePartialLayered]' passed (0.000 seconds).
+2026-11-20T12:15:13.1507960Z Test Case '-[Stage2Tests.ElleKitDirectoryTests testRhValidResolved]' started.
+2026-11-20T12:15:13.1609170Z Test Case '-[Stage2Tests.ElleKitDirectoryTests testRhValidResolved]' passed (0.000 seconds).
+2026-11-20T12:15:13.1711830Z Test Case '-[Stage2Tests.ElleKitDirectoryTests testRootfulDiagnostic]' started.
+2026-11-20T12:15:13.1813130Z Test Case '-[Stage2Tests.ElleKitDirectoryTests testRootfulDiagnostic]' passed (0.000 seconds).
+2026-11-20T12:15:13.1913320Z Test Case '-[Stage2Tests.ElleKitDirectoryTests testRootlessValidResolved]' started.
+2026-11-20T12:15:13.2015030Z Test Case '-[Stage2Tests.ElleKitDirectoryTests testRootlessValidResolved]' passed (0.000 seconds).
+2026-11-20T12:15:13.2115550Z Test Case '-[Stage2Tests.ElleKitDirectoryTests testRouteFallbackGuardNoLeak]' started.
+2026-11-20T12:15:13.2216880Z Test Case '-[Stage2Tests.ElleKitDirectoryTests testRouteFallbackGuardNoLeak]' passed (0.000 seconds).
+2026-11-20T12:15:13.2317870Z Test Case '-[Stage2Tests.ElleKitDirectoryTests testStructureConflict]' started.
+2026-11-20T12:15:13.2418900Z Test Case '-[Stage2Tests.ElleKitDirectoryTests testStructureConflict]' passed (0.001 seconds).
+2026-11-20T12:15:13.2519900Z Test Case '-[Stage2Tests.ElleKitDirectoryTests testThreeStatePreservedAndRouteCoverage]' started.
+2026-11-20T12:15:13.2620260Z Test Case '-[Stage2Tests.ElleKitDirectoryTests testThreeStatePreservedAndRouteCoverage]' passed (0.000 seconds).
+2026-11-20T12:15:13.2720920Z Test Suite 'ElleKitDirectoryTests' passed at 2026-11-20 12:15:12.253.
+2026-11-20T12:15:13.2821650Z 	 Executed 15 tests, with 0 failures (0 unexpected) in 0.005 (0.007) seconds
+2026-11-20T12:15:13.2922310Z Test Suite 'EngineC1EngineBaselineTests' started at 2026-11-20 12:15:12.253.
+2026-11-20T12:15:13.3023180Z Test Case '-[Stage2Tests.EngineC1EngineBaselineTests testEngineDeterminismDeepEqual]' started.
+2026-11-20T12:15:13.3123950Z Test Case '-[Stage2Tests.EngineC1EngineBaselineTests testEngineDeterminismDeepEqual]' passed (0.001 seconds).
+2026-11-20T12:15:13.3224330Z Test Case '-[Stage2Tests.EngineC1EngineBaselineTests testFixtureEngineBaselines]' started.
+2026-11-20T12:15:13.3325200Z Test Case '-[Stage2Tests.EngineC1EngineBaselineTests testFixtureEngineBaselines]' passed (0.007 seconds).
+2026-11-20T12:15:13.3425740Z Test Case '-[Stage2Tests.EngineC1EngineBaselineTests testPartialCorruptKeepsGoodAndCounts]' started.
+2026-11-20T12:15:13.3526230Z Test Case '-[Stage2Tests.EngineC1EngineBaselineTests testPartialCorruptKeepsGoodAndCounts]' passed (0.001 seconds).
+2026-11-20T12:15:13.3628050Z Test Case '-[Stage2Tests.EngineC1EngineBaselineTests testRouteGuardUnresolvedCallsNothing]' started.
+2026-11-20T12:15:13.3728390Z Test Case '-[Stage2Tests.EngineC1EngineBaselineTests testRouteGuardUnresolvedCallsNothing]' passed (0.000 seconds).
+2026-11-20T12:15:13.3829890Z Test Case '-[Stage2Tests.EngineC1EngineBaselineTests testUnknownRouteIsolationZeroCalls]' started.
+2026-11-20T12:15:13.3931390Z Test Case '-[Stage2Tests.EngineC1EngineBaselineTests testUnknownRouteIsolationZeroCalls]' passed (0.000 seconds).
+2026-11-20T12:15:13.4032360Z Test Case '-[Stage2Tests.EngineC1EngineBaselineTests testUpstreamSnapshotNotMutated]' started.
+2026-11-20T12:15:13.4133440Z Test Case '-[Stage2Tests.EngineC1EngineBaselineTests testUpstreamSnapshotNotMutated]' passed (0.001 seconds).
+2026-11-20T12:15:13.4233990Z Test Case '-[Stage2Tests.EngineC1EngineBaselineTests testUpstreamUnknownItemsPreserved]' started.
+2026-11-20T12:15:13.4335510Z Test Case '-[Stage2Tests.EngineC1EngineBaselineTests testUpstreamUnknownItemsPreserved]' passed (0.001 seconds).
+2026-11-20T12:15:13.4435760Z Test Suite 'EngineC1EngineBaselineTests' passed at 2026-11-20 12:15:12.264.
+2026-11-20T12:15:13.4536470Z 	 Executed 7 tests, with 0 failures (0 unexpected) in 0.011 (0.012) seconds
+2026-11-20T12:15:13.4637360Z Test Suite 'EngineC1ParserBaselineTests' started at 2026-11-20 12:15:12.264.
+2026-11-20T12:15:13.4738090Z Test Case '-[Stage2Tests.EngineC1ParserBaselineTests testParse010MixedTypeEvidence]' started.
+2026-11-20T12:15:13.4838830Z Test Case '-[Stage2Tests.EngineC1ParserBaselineTests testParse010MixedTypeEvidence]' passed (0.000 seconds).
+2026-11-20T12:15:13.4939460Z Test Case '-[Stage2Tests.EngineC1ParserBaselineTests testRegistryHasTwentyTwoUniqueCases]' started.
+2026-11-20T12:15:13.5040220Z Test Case '-[Stage2Tests.EngineC1ParserBaselineTests testRegistryHasTwentyTwoUniqueCases]' passed (0.000 seconds).
+2026-11-20T12:15:13.5140810Z Test Case '-[Stage2Tests.EngineC1ParserBaselineTests testRootHideDeterminismDeepEqual]' started.
+2026-11-20T12:15:13.5241870Z Test Case '-[Stage2Tests.EngineC1ParserBaselineTests testRootHideDeterminismDeepEqual]' passed (0.001 seconds).
+2026-11-20T12:15:13.5342030Z Test Case '-[Stage2Tests.EngineC1ParserBaselineTests testRootHideFixtureBaselines]' started.
+2026-11-20T12:15:13.5442880Z Test Case '-[Stage2Tests.EngineC1ParserBaselineTests testRootHideFixtureBaselines]' passed (0.004 seconds).
+2026-11-20T12:15:13.5524060Z Test Case '-[Stage2Tests.EngineC1ParserBaselineTests testRootHideMultiRuleCombined]' started.
+2026-11-20T12:15:13.5617250Z Test Case '-[Stage2Tests.EngineC1ParserBaselineTests testRootHideMultiRuleCombined]' passed (0.000 seconds).
+2026-11-20T12:15:13.5661530Z Test Case '-[Stage2Tests.EngineC1ParserBaselineTests testRootHideSyntheticBaselines]' started.
+2026-11-20T12:15:13.5686070Z Test Case '-[Stage2Tests.EngineC1ParserBaselineTests testRootHideSyntheticBaselines]' passed (0.001 seconds).
+2026-11-20T12:15:13.5687300Z Test Case '-[Stage2Tests.EngineC1ParserBaselineTests testRootHideXmlValidFullRule]' started.
+2026-11-20T12:15:13.5688620Z Test Case '-[Stage2Tests.EngineC1ParserBaselineTests testRootHideXmlValidFullRule]' passed (0.001 seconds).
+2026-11-20T12:15:13.5691310Z Test Case '-[Stage2Tests.EngineC1ParserBaselineTests testRootlessBaselineThroughParser]' started.
+2026-11-20T12:15:13.5693450Z Test Case '-[Stage2Tests.EngineC1ParserBaselineTests testRootlessBaselineThroughParser]' passed (0.001 seconds).
+2026-11-20T12:15:13.5694870Z Test Suite 'EngineC1ParserBaselineTests' passed at 2026-11-20 12:15:12.273.
+2026-11-20T12:15:13.5695690Z 	 Executed 8 tests, with 0 failures (0 unexpected) in 0.007 (0.009) seconds
+2026-11-20T12:15:13.5697730Z Test Suite 'EngineC2BaselineIntegrationTests' started at 2026-11-20 12:15:12.273.
+2026-11-20T12:15:13.5700770Z Test Case '-[Stage2Tests.EngineC2BaselineIntegrationTests testBaselinesRunThroughFullEngineChain]' started.
+2026-11-20T12:15:13.5702780Z Test Case '-[Stage2Tests.EngineC2BaselineIntegrationTests testBaselinesRunThroughFullEngineChain]' passed (0.004 seconds).
+2026-11-20T12:15:13.5704840Z Test Case '-[Stage2Tests.EngineC2BaselineIntegrationTests testEngineChainMatchesDirectParserForRootHide]' started.
+2026-11-20T12:15:13.5707000Z Test Case '-[Stage2Tests.EngineC2BaselineIntegrationTests testEngineChainMatchesDirectParserForRootHide]' passed (0.006 seconds).
+2026-11-20T12:15:13.5708710Z Test Suite 'EngineC2BaselineIntegrationTests' passed at 2026-11-20 12:15:12.284.
+2026-11-20T12:15:13.5709960Z 	 Executed 2 tests, with 0 failures (0 unexpected) in 0.010 (0.011) seconds
+2026-11-20T12:15:13.5711100Z Test Suite 'EngineC2BatchIsolationTests' started at 2026-11-20 12:15:12.284.
+2026-11-20T12:15:13.5712610Z Test Case '-[Stage2Tests.EngineC2BatchIsolationTests testFailureDoesNotStopFollowingPlugins]' started.
+2026-11-20T12:15:13.5714480Z Test Case '-[Stage2Tests.EngineC2BatchIsolationTests testFailureDoesNotStopFollowingPlugins]' passed (0.001 seconds).
+2026-11-20T12:15:13.5716290Z Test Case '-[Stage2Tests.EngineC2BatchIsolationTests testMixedFivePluginSingleBatch]' started.
+2026-11-20T12:15:13.5718310Z Test Case '-[Stage2Tests.EngineC2BatchIsolationTests testMixedFivePluginSingleBatch]' passed (0.000 seconds).
+2026-11-20T12:15:13.5720190Z Test Case '-[Stage2Tests.EngineC2BatchIsolationTests testStatesAreMutexAndFilterOwnedByValidOnly]' started.
+2026-11-20T12:15:13.5722380Z Test Case '-[Stage2Tests.EngineC2BatchIsolationTests testStatesAreMutexAndFilterOwnedByValidOnly]' passed (0.000 seconds).
+2026-11-20T12:15:13.5724260Z Test Case '-[Stage2Tests.EngineC2BatchIsolationTests testStatesTransferWithoutConversion]' started.
+2026-11-20T12:15:13.5726140Z Test Case '-[Stage2Tests.EngineC2BatchIsolationTests testStatesTransferWithoutConversion]' passed (0.000 seconds).
+2026-11-20T12:15:13.5727760Z Test Suite 'EngineC2BatchIsolationTests' passed at 2026-11-20 12:15:12.287.
+2026-11-20T12:15:13.5729000Z 	 Executed 4 tests, with 0 failures (0 unexpected) in 0.002 (0.003) seconds
+2026-11-20T12:15:13.5730240Z Test Suite 'EngineC2CombinedScenarioTests' started at 2026-11-20 12:15:12.287.
+2026-11-20T12:15:13.5731780Z Test Case '-[Stage2Tests.EngineC2CombinedScenarioTests testCombinedInputSnapshotNotMutated]' started.
+2026-11-20T12:15:13.5734820Z Test Case '-[Stage2Tests.EngineC2CombinedScenarioTests testCombinedInputSnapshotNotMutated]' passed (0.000 seconds).
+2026-11-20T12:15:13.5736740Z Test Case '-[Stage2Tests.EngineC2CombinedScenarioTests testCombinedMixedStatesSingleBatch]' started.
+2026-11-20T12:15:13.5738630Z Test Case '-[Stage2Tests.EngineC2CombinedScenarioTests testCombinedMixedStatesSingleBatch]' passed (0.000 seconds).
+2026-11-20T12:15:13.5741200Z Test Case '-[Stage2Tests.EngineC2CombinedScenarioTests testCombinedRouteIsolationAcrossSnapshots]' started.
+2026-11-20T12:15:13.5743320Z Test Case '-[Stage2Tests.EngineC2CombinedScenarioTests testCombinedRouteIsolationAcrossSnapshots]' passed (0.000 seconds).
+2026-11-20T12:15:13.5745290Z Test Case '-[Stage2Tests.EngineC2CombinedScenarioTests testCombinedScenarioDeterministicAcrossRepeatedRuns]' started.
+2026-11-20T12:15:13.5747480Z Test Case '-[Stage2Tests.EngineC2CombinedScenarioTests testCombinedScenarioDeterministicAcrossRepeatedRuns]' passed (0.000 seconds).
+2026-11-20T12:15:13.5749510Z Test Case '-[Stage2Tests.EngineC2CombinedScenarioTests testCombinedWarningsAndUnknownItemsPreserved]' started.
+2026-11-20T12:15:13.5751670Z Test Case '-[Stage2Tests.EngineC2CombinedScenarioTests testCombinedWarningsAndUnknownItemsPreserved]' passed (0.000 seconds).
+2026-11-20T12:15:13.5753310Z Test Suite 'EngineC2CombinedScenarioTests' passed at 2026-11-20 12:15:12.289.
+2026-11-20T12:15:13.5759210Z 	 Executed 5 tests, with 0 failures (0 unexpected) in 0.002 (0.002) seconds
+2026-11-20T12:15:13.5760460Z Test Suite 'EngineC2ERegressionPlanTests' started at 2026-11-20 12:15:12.289.
+2026-11-20T12:15:13.5763020Z Test Case '-[Stage2Tests.EngineC2ERegressionPlanTests testC1BaselineRegistryRetainsTwentyTwoItems]' started.
+2026-11-20T12:15:13.5764610Z Test Case '-[Stage2Tests.EngineC2ERegressionPlanTests testC1BaselineRegistryRetainsTwentyTwoItems]' passed (0.000 seconds).
+2026-11-20T12:15:13.5765370Z Test Case '-[Stage2Tests.EngineC2ERegressionPlanTests testC2DCasesVerifiedAgainstLatestRun]' started.
+2026-11-20T12:15:13.5766130Z Test Case '-[Stage2Tests.EngineC2ERegressionPlanTests testC2DCasesVerifiedAgainstLatestRun]' passed (0.000 seconds).
+2026-11-20T12:15:13.5766920Z Test Case '-[Stage2Tests.EngineC2ERegressionPlanTests testDependencyReferencesExistingCase]' started.
+2026-11-20T12:15:13.5768130Z Test Case '-[Stage2Tests.EngineC2ERegressionPlanTests testDependencyReferencesExistingCase]' passed (0.000 seconds).
+2026-11-20T12:15:13.5768970Z Test Case '-[Stage2Tests.EngineC2ERegressionPlanTests testEvidenceStateMatchesEvidenceRun]' started.
+2026-11-20T12:15:13.5769810Z Test Case '-[Stage2Tests.EngineC2ERegressionPlanTests testEvidenceStateMatchesEvidenceRun]' passed (0.000 seconds).
+2026-11-20T12:15:13.5770610Z Test Case '-[Stage2Tests.EngineC2ERegressionPlanTests testNoCaseAllowsSkipByDefault]' started.
+2026-11-20T12:15:13.5771340Z Test Case '-[Stage2Tests.EngineC2ERegressionPlanTests testNoCaseAllowsSkipByDefault]' passed (0.000 seconds).
+2026-11-20T12:15:13.5772160Z Test Case '-[Stage2Tests.EngineC2ERegressionPlanTests testParse009BRemainsIndependentReview]' started.
+2026-11-20T12:15:13.5773020Z Test Case '-[Stage2Tests.EngineC2ERegressionPlanTests testParse009BRemainsIndependentReview]' passed (0.000 seconds).
+2026-11-20T12:15:13.5773850Z Test Case '-[Stage2Tests.EngineC2ERegressionPlanTests testParse015AReleasedFromPendingRunner]' started.
+2026-11-20T12:15:13.5774720Z Test Case '-[Stage2Tests.EngineC2ERegressionPlanTests testParse015AReleasedFromPendingRunner]' passed (0.000 seconds).
+2026-11-20T12:15:13.5775520Z Test Case '-[Stage2Tests.EngineC2ERegressionPlanTests testRegistryCoversAllKnownSuites]' started.
+2026-11-20T12:15:13.5776360Z Test Case '-[Stage2Tests.EngineC2ERegressionPlanTests testRegistryCoversAllKnownSuites]' passed (0.000 seconds).
+2026-11-20T12:15:13.5777090Z Test Case '-[Stage2Tests.EngineC2ERegressionPlanTests testRegressionIDsUnique]' started.
+2026-11-20T12:15:13.5777850Z Test Case '-[Stage2Tests.EngineC2ERegressionPlanTests testRegressionIDsUnique]' passed (0.000 seconds).
+2026-11-20T12:15:13.5779050Z Test Case '-[Stage2Tests.EngineC2ERegressionPlanTests testStage1MappingEntriesPresent]' started.
+2026-11-20T12:15:13.5780260Z Test Case '-[Stage2Tests.EngineC2ERegressionPlanTests testStage1MappingEntriesPresent]' passed (0.001 seconds).
+2026-11-20T12:15:13.5780980Z Test Case '-[Stage2Tests.EngineC2ERegressionPlanTests testSuiteIdentityFieldsPresent]' started.
+2026-11-20T12:15:13.5781650Z Test Case '-[Stage2Tests.EngineC2ERegressionPlanTests testSuiteIdentityFieldsPresent]' passed (0.000 seconds).
+2026-11-20T12:15:13.5782280Z Test Suite 'EngineC2ERegressionPlanTests' passed at 2026-11-20 12:15:12.293.
+2026-11-20T12:15:13.5782790Z 	 Executed 11 tests, with 0 failures (0 unexpected) in 0.003 (0.004) seconds
+2026-11-20T12:15:13.5783310Z Test Suite 'EngineC2EndToEndTests' started at 2026-11-20 12:15:12.293.
+2026-11-20T12:15:13.5783850Z Test Case '-[Stage2Tests.EngineC2EndToEndTests testNonPairedNeverEntersReader]' started.
+2026-11-20T12:15:13.5785020Z Test Case '-[Stage2Tests.EngineC2EndToEndTests testNonPairedNeverEntersReader]' passed (0.000 seconds).
+2026-11-20T12:15:13.5785840Z Test Case '-[Stage2Tests.EngineC2EndToEndTests testRootHideMultiPluginMixedStatusEndToEnd]' started.
+2026-11-20T12:15:13.5787690Z Test Case '-[Stage2Tests.EngineC2EndToEndTests testRootHideMultiPluginMixedStatusEndToEnd]' passed (0.000 seconds).
+2026-11-20T12:15:13.5790110Z Test Case '-[Stage2Tests.EngineC2EndToEndTests testRootHideMultiPluginValidEndToEnd]' started.
+2026-11-20T12:15:13.5791780Z Test Case '-[Stage2Tests.EngineC2EndToEndTests testRootHideMultiPluginValidEndToEnd]' passed (0.000 seconds).
+2026-11-20T12:15:13.5794280Z Test Case '-[Stage2Tests.EngineC2EndToEndTests testRootHideSingleValidEndToEnd]' started.
+2026-11-20T12:15:13.5795830Z Test Case '-[Stage2Tests.EngineC2EndToEndTests testRootHideSingleValidEndToEnd]' passed (0.000 seconds).
+2026-11-20T12:15:13.5797350Z Test Case '-[Stage2Tests.EngineC2EndToEndTests testRootlessSymmetricEndToEnd]' started.
+2026-11-20T12:15:13.5798950Z Test Case '-[Stage2Tests.EngineC2EndToEndTests testRootlessSymmetricEndToEnd]' passed (0.001 seconds).
+2026-11-20T12:15:13.5802860Z Test Case '-[Stage2Tests.EngineC2EndToEndTests testUnknownRouteNeverEntersDownstream]' started.
+2026-11-20T12:15:13.5804930Z Test Case '-[Stage2Tests.EngineC2EndToEndTests testUnknownRouteNeverEntersDownstream]' passed (0.000 seconds).
+2026-11-20T12:15:13.5806380Z Test Suite 'EngineC2EndToEndTests' passed at 2026-11-20 12:15:12.296.
+2026-11-20T12:15:13.5807390Z 	 Executed 6 tests, with 0 failures (0 unexpected) in 0.002 (0.003) seconds
+2026-11-20T12:15:13.5808590Z Test Suite 'EngineC2EvidenceTraceTests' started at 2026-11-20 12:15:12.296.
+2026-11-20T12:15:13.5810180Z Test Case '-[Stage2Tests.EngineC2EvidenceTraceTests testAccessDeniedCarriesReaderSpecificReason]' started.
+2026-11-20T12:15:13.5812140Z Test Case '-[Stage2Tests.EngineC2EvidenceTraceTests testAccessDeniedCarriesReaderSpecificReason]' passed (0.000 seconds).
+2026-11-20T12:15:13.5814090Z Test Case '-[Stage2Tests.EngineC2EvidenceTraceTests testDecoderFailureStopsBeforeParser]' started.
+2026-11-20T12:15:13.5815780Z Test Case '-[Stage2Tests.EngineC2EvidenceTraceTests testDecoderFailureStopsBeforeParser]' passed (0.000 seconds).
+2026-11-20T12:15:13.5817600Z Test Case '-[Stage2Tests.EngineC2EvidenceTraceTests testNoFailureStateCarriesValidRule]' started.
+2026-11-20T12:15:13.5819350Z Test Case '-[Stage2Tests.EngineC2EvidenceTraceTests testNoFailureStateCarriesValidRule]' passed (0.000 seconds).
+2026-11-20T12:15:13.5821740Z Test Case '-[Stage2Tests.EngineC2EvidenceTraceTests testNonPairedRecordBecomesUnknownItemWithoutReader]' started.
+2026-11-20T12:15:13.5823950Z Test Case '-[Stage2Tests.EngineC2EvidenceTraceTests testNonPairedRecordBecomesUnknownItemWithoutReader]' passed (0.000 seconds).
+2026-11-20T12:15:13.5827130Z Test Case '-[Stage2Tests.EngineC2EvidenceTraceTests testReadFailureStopsBeforeDecoderAndParser]' started.
+2026-11-20T12:15:13.5828900Z Test Case '-[Stage2Tests.EngineC2EvidenceTraceTests testReadFailureStopsBeforeDecoderAndParser]' passed (0.000 seconds).
+2026-11-20T12:15:13.5833470Z Test Case '-[Stage2Tests.EngineC2EvidenceTraceTests testTypeMismatchCarriesFieldLevelSkippedEvidence]' started.
+2026-11-20T12:15:13.5836620Z Test Case '-[Stage2Tests.EngineC2EvidenceTraceTests testTypeMismatchCarriesFieldLevelSkippedEvidence]' passed (0.000 seconds).
+2026-11-20T12:15:13.5839860Z Test Case '-[Stage2Tests.EngineC2EvidenceTraceTests testUnknownRouteRecordBecomesUnknownItemWithoutRetry]' started.
+2026-11-20T12:15:13.5849500Z Test Case '-[Stage2Tests.EngineC2EvidenceTraceTests testUnknownRouteRecordBecomesUnknownItemWithoutRetry]' passed (0.000 seconds).
+2026-11-20T12:15:13.5853160Z Test Case '-[Stage2Tests.EngineC2EvidenceTraceTests testValidEntryCarriesFullIdentityEvidence]' started.
+2026-11-20T12:15:13.5856070Z Test Case '-[Stage2Tests.EngineC2EvidenceTraceTests testValidEntryCarriesFullIdentityEvidence]' passed (0.000 seconds).
+2026-11-20T12:15:13.5858190Z Test Suite 'EngineC2EvidenceTraceTests' passed at 2026-11-20 12:15:12.299.
+2026-11-20T12:15:13.5858800Z 	 Executed 8 tests, with 0 failures (0 unexpected) in 0.002 (0.003) seconds
+2026-11-20T12:15:13.5859220Z Test Suite 'EngineC2RouteSymmetryTests' started at 2026-11-20 12:15:12.299.
+2026-11-20T12:15:13.5859770Z Test Case '-[Stage2Tests.EngineC2RouteSymmetryTests testBothRoutesShareCommonFilterRuleModel]' started.
+2026-11-20T12:15:13.5860700Z Test Case '-[Stage2Tests.EngineC2RouteSymmetryTests testBothRoutesShareCommonFilterRuleModel]' passed (0.000 seconds).
+2026-11-20T12:15:13.5861510Z Test Case '-[Stage2Tests.EngineC2RouteSymmetryTests testRootHideRouteSelectsHideParserOnly]' started.
+2026-11-20T12:15:13.5862960Z Test Case '-[Stage2Tests.EngineC2RouteSymmetryTests testRootHideRouteSelectsHideParserOnly]' passed (0.000 seconds).
+2026-11-20T12:15:13.5864780Z Test Case '-[Stage2Tests.EngineC2RouteSymmetryTests testRootHideStrictTypeFailureIsTypeMismatch]' started.
+2026-11-20T12:15:13.5865500Z Test Case '-[Stage2Tests.EngineC2RouteSymmetryTests testRootHideStrictTypeFailureIsTypeMismatch]' passed (0.000 seconds).
+2026-11-20T12:15:13.5866180Z Test Case '-[Stage2Tests.EngineC2RouteSymmetryTests testRootlessCodableFailureIsParseFailed]' started.
+2026-11-20T12:15:13.5867020Z Test Case '-[Stage2Tests.EngineC2RouteSymmetryTests testRootlessCodableFailureIsParseFailed]' passed (0.000 seconds).
+2026-11-20T12:15:13.5867660Z Test Case '-[Stage2Tests.EngineC2RouteSymmetryTests testRootlessRouteSelectsLessParserOnly]' started.
+2026-11-20T12:15:13.5868380Z Test Case '-[Stage2Tests.EngineC2RouteSymmetryTests testRootlessRouteSelectsLessParserOnly]' passed (0.000 seconds).
+2026-11-20T12:15:13.5869040Z Test Case '-[Stage2Tests.EngineC2RouteSymmetryTests testRouteSelectionDoesNotCrossFallback]' started.
+2026-11-20T12:15:13.5869750Z Test Case '-[Stage2Tests.EngineC2RouteSymmetryTests testRouteSelectionDoesNotCrossFallback]' passed (0.000 seconds).
+2026-11-20T12:15:13.5870290Z Test Suite 'EngineC2RouteSymmetryTests' passed at 2026-11-20 12:15:12.301.
+2026-11-20T12:15:13.5870690Z 	 Executed 6 tests, with 0 failures (0 unexpected) in 0.002 (0.002) seconds
+2026-11-20T12:15:13.5871080Z Test Suite 'EngineC2SnapshotWarningsTests' started at 2026-11-20 12:15:12.301.
+2026-11-20T12:15:13.5871550Z Test Case '-[Stage2Tests.EngineC2SnapshotWarningsTests testCountsMatchInputRecords]' started.
+2026-11-20T12:15:13.5872130Z Test Case '-[Stage2Tests.EngineC2SnapshotWarningsTests testCountsMatchInputRecords]' passed (0.000 seconds).
+2026-11-20T12:15:13.5872780Z Test Case '-[Stage2Tests.EngineC2SnapshotWarningsTests testInputSnapshotNotMutated]' started.
+2026-11-20T12:15:13.5873400Z Test Case '-[Stage2Tests.EngineC2SnapshotWarningsTests testInputSnapshotNotMutated]' passed (0.000 seconds).
+2026-11-20T12:15:13.5874050Z Test Case '-[Stage2Tests.EngineC2SnapshotWarningsTests testParserResultTracesBackToRecordAndSnapshot]' started.
+2026-11-20T12:15:13.5874820Z Test Case '-[Stage2Tests.EngineC2SnapshotWarningsTests testParserResultTracesBackToRecordAndSnapshot]' passed (0.000 seconds).
+2026-11-20T12:15:13.5875890Z Test Case '-[Stage2Tests.EngineC2SnapshotWarningsTests testSnapshotDeterminismDeepEqual]' started.
+2026-11-20T12:15:13.5876550Z Test Case '-[Stage2Tests.EngineC2SnapshotWarningsTests testSnapshotDeterminismDeepEqual]' passed (0.000 seconds).
+2026-11-20T12:15:13.5877220Z Test Case '-[Stage2Tests.EngineC2SnapshotWarningsTests testUpstreamWarningsAndUnknownItemsPreserved]' started.
+2026-11-20T12:15:13.5877960Z Test Case '-[Stage2Tests.EngineC2SnapshotWarningsTests testUpstreamWarningsAndUnknownItemsPreserved]' passed (0.000 seconds).
+2026-11-20T12:15:13.5878660Z Test Case '-[Stage2Tests.EngineC2SnapshotWarningsTests testWarningMergeOrderDedicated]' started.
+2026-11-20T12:15:13.5879280Z Test Case '-[Stage2Tests.EngineC2SnapshotWarningsTests testWarningMergeOrderDedicated]' passed (0.000 seconds).
+2026-11-20T12:15:13.5879820Z Test Suite 'EngineC2SnapshotWarningsTests' passed at 2026-11-20 12:15:12.304.
+2026-11-20T12:15:13.5880220Z 	 Executed 6 tests, with 0 failures (0 unexpected) in 0.002 (0.002) seconds
+2026-11-20T12:15:13.5880620Z Test Suite 'EnvironmentDetectionTests' started at 2026-11-20 12:15:12.304.
+2026-11-20T12:15:13.5881140Z Test Case '-[Stage2Tests.EnvironmentDetectionTests testENV011MalformedInputCapturedWithoutCrash]' started.
+2026-11-20T12:15:13.5881820Z Test Case '-[Stage2Tests.EnvironmentDetectionTests testENV011MalformedInputCapturedWithoutCrash]' passed (0.000 seconds).
+2026-11-20T12:15:13.5882440Z Test Case '-[Stage2Tests.EnvironmentDetectionTests testENV012UnreadableVersion]' started.
+2026-11-20T12:15:13.5882990Z Test Case '-[Stage2Tests.EnvironmentDetectionTests testENV012UnreadableVersion]' passed (0.000 seconds).
+2026-11-20T12:15:13.5883720Z Test Case '-[Stage2Tests.EnvironmentDetectionTests testENV013Determinism]' started.
+2026-11-20T12:15:13.5884230Z Test Case '-[Stage2Tests.EnvironmentDetectionTests testENV013Determinism]' passed (0.000 seconds).
+2026-11-20T12:15:13.5884820Z Test Case '-[Stage2Tests.EnvironmentDetectionTests testENV015IdMismatchDoesNotAffectDetection]' started.
+2026-11-20T12:15:13.5885510Z Test Case '-[Stage2Tests.EnvironmentDetectionTests testENV015IdMismatchDoesNotAffectDetection]' passed (0.000 seconds).
+2026-11-20T12:15:13.5886400Z Test Case '-[Stage2Tests.EnvironmentDetectionTests testEnvironmentWithoutReadinessDecodesLegacyJSON]' started.
+2026-11-20T12:15:13.5887140Z Test Case '-[Stage2Tests.EnvironmentDetectionTests testEnvironmentWithoutReadinessDecodesLegacyJSON]' passed (0.000 seconds).
+2026-11-20T12:15:13.5887840Z Test Case '-[Stage2Tests.EnvironmentDetectionTests testFixtureCasesENV001To010And014]' started.
+2026-11-20T12:15:13.5888430Z Test Case '-[Stage2Tests.EnvironmentDetectionTests testFixtureCasesENV001To010And014]' passed (0.002 seconds).
+2026-11-20T12:15:13.5889110Z Test Case '-[Stage2Tests.EnvironmentDetectionTests testVersionReadinessRoundTrip]' started.
+2026-11-20T12:15:13.5889750Z Test Case '-[Stage2Tests.EnvironmentDetectionTests testVersionReadinessRoundTrip]' passed (0.000 seconds).
+2026-11-20T12:15:13.5890260Z Test Suite 'EnvironmentDetectionTests' passed at 2026-11-20 12:15:12.308.
+2026-11-20T12:15:13.5890640Z 	 Executed 7 tests, with 0 failures (0 unexpected) in 0.004 (0.004) seconds
+2026-11-20T12:15:13.5891010Z Test Suite 'FilterParseEngineTests' started at 2026-11-20 12:15:12.308.
+2026-11-20T12:15:13.5891460Z Test Case '-[Stage2Tests.FilterParseEngineTests testAllValidSnapshotIsEnumerated]' started.
+2026-11-20T12:15:13.5892010Z Test Case '-[Stage2Tests.FilterParseEngineTests testAllValidSnapshotIsEnumerated]' passed (0.000 seconds).
+2026-11-20T12:15:13.5892550Z Test Case '-[Stage2Tests.FilterParseEngineTests testCountsAcrossFiveBuckets]' started.
+2026-11-20T12:15:13.5893070Z Test Case '-[Stage2Tests.FilterParseEngineTests testCountsAcrossFiveBuckets]' passed (0.000 seconds).
+2026-11-20T12:15:13.5903340Z Test Case '-[Stage2Tests.FilterParseEngineTests testDecoderFailureShortCircuitsParser]' started.
+2026-11-20T12:15:13.5904040Z Test Case '-[Stage2Tests.FilterParseEngineTests testDecoderFailureShortCircuitsParser]' passed (0.000 seconds).
+2026-11-20T12:15:13.5905040Z Test Case '-[Stage2Tests.FilterParseEngineTests testDecoderFormatProjection]' started.
+2026-11-20T12:15:13.5905610Z Test Case '-[Stage2Tests.FilterParseEngineTests testDecoderFormatProjection]' passed (0.000 seconds).
+2026-11-20T12:15:13.5906250Z Test Case '-[Stage2Tests.FilterParseEngineTests testHideMismatchDoesNotFallBackToRootless]' started.
+2026-11-20T12:15:13.5906910Z Test Case '-[Stage2Tests.FilterParseEngineTests testHideMismatchDoesNotFallBackToRootless]' passed (0.000 seconds).
+2026-11-20T12:15:13.5907580Z Test Case '-[Stage2Tests.FilterParseEngineTests testNonPairedNeverEntersReader]' started.
+2026-11-20T12:15:13.5908150Z Test Case '-[Stage2Tests.FilterParseEngineTests testNonPairedNeverEntersReader]' passed (0.000 seconds).
+2026-11-20T12:15:13.5908710Z Test Case '-[Stage2Tests.FilterParseEngineTests testParserReceivesSnapshotRoute]' started.
+2026-11-20T12:15:13.5909300Z Test Case '-[Stage2Tests.FilterParseEngineTests testParserReceivesSnapshotRoute]' passed (0.000 seconds).
+2026-11-20T12:15:13.5910820Z Test Case '-[Stage2Tests.FilterParseEngineTests testReaderFailureShortCircuitsDecoder]' started.
+2026-11-20T12:15:13.5911980Z Test Case '-[Stage2Tests.FilterParseEngineTests testReaderFailureShortCircuitsDecoder]' passed (0.000 seconds).
+2026-11-20T12:15:13.5912560Z Test Case '-[Stage2Tests.FilterParseEngineTests testReaderStatusMapping]' started.
+2026-11-20T12:15:13.5913090Z Test Case '-[Stage2Tests.FilterParseEngineTests testReaderStatusMapping]' passed (0.000 seconds).
+2026-11-20T12:15:13.5913640Z Test Case '-[Stage2Tests.FilterParseEngineTests testResolverMapsKnownRoutesOnly]' started.
+2026-11-20T12:15:13.5914210Z Test Case '-[Stage2Tests.FilterParseEngineTests testResolverMapsKnownRoutesOnly]' passed (0.000 seconds).
+2026-11-20T12:15:13.5915170Z Test Case '-[Stage2Tests.FilterParseEngineTests testResultPreservesRecordEvidence]' started.
+2026-11-20T12:15:13.5915760Z Test Case '-[Stage2Tests.FilterParseEngineTests testResultPreservesRecordEvidence]' passed (0.000 seconds).
+2026-11-20T12:15:13.5916610Z Test Case '-[Stage2Tests.FilterParseEngineTests testRootHideRouteCallsOnlyHideParser]' started.
+2026-11-20T12:15:13.5917300Z Test Case '-[Stage2Tests.FilterParseEngineTests testRootHideRouteCallsOnlyHideParser]' passed (0.000 seconds).
+2026-11-20T12:15:13.5917980Z Test Case '-[Stage2Tests.FilterParseEngineTests testRootlessMismatchDoesNotFallBackToHide]' started.
+2026-11-20T12:15:13.5919140Z Test Case '-[Stage2Tests.FilterParseEngineTests testRootlessMismatchDoesNotFallBackToHide]' passed (0.000 seconds).
+2026-11-20T12:15:13.5919850Z Test Case '-[Stage2Tests.FilterParseEngineTests testRootlessRouteCallsOnlyRootlessParser]' started.
+2026-11-20T12:15:13.5920510Z Test Case '-[Stage2Tests.FilterParseEngineTests testRootlessRouteCallsOnlyRootlessParser]' passed (0.000 seconds).
+2026-11-20T12:15:13.5921120Z Test Case '-[Stage2Tests.FilterParseEngineTests testUnknownRouteNeverEntersReader]' started.
+2026-11-20T12:15:13.5921710Z Test Case '-[Stage2Tests.FilterParseEngineTests testUnknownRouteNeverEntersReader]' passed (0.000 seconds).
+2026-11-20T12:15:13.5922300Z Test Case '-[Stage2Tests.FilterParseEngineTests testUnresolvedSnapshotCallsNothing]' started.
+2026-11-20T12:15:13.5922870Z Test Case '-[Stage2Tests.FilterParseEngineTests testUnresolvedSnapshotCallsNothing]' passed (0.000 seconds).
+2026-11-20T12:15:13.5923420Z Test Case '-[Stage2Tests.FilterParseEngineTests testUpstreamSnapshotNotMutated]' started.
+2026-11-20T12:15:13.5923970Z Test Case '-[Stage2Tests.FilterParseEngineTests testUpstreamSnapshotNotMutated]' passed (0.000 seconds).
+2026-11-20T12:15:13.5924530Z Test Case '-[Stage2Tests.FilterParseEngineTests testUpstreamUnknownItemsPreserved]' started.
+2026-11-20T12:15:13.5925110Z Test Case '-[Stage2Tests.FilterParseEngineTests testUpstreamUnknownItemsPreserved]' passed (0.000 seconds).
+2026-11-20T12:15:13.5925690Z Test Case '-[Stage2Tests.FilterParseEngineTests testValidatorDetectsCountMismatch]' started.
+2026-11-20T12:15:13.5926550Z Test Case '-[Stage2Tests.FilterParseEngineTests testValidatorDetectsCountMismatch]' passed (0.000 seconds).
+2026-11-20T12:15:13.5927050Z Test Suite 'FilterParseEngineTests' passed at 2026-11-20 12:15:12.314.
+2026-11-20T12:15:13.5927450Z 	 Executed 19 tests, with 0 failures (0 unexpected) in 0.004 (0.006) seconds
+2026-11-20T12:15:13.5927840Z Test Suite 'FilterParseResultTests' started at 2026-11-20 12:15:12.314.
+2026-11-20T12:15:13.5928320Z Test Case '-[Stage2Tests.FilterParseResultTests testNonValidStatesCarryNoFilterRule]' started.
+2026-11-20T12:15:13.5928920Z Test Case '-[Stage2Tests.FilterParseResultTests testNonValidStatesCarryNoFilterRule]' passed (0.000 seconds).
+2026-11-20T12:15:13.5929490Z Test Case '-[Stage2Tests.FilterParseResultTests testPassthroughFieldsRetained]' started.
+2026-11-20T12:15:13.5930040Z Test Case '-[Stage2Tests.FilterParseResultTests testPassthroughFieldsRetained]' passed (0.000 seconds).
+2026-11-20T12:15:13.5930590Z Test Case '-[Stage2Tests.FilterParseResultTests testResultCodableRoundTrip]' started.
+2026-11-20T12:15:13.5931140Z Test Case '-[Stage2Tests.FilterParseResultTests testResultCodableRoundTrip]' passed (0.000 seconds).
+2026-11-20T12:15:13.5931710Z Test Case '-[Stage2Tests.FilterParseResultTests testSkippedFieldElementIndexPreserved]' started.
+2026-11-20T12:15:13.5932330Z Test Case '-[Stage2Tests.FilterParseResultTests testSkippedFieldElementIndexPreserved]' passed (0.000 seconds).
+2026-11-20T12:15:13.5932960Z Test Case '-[Stage2Tests.FilterParseResultTests testSkippedFieldIndexDefaultsToNil]' started.
+2026-11-20T12:15:13.5933580Z Test Case '-[Stage2Tests.FilterParseResultTests testSkippedFieldIndexDefaultsToNil]' passed (0.000 seconds).
+2026-11-20T12:15:13.5934200Z Test Case '-[Stage2Tests.FilterParseResultTests testStatusRawValuesMatchBaseline]' started.
+2026-11-20T12:15:13.5934980Z Test Case '-[Stage2Tests.FilterParseResultTests testStatusRawValuesMatchBaseline]' passed (0.000 seconds).
+2026-11-20T12:15:13.5935540Z Test Case '-[Stage2Tests.FilterParseResultTests testValidResultCarriesFilterRule]' started.
+2026-11-20T12:15:13.5936170Z Test Case '-[Stage2Tests.FilterParseResultTests testValidResultCarriesFilterRule]' passed (0.000 seconds).
+2026-11-20T12:15:13.5936760Z Test Suite 'FilterParseResultTests' passed at 2026-11-20 12:15:12.316.
+2026-11-20T12:15:13.5937220Z 	 Executed 7 tests, with 0 failures (0 unexpected) in 0.002 (0.002) seconds
+2026-11-20T12:15:13.5937610Z Test Suite 'GUIPresentationTests' started at 2026-11-20 12:15:12.316.
+2026-11-20T12:15:13.5938020Z Test Case '-[Stage2Tests.GUIPresentationTests testGUI01EmptyEnvelope]' started.
+2026-11-20T12:15:13.5938530Z Test Case '-[Stage2Tests.GUIPresentationTests testGUI01EmptyEnvelope]' passed (0.000 seconds).
+2026-11-20T12:15:13.5939150Z Test Case '-[Stage2Tests.GUIPresentationTests testGUI02DashboardCounts]' started.
+2026-11-20T12:15:13.5939650Z Test Case '-[Stage2Tests.GUIPresentationTests testGUI02DashboardCounts]' passed (0.001 seconds).
+2026-11-20T12:15:13.5940210Z Test Case '-[Stage2Tests.GUIPresentationTests testGUI03SearchCaseInsensitive]' started.
+2026-11-20T12:15:13.5940780Z Test Case '-[Stage2Tests.GUIPresentationTests testGUI03SearchCaseInsensitive]' passed (0.000 seconds).
+2026-11-20T12:15:13.5941310Z Test Case '-[Stage2Tests.GUIPresentationTests testGUI04SegmentFilter]' started.
+2026-11-20T12:15:13.5941830Z Test Case '-[Stage2Tests.GUIPresentationTests testGUI04SegmentFilter]' passed (0.000 seconds).
+2026-11-20T12:15:13.5942340Z Test Case '-[Stage2Tests.GUIPresentationTests testGUI05ThreeStateLabels]' started.
+2026-11-20T12:15:13.5942870Z Test Case '-[Stage2Tests.GUIPresentationTests testGUI05ThreeStateLabels]' passed (0.000 seconds).
+2026-11-20T12:15:13.5943480Z Test Case '-[Stage2Tests.GUIPresentationTests testGUI06DetailMapping]' started.
+2026-11-20T12:15:13.5944030Z Test Case '-[Stage2Tests.GUIPresentationTests testGUI06DetailMapping]' passed (0.000 seconds).
+2026-11-20T12:15:13.5944620Z Test Case '-[Stage2Tests.GUIPresentationTests testGUI07DiagnosticsCollection]' started.
+2026-11-20T12:15:13.5945230Z Test Case '-[Stage2Tests.GUIPresentationTests testGUI07DiagnosticsCollection]' passed (0.000 seconds).
+2026-11-20T12:15:13.5946050Z Test Case '-[Stage2Tests.GUIPresentationTests testGUI08ExportSeamRoundTrip]' started.
+2026-11-20T12:15:13.5946580Z Test Case '-[Stage2Tests.GUIPresentationTests testGUI08ExportSeamRoundTrip]' passed (0.001 seconds).
+2026-11-20T12:15:13.5947050Z Test Suite 'GUIPresentationTests' passed at 2026-11-20 12:15:12.320.
+2026-11-20T12:15:13.5947440Z 	 Executed 8 tests, with 0 failures (0 unexpected) in 0.003 (0.004) seconds
+2026-11-20T12:15:13.5947850Z Test Suite 'JBRootCandidateCollectionTests' started at 2026-11-20 12:15:12.320.
+2026-11-20T12:15:13.5948360Z Test Case '-[Stage2Tests.JBRootCandidateCollectionTests testCandidateCodableRoundTrip]' started.
+2026-11-20T12:15:13.5948980Z Test Case '-[Stage2Tests.JBRootCandidateCollectionTests testCandidateCodableRoundTrip]' passed (0.000 seconds).
+2026-11-20T12:15:13.5949580Z Test Case '-[Stage2Tests.JBRootCandidateCollectionTests testFiveKnownSourcesCovered]' started.
+2026-11-20T12:15:13.5950290Z Test Case '-[Stage2Tests.JBRootCandidateCollectionTests testFiveKnownSourcesCovered]' passed (0.001 seconds).
+2026-11-20T12:15:13.5950990Z Test Case '-[Stage2Tests.JBRootCandidateCollectionTests testFixtureCandidateCollection]' started.
+2026-11-20T12:15:13.5951640Z Test Case '-[Stage2Tests.JBRootCandidateCollectionTests testFixtureCandidateCollection]' passed (0.001 seconds).
+2026-11-20T12:15:13.5952300Z Test Case '-[Stage2Tests.JBRootCandidateCollectionTests testInvalidPathWarnedAndSkipped]' started.
+2026-11-20T12:15:13.5952920Z Test Case '-[Stage2Tests.JBRootCandidateCollectionTests testInvalidPathWarnedAndSkipped]' passed (0.000 seconds).
+2026-11-20T12:15:13.5953960Z Test Case '-[Stage2Tests.JBRootCandidateCollectionTests testLegacyPathEvidenceDecodesProjectionOnly]' started.
+2026-11-20T12:15:13.5954670Z Test Case '-[Stage2Tests.JBRootCandidateCollectionTests testLegacyPathEvidenceDecodesProjectionOnly]' passed (0.000 seconds).
+2026-11-20T12:15:13.5955460Z Test Case '-[Stage2Tests.JBRootCandidateCollectionTests testMultiSourceSamePathRetainedAndExactDuplicateDropped]' started.
+2026-11-20T12:15:13.5956270Z Test Case '-[Stage2Tests.JBRootCandidateCollectionTests testMultiSourceSamePathRetainedAndExactDuplicateDropped]' passed (0.000 seconds).
+2026-11-20T12:15:13.5956970Z Test Case '-[Stage2Tests.JBRootCandidateCollectionTests testPATH004LexicalNormalization]' started.
+2026-11-20T12:15:13.5957670Z Test Case '-[Stage2Tests.JBRootCandidateCollectionTests testPATH004LexicalNormalization]' passed (0.000 seconds).
+2026-11-20T12:15:13.5958260Z Test Case '-[Stage2Tests.JBRootCandidateCollectionTests testPATH011Determinism]' started.
+2026-11-20T12:15:13.5959030Z Test Case '-[Stage2Tests.JBRootCandidateCollectionTests testPATH011Determinism]' passed (0.002 seconds).
+2026-11-20T12:15:13.5959670Z Test Case '-[Stage2Tests.JBRootCandidateCollectionTests testPATH012IdMismatchDoesNotAffectCollection]' started.
+2026-11-20T12:15:13.5960400Z Test Case '-[Stage2Tests.JBRootCandidateCollectionTests testPATH012IdMismatchDoesNotAffectCollection]' passed (0.001 seconds).
+2026-11-20T12:15:13.5961100Z Test Case '-[Stage2Tests.JBRootCandidateCollectionTests testUnknownSourcePreservedAndWarned]' started.
+2026-11-20T12:15:13.5961900Z Test Case '-[Stage2Tests.JBRootCandidateCollectionTests testUnknownSourcePreservedAndWarned]' passed (0.000 seconds).
+2026-11-20T12:15:13.5962500Z Test Suite 'JBRootCandidateCollectionTests' passed at 2026-11-20 12:15:12.328.
+2026-11-20T12:15:13.5962950Z 	 Executed 10 tests, with 0 failures (0 unexpected) in 0.006 (0.008) seconds
+2026-11-20T12:15:13.5963420Z Test Suite 'JBRootValidationTests' started at 2026-11-20 12:15:12.328.
+2026-11-20T12:15:13.5963870Z Test Case '-[Stage2Tests.JBRootValidationTests testJbrandParseUppercase]' started.
+2026-11-20T12:15:13.5964400Z Test Case '-[Stage2Tests.JBRootValidationTests testJbrandParseUppercase]' passed (0.002 seconds).
+2026-11-20T12:15:13.5965060Z Test Case '-[Stage2Tests.JBRootValidationTests testMultiCandidateDecisionScenarios]' started.
+2026-11-20T12:15:13.5966110Z Test Case '-[Stage2Tests.JBRootValidationTests testMultiCandidateDecisionScenarios]' passed (0.000 seconds).
+2026-11-20T12:15:13.5966660Z Test Case '-[Stage2Tests.JBRootValidationTests testNameValidationRules]' started.
+2026-11-20T12:15:13.5967210Z Test Case '-[Stage2Tests.JBRootValidationTests testNameValidationRules]' passed (0.000 seconds).
+2026-11-20T12:15:13.5967740Z Test Case '-[Stage2Tests.JBRootValidationTests testNoCandidate]' started.
+2026-11-20T12:15:13.5968240Z Test Case '-[Stage2Tests.JBRootValidationTests testNoCandidate]' passed (0.001 seconds).
+2026-11-20T12:15:13.5968800Z Test Case '-[Stage2Tests.JBRootValidationTests testPATH004NormalizedNameValidation]' started.
+2026-11-20T12:15:13.5969390Z Test Case '-[Stage2Tests.JBRootValidationTests testPATH004NormalizedNameValidation]' passed (0.000 seconds).
+2026-11-20T12:15:13.5969990Z Test Case '-[Stage2Tests.JBRootValidationTests testPATH011Determinism]' started.
+2026-11-20T12:15:13.5970530Z Test Case '-[Stage2Tests.JBRootValidationTests testPATH011Determinism]' passed (0.000 seconds).
+2026-11-20T12:15:13.5971220Z Test Case '-[Stage2Tests.JBRootValidationTests testPATH012IdMismatchDoesNotAffectDecision]' started.
+2026-11-20T12:15:13.5971990Z Test Case '-[Stage2Tests.JBRootValidationTests testPATH012IdMismatchDoesNotAffectDecision]' passed (0.002 seconds).
+2026-11-20T12:15:13.5972910Z Test Case '-[Stage2Tests.JBRootValidationTests testRealpathPrivateVarResolved]' started.
+2026-11-20T12:15:13.5973610Z Test Case '-[Stage2Tests.JBRootValidationTests testRealpathPrivateVarResolved]' passed (0.001 seconds).
+2026-11-20T12:15:13.5974330Z Test Case '-[Stage2Tests.JBRootValidationTests testRhBadNameRejectedInvalid]' started.
+2026-11-20T12:15:13.5975200Z Test Case '-[Stage2Tests.JBRootValidationTests testRhBadNameRejectedInvalid]' passed (0.001 seconds).
+2026-11-20T12:15:13.5975910Z Test Case '-[Stage2Tests.JBRootValidationTests testRhBrokenLinkResolveFailed]' started.
+2026-11-20T12:15:13.5976640Z Test Case '-[Stage2Tests.JBRootValidationTests testRhBrokenLinkResolveFailed]' passed (0.005 seconds).
+2026-11-20T12:15:13.5977190Z Test Case '-[Stage2Tests.JBRootValidationTests testRhMultipleAmbiguous]' started.
+2026-11-20T12:15:13.5977710Z Test Case '-[Stage2Tests.JBRootValidationTests testRhMultipleAmbiguous]' passed (0.000 seconds).
+2026-11-20T12:15:13.5978280Z Test Case '-[Stage2Tests.JBRootValidationTests testRhNameOnlyRejectedMissing]' started.
+2026-11-20T12:15:13.5978970Z Test Case '-[Stage2Tests.JBRootValidationTests testRhNameOnlyRejectedMissing]' passed (0.000 seconds).
+2026-11-20T12:15:13.5979520Z Test Case '-[Stage2Tests.JBRootValidationTests testRhUnreadablePartial]' started.
+2026-11-20T12:15:13.5980100Z Test Case '-[Stage2Tests.JBRootValidationTests testRhUnreadablePartial]' passed (0.000 seconds).
+2026-11-20T12:15:13.5980690Z Test Case '-[Stage2Tests.JBRootValidationTests testRhValidResolved]' started.
+2026-11-20T12:15:13.5981210Z Test Case '-[Stage2Tests.JBRootValidationTests testRhValidResolved]' passed (0.000 seconds).
+2026-11-20T12:15:13.5981810Z Test Case '-[Stage2Tests.JBRootValidationTests testRootfulCrossRouteOnly]' started.
+2026-11-20T12:15:13.5982350Z Test Case '-[Stage2Tests.JBRootValidationTests testRootfulCrossRouteOnly]' passed (0.000 seconds).
+2026-11-20T12:15:13.5982880Z Test Case '-[Stage2Tests.JBRootValidationTests testRootlessCrossRouteOnly]' started.
+2026-11-20T12:15:13.5983530Z Test Case '-[Stage2Tests.JBRootValidationTests testRootlessCrossRouteOnly]' passed (0.000 seconds).
+2026-11-20T12:15:13.5984090Z Test Case '-[Stage2Tests.JBRootValidationTests testThreeStateBitsNotCoerced]' started.
+2026-11-20T12:15:13.5984660Z Test Case '-[Stage2Tests.JBRootValidationTests testThreeStateBitsNotCoerced]' passed (0.000 seconds).
+2026-11-20T12:15:13.5985280Z Test Case '-[Stage2Tests.JBRootValidationTests testValidatedCandidateCodableRoundTrip]' started.
+2026-11-20T12:15:13.5985920Z Test Case '-[Stage2Tests.JBRootValidationTests testValidatedCandidateCodableRoundTrip]' passed (0.001 seconds).
+2026-11-20T12:15:13.5986720Z Test Suite 'JBRootValidationTests' passed at 2026-11-20 12:15:12.347.
+2026-11-20T12:15:13.5987140Z 	 Executed 18 tests, with 0 failures (0 unexpected) in 0.017 (0.019) seconds
+2026-11-20T12:15:13.5987550Z Test Suite 'ModelsCodableTests' started at 2026-11-20 12:15:12.347.
+2026-11-20T12:15:13.5988040Z Test Case '-[Stage2Tests.ModelsCodableTests testConfidenceRawValues]' started.
+2026-11-20T12:15:13.5988590Z Test Case '-[Stage2Tests.ModelsCodableTests testConfidenceRawValues]' passed (0.000 seconds).
+2026-11-20T12:15:13.5989120Z Test Case '-[Stage2Tests.ModelsCodableTests testCoreFoundationModeRawValues]' started.
+2026-11-20T12:15:13.5989650Z Test Case '-[Stage2Tests.ModelsCodableTests testCoreFoundationModeRawValues]' passed (0.000 seconds).
+2026-11-20T12:15:13.5990240Z Test Case '-[Stage2Tests.ModelsCodableTests testDefaultPluginStateIsUnknownAndUndetermined]' started.
+2026-11-20T12:15:13.5990920Z Test Case '-[Stage2Tests.ModelsCodableTests testDefaultPluginStateIsUnknownAndUndetermined]' passed (0.000 seconds).
+2026-11-20T12:15:13.5991550Z Test Case '-[Stage2Tests.ModelsCodableTests testEmptyArraysEncodeAsArrayNotNil]' started.
+2026-11-20T12:15:13.5992130Z Test Case '-[Stage2Tests.ModelsCodableTests testEmptyArraysEncodeAsArrayNotNil]' passed (0.000 seconds).
+2026-11-20T12:15:13.5992650Z Test Case '-[Stage2Tests.ModelsCodableTests testEnvelopeRoundTrip]' started.
+2026-11-20T12:15:13.5993190Z Test Case '-[Stage2Tests.ModelsCodableTests testEnvelopeRoundTrip]' passed (0.000 seconds).
+2026-11-20T12:15:13.5993830Z Test Case '-[Stage2Tests.ModelsCodableTests testEnvelopeRoundTripWithPlugin]' started.
+2026-11-20T12:15:13.5994780Z Test Case '-[Stage2Tests.ModelsCodableTests testEnvelopeRoundTripWithPlugin]' passed (0.001 seconds).
+2026-11-20T12:15:13.5995770Z Test Case '-[Stage2Tests.ModelsCodableTests testEvidenceBlockEmptySourceStagesRoundTrip]' started.
+2026-11-20T12:15:13.5996400Z Test Case '-[Stage2Tests.ModelsCodableTests testEvidenceBlockEmptySourceStagesRoundTrip]' passed (0.000 seconds).
+2026-11-20T12:15:13.5996960Z Test Case '-[Stage2Tests.ModelsCodableTests testEvidenceLevelRawValues]' started.
+2026-11-20T12:15:13.5997490Z Test Case '-[Stage2Tests.ModelsCodableTests testEvidenceLevelRawValues]' passed (0.000 seconds).
+2026-11-20T12:15:13.5998010Z Test Case '-[Stage2Tests.ModelsCodableTests testFilterRuleRoundTrip]' started.
+2026-11-20T12:15:13.5998490Z Test Case '-[Stage2Tests.ModelsCodableTests testFilterRuleRoundTrip]' passed (0.000 seconds).
+2026-11-20T12:15:13.5999090Z Test Case '-[Stage2Tests.ModelsCodableTests testJailbreakTypeRawValues]' started.
+2026-11-20T12:15:13.5999700Z Test Case '-[Stage2Tests.ModelsCodableTests testJailbreakTypeRawValues]' passed (0.000 seconds).
+2026-11-20T12:15:13.6000260Z Test Case '-[Stage2Tests.ModelsCodableTests testLoadCategoryRawValues]' started.
+2026-11-20T12:15:13.6000760Z Test Case '-[Stage2Tests.ModelsCodableTests testLoadCategoryRawValues]' passed (0.000 seconds).
+2026-11-20T12:15:13.6005590Z Test Case '-[Stage2Tests.ModelsCodableTests testLoadedStateRawValues]' started.
+2026-11-20T12:15:13.6008210Z Test Case '-[Stage2Tests.ModelsCodableTests testLoadedStateRawValues]' passed (0.000 seconds).
+2026-11-20T12:15:13.6008850Z Test Case '-[Stage2Tests.ModelsCodableTests testMissingOptionalFieldsDecodeToNil]' started.
+2026-11-20T12:15:13.6009550Z Test Case '-[Stage2Tests.ModelsCodableTests testMissingOptionalFieldsDecodeToNil]' passed (0.000 seconds).
+2026-11-20T12:15:13.6010130Z Test Case '-[Stage2Tests.ModelsCodableTests testNilOptionalsSurviveRoundTrip]' started.
+2026-11-20T12:15:13.6011900Z Test Case '-[Stage2Tests.ModelsCodableTests testNilOptionalsSurviveRoundTrip]' passed (0.000 seconds).
+2026-11-20T12:15:13.6013630Z Test Case '-[Stage2Tests.ModelsCodableTests testOwnershipRoundTrip]' started.
+2026-11-20T12:15:13.6015010Z Test Case '-[Stage2Tests.ModelsCodableTests testOwnershipRoundTrip]' passed (0.000 seconds).
+2026-11-20T12:15:13.6015560Z Test Case '-[Stage2Tests.ModelsCodableTests testOwnershipStatusRawValues]' started.
+2026-11-20T12:15:13.6016070Z Test Case '-[Stage2Tests.ModelsCodableTests testOwnershipStatusRawValues]' passed (0.000 seconds).
+2026-11-20T12:15:13.6017110Z Test Case '-[Stage2Tests.ModelsCodableTests testPairingRawValues]' started.
+2026-11-20T12:15:13.6017650Z Test Case '-[Stage2Tests.ModelsCodableTests testPairingRawValues]' passed (0.000 seconds).
+2026-11-20T12:15:13.6018670Z Test Case '-[Stage2Tests.ModelsCodableTests testPermissionDecisionRawValue]' started.
+2026-11-20T12:15:13.6019290Z Test Case '-[Stage2Tests.ModelsCodableTests testPermissionDecisionRawValue]' passed (0.000 seconds).
+2026-11-20T12:15:13.6019810Z Test Case '-[Stage2Tests.ModelsCodableTests testPluginRoundTrip]' started.
+2026-11-20T12:15:13.6020270Z Test Case '-[Stage2Tests.ModelsCodableTests testPluginRoundTrip]' passed (0.000 seconds).
+2026-11-20T12:15:13.6020810Z Test Case '-[Stage2Tests.ModelsCodableTests testSourceTypeRawValues]' started.
+2026-11-20T12:15:13.6021320Z Test Case '-[Stage2Tests.ModelsCodableTests testSourceTypeRawValues]' passed (0.000 seconds).
+2026-11-20T12:15:13.6021820Z Test Case '-[Stage2Tests.ModelsCodableTests testWritablePolicyRawValues]' started.
+2026-11-20T12:15:13.6022310Z Test Case '-[Stage2Tests.ModelsCodableTests testWritablePolicyRawValues]' passed (0.000 seconds).
+2026-11-20T12:15:13.6022770Z Test Suite 'ModelsCodableTests' passed at 2026-11-20 12:15:12.355.
+2026-11-20T12:15:13.6023140Z 	 Executed 21 tests, with 0 failures (0 unexpected) in 0.005 (0.008) seconds
+2026-11-20T12:15:13.6023570Z Test Suite 'PermissionProbeEvidenceTests' started at 2026-11-20 12:15:12.355.
+2026-11-20T12:15:13.6024150Z Test Case '-[Stage2Tests.PermissionProbeEvidenceTests testErrorFieldsPreservedOnRoundTrip]' started.
+2026-11-20T12:15:13.6024810Z Test Case '-[Stage2Tests.PermissionProbeEvidenceTests testErrorFieldsPreservedOnRoundTrip]' passed (0.000 seconds).
+2026-11-20T12:15:13.6025560Z Test Case '-[Stage2Tests.PermissionProbeEvidenceTests testFullFieldsRoundTrip]' started.
+2026-11-20T12:15:13.6026120Z Test Case '-[Stage2Tests.PermissionProbeEvidenceTests testFullFieldsRoundTrip]' passed (0.000 seconds).
+2026-11-20T12:15:13.6026720Z Test Case '-[Stage2Tests.PermissionProbeEvidenceTests testMissingCategoryDecodesToNil]' started.
+2026-11-20T12:15:13.6027330Z Test Case '-[Stage2Tests.PermissionProbeEvidenceTests testMissingCategoryDecodesToNil]' passed (0.000 seconds).
+2026-11-20T12:15:13.6027940Z Test Case '-[Stage2Tests.PermissionProbeEvidenceTests testNilOptionalsOmitKeysOnEncode]' started.
+2026-11-20T12:15:13.6028570Z Test Case '-[Stage2Tests.PermissionProbeEvidenceTests testNilOptionalsOmitKeysOnEncode]' passed (0.000 seconds).
+2026-11-20T12:15:13.6029170Z Test Case '-[Stage2Tests.PermissionProbeEvidenceTests testNullOptionalsDecodeToNil]' started.
+2026-11-20T12:15:13.6029880Z Test Case '-[Stage2Tests.PermissionProbeEvidenceTests testNullOptionalsDecodeToNil]' passed (0.000 seconds).
+2026-11-20T12:15:13.6030440Z Test Suite 'PermissionProbeEvidenceTests' passed at 2026-11-20 12:15:12.357.
+2026-11-20T12:15:13.6030920Z 	 Executed 5 tests, with 0 failures (0 unexpected) in 0.001 (0.002) seconds
+2026-11-20T12:15:13.6031420Z Test Suite 'PermissionProbePresentationTests' started at 2026-11-20 12:15:12.357.
+2026-11-20T12:15:13.6032030Z Test Case '-[Stage2Tests.PermissionProbePresentationTests testDeniedRowMapsToFailure]' started.
+2026-11-20T12:15:13.6032780Z Test Case '-[Stage2Tests.PermissionProbePresentationTests testDeniedRowMapsToFailure]' passed (0.000 seconds).
+2026-11-20T12:15:13.6033490Z Test Case '-[Stage2Tests.PermissionProbePresentationTests testEvidenceGroupedByCategory]' started.
+2026-11-20T12:15:13.6034180Z Test Case '-[Stage2Tests.PermissionProbePresentationTests testEvidenceGroupedByCategory]' passed (0.000 seconds).
+2026-11-20T12:15:13.6034860Z Test Case '-[Stage2Tests.PermissionProbePresentationTests testNilReportRendersUnknownEmptyState]' started.
+2026-11-20T12:15:13.6035580Z Test Case '-[Stage2Tests.PermissionProbePresentationTests testNilReportRendersUnknownEmptyState]' passed (0.000 seconds).
+2026-11-20T12:15:13.6036280Z Test Case '-[Stage2Tests.PermissionProbePresentationTests testStatusMappingNeverUpgradesUnknown]' started.
+2026-11-20T12:15:13.6037120Z Test Case '-[Stage2Tests.PermissionProbePresentationTests testStatusMappingNeverUpgradesUnknown]' passed (0.000 seconds).
+2026-11-20T12:15:13.6037730Z Test Suite 'PermissionProbePresentationTests' passed at 2026-11-20 12:15:12.358.
+2026-11-20T12:15:13.6038130Z 	 Executed 4 tests, with 0 failures (0 unexpected) in 0.001 (0.001) seconds
+2026-11-20T12:15:13.6038510Z Test Suite 'PermissionProbeProbeTests' started at 2026-11-20 12:15:12.358.
+2026-11-20T12:15:13.6038960Z Test Case '-[Stage2Tests.PermissionProbeProbeTests testDpkgProbeFailsEmptyFile]' started.
+2026-11-20T12:15:13.6039510Z Test Case '-[Stage2Tests.PermissionProbeProbeTests testDpkgProbeFailsEmptyFile]' passed (0.002 seconds).
+2026-11-20T12:15:13.6040100Z Test Case '-[Stage2Tests.PermissionProbeProbeTests testDpkgProbeNotExecutedWhenNoPath]' started.
+2026-11-20T12:15:13.6040720Z Test Case '-[Stage2Tests.PermissionProbeProbeTests testDpkgProbeNotExecutedWhenNoPath]' passed (0.000 seconds).
+2026-11-20T12:15:13.6041330Z Test Case '-[Stage2Tests.PermissionProbeProbeTests testDpkgProbePassesNonEmptyStatusFile]' started.
+2026-11-20T12:15:13.6041980Z Test Case '-[Stage2Tests.PermissionProbeProbeTests testDpkgProbePassesNonEmptyStatusFile]' passed (0.000 seconds).
+2026-11-20T12:15:13.6042630Z Test Case '-[Stage2Tests.PermissionProbeProbeTests testElleKitProbeDirectoryPassesAndLists]' started.
+2026-11-20T12:15:13.6043280Z Test Case '-[Stage2Tests.PermissionProbeProbeTests testElleKitProbeDirectoryPassesAndLists]' passed (0.000 seconds).
+2026-11-20T12:15:13.6043930Z Test Case '-[Stage2Tests.PermissionProbeProbeTests testElleKitProbeNotExecutedWhenNoResolvedPath]' started.
+2026-11-20T12:15:13.6045600Z Test Case '-[Stage2Tests.PermissionProbeProbeTests testElleKitProbeNotExecutedWhenNoResolvedPath]' passed (0.000 seconds).
+2026-11-20T12:15:13.6046320Z Test Case '-[Stage2Tests.PermissionProbeProbeTests testElleKitProbeSymlinkTargetReachable]' started.
+2026-11-20T12:15:13.6046970Z Test Case '-[Stage2Tests.PermissionProbeProbeTests testElleKitProbeSymlinkTargetReachable]' passed (0.000 seconds).
+2026-11-20T12:15:13.6047680Z Test Case '-[Stage2Tests.PermissionProbeProbeTests testEntitlementEvidenceSourceCoversThreeSeparateClasses]' started.
+2026-11-20T12:15:13.6048470Z Test Case '-[Stage2Tests.PermissionProbeProbeTests testEntitlementEvidenceSourceCoversThreeSeparateClasses]' passed (0.000 seconds).
+2026-11-20T12:15:13.6049230Z Test Case '-[Stage2Tests.PermissionProbeProbeTests testEntitlementProbeAvailableRecordsKeyCountOnly]' started.
+2026-11-20T12:15:13.6049920Z Test Case '-[Stage2Tests.PermissionProbeProbeTests testEntitlementProbeAvailableRecordsKeyCountOnly]' passed (0.000 seconds).
+2026-11-20T12:15:13.6050670Z Test Case '-[Stage2Tests.PermissionProbeProbeTests testEntitlementProbeRuntimeUnavailableRecordsPlatformReason]' started.
+2026-11-20T12:15:13.6051480Z Test Case '-[Stage2Tests.PermissionProbeProbeTests testEntitlementProbeRuntimeUnavailableRecordsPlatformReason]' passed (0.000 seconds).
+2026-11-20T12:15:13.6052360Z Test Case '-[Stage2Tests.PermissionProbeProbeTests testEntitlementProbeTagsRuntimeAndSignedSourcesSeparately]' started.
+2026-11-20T12:15:13.6053240Z Test Case '-[Stage2Tests.PermissionProbeProbeTests testEntitlementProbeTagsRuntimeAndSignedSourcesSeparately]' passed (0.000 seconds).
+2026-11-20T12:15:13.6054150Z Test Case '-[Stage2Tests.PermissionProbeProbeTests testEntitlementProbeUnavailableWhenInspectorsUnavailable]' started.
+2026-11-20T12:15:13.6054950Z Test Case '-[Stage2Tests.PermissionProbeProbeTests testEntitlementProbeUnavailableWhenInspectorsUnavailable]' passed (0.000 seconds).
+2026-11-20T12:15:13.6055720Z Test Case '-[Stage2Tests.PermissionProbeProbeTests testJBRootAPIProbeAccessibleFalseWhenUnreachable]' started.
+2026-11-20T12:15:13.6056510Z Test Case '-[Stage2Tests.PermissionProbeProbeTests testJBRootAPIProbeAccessibleFalseWhenUnreachable]' passed (0.000 seconds).
+2026-11-20T12:15:13.6057340Z Test Case '-[Stage2Tests.PermissionProbeProbeTests testJBRootAPIProbeAccessibleLayerUnknownWithoutFileAccess]' started.
+2026-11-20T12:15:13.6059520Z Test Case '-[Stage2Tests.PermissionProbeProbeTests testJBRootAPIProbeAccessibleLayerUnknownWithoutFileAccess]' passed (0.000 seconds).
+2026-11-20T12:15:13.6060320Z Test Case '-[Stage2Tests.PermissionProbeProbeTests testJBRootAPIProbeAccessibleMatchWithFileAccess]' started.
+2026-11-20T12:15:13.6061170Z Test Case '-[Stage2Tests.PermissionProbeProbeTests testJBRootAPIProbeAccessibleMatchWithFileAccess]' passed (0.000 seconds).
+2026-11-20T12:15:13.6061930Z Test Case '-[Stage2Tests.PermissionProbeProbeTests testJBRootAPIProbeConsistencyMatchesConfirmedPath]' started.
+2026-11-20T12:15:13.6062910Z Test Case '-[Stage2Tests.PermissionProbeProbeTests testJBRootAPIProbeConsistencyMatchesConfirmedPath]' passed (0.000 seconds).
+2026-11-20T12:15:13.6063760Z Test Case '-[Stage2Tests.PermissionProbeProbeTests testJBRootAPIProbeConsistencyMismatchFails]' started.
+2026-11-20T12:15:13.6064940Z Test Case '-[Stage2Tests.PermissionProbeProbeTests testJBRootAPIProbeConsistencyMismatchFails]' passed (0.000 seconds).
+2026-11-20T12:15:13.6065740Z Test Case '-[Stage2Tests.PermissionProbeProbeTests testJBRootAPIProbeNormalizedMatchDespiteRawDifferences]' started.
+2026-11-20T12:15:13.6066570Z Test Case '-[Stage2Tests.PermissionProbeProbeTests testJBRootAPIProbeNormalizedMatchDespiteRawDifferences]' passed (0.000 seconds).
+2026-11-20T12:15:13.6067380Z Test Case '-[Stage2Tests.PermissionProbeProbeTests testJBRootAPIProbePlaceholderAllUnknown]' started.
+2026-11-20T12:15:13.6068100Z Test Case '-[Stage2Tests.PermissionProbeProbeTests testJBRootAPIProbePlaceholderAllUnknown]' passed (0.000 seconds).
+2026-11-20T12:15:13.6068860Z Test Case '-[Stage2Tests.PermissionProbeProbeTests testJBRootAPIProbeUnknownWhenConfirmedPathMissing]' started.
+2026-11-20T12:15:13.6076750Z Test Case '-[Stage2Tests.PermissionProbeProbeTests testJBRootAPIProbeUnknownWhenConfirmedPathMissing]' passed (0.001 seconds).
+2026-11-20T12:15:13.6077770Z Test Case '-[Stage2Tests.PermissionProbeProbeTests testJBRootComparatorNormalizesTrailingSlashDoubleSlashDotDot]' started.
+2026-11-20T12:15:13.6078840Z Test Case '-[Stage2Tests.PermissionProbeProbeTests testJBRootComparatorNormalizesTrailingSlashDoubleSlashDotDot]' passed (0.000 seconds).
+2026-11-20T12:15:13.6079830Z Test Case '-[Stage2Tests.PermissionProbeProbeTests testJBRootComparatorVerdictRules]' started.
+2026-11-20T12:15:13.6080600Z Test Case '-[Stage2Tests.PermissionProbeProbeTests testJBRootComparatorVerdictRules]' passed (0.000 seconds).
+2026-11-20T12:15:13.6081250Z Test Case '-[Stage2Tests.PermissionProbeProbeTests testJBRootProbeClassifiesDenied]' started.
+2026-11-20T12:15:13.6081870Z Test Case '-[Stage2Tests.PermissionProbeProbeTests testJBRootProbeClassifiesDenied]' passed (0.000 seconds).
+2026-11-20T12:15:13.6082630Z Test Case '-[Stage2Tests.PermissionProbeProbeTests testJBRootProbeClassifiesMissingAsUnavailable]' started.
+2026-11-20T12:15:13.6083320Z Test Case '-[Stage2Tests.PermissionProbeProbeTests testJBRootProbeClassifiesMissingAsUnavailable]' passed (0.000 seconds).
+2026-11-20T12:15:13.6084030Z Test Case '-[Stage2Tests.PermissionProbeProbeTests testJBRootProbeNotExecutedWhenNoConfirmedPath]' started.
+2026-11-20T12:15:13.6084710Z Test Case '-[Stage2Tests.PermissionProbeProbeTests testJBRootProbeNotExecutedWhenNoConfirmedPath]' passed (0.000 seconds).
+2026-11-20T12:15:13.6085410Z Test Case '-[Stage2Tests.PermissionProbeProbeTests testJBRootProbePassesDirectoryWithEntries]' started.
+2026-11-20T12:15:13.6086070Z Test Case '-[Stage2Tests.PermissionProbeProbeTests testJBRootProbePassesDirectoryWithEntries]' passed (0.000 seconds).
+2026-11-20T12:15:13.6086760Z Test Case '-[Stage2Tests.PermissionProbeProbeTests testPlistReadProbeMapsReaderStatuses]' started.
+2026-11-20T12:15:13.6087500Z Test Case '-[Stage2Tests.PermissionProbeProbeTests testPlistReadProbeMapsReaderStatuses]' passed (0.000 seconds).
+2026-11-20T12:15:13.6088180Z Test Case '-[Stage2Tests.PermissionProbeProbeTests testPlistReadProbeNotExecutedWhenEmpty]' started.
+2026-11-20T12:15:13.6089020Z Test Case '-[Stage2Tests.PermissionProbeProbeTests testPlistReadProbeNotExecutedWhenEmpty]' passed (0.000 seconds).
+2026-11-20T12:15:13.6089720Z Test Case '-[Stage2Tests.PermissionProbeProbeTests testPluginFileProbeFailsWhenDirectory]' started.
+2026-11-20T12:15:13.6090380Z Test Case '-[Stage2Tests.PermissionProbeProbeTests testPluginFileProbeFailsWhenDirectory]' passed (0.000 seconds).
+2026-11-20T12:15:13.6091000Z Test Case '-[Stage2Tests.PermissionProbeProbeTests testPluginFileProbeNotExecutedWhenEmpty]' started.
+2026-11-20T12:15:13.6091820Z Test Case '-[Stage2Tests.PermissionProbeProbeTests testPluginFileProbeNotExecutedWhenEmpty]' passed (0.000 seconds).
+2026-11-20T12:15:13.6092630Z Test Case '-[Stage2Tests.PermissionProbeProbeTests testPluginFileProbePassesExistingFile]' started.
+2026-11-20T12:15:13.6093310Z Test Case '-[Stage2Tests.PermissionProbeProbeTests testPluginFileProbePassesExistingFile]' passed (0.000 seconds).
+2026-11-20T12:15:13.6093920Z Test Case '-[Stage2Tests.PermissionProbeProbeTests testSandboxProbeNotExecutedWhenEmpty]' started.
+2026-11-20T12:15:13.6094560Z Test Case '-[Stage2Tests.PermissionProbeProbeTests testSandboxProbeNotExecutedWhenEmpty]' passed (0.000 seconds).
+2026-11-20T12:15:13.6095260Z Test Case '-[Stage2Tests.PermissionProbeProbeTests testSandboxProbeReachableAndUnreachable]' started.
+2026-11-20T12:15:13.6095900Z Test Case '-[Stage2Tests.PermissionProbeProbeTests testSandboxProbeReachableAndUnreachable]' passed (0.000 seconds).
+2026-11-20T12:15:13.6096630Z Test Case '-[Stage2Tests.PermissionProbeProbeTests testServiceContinuesAfterThrowingProbeAndPreservesIdentity]' started.
+2026-11-20T12:15:13.6097400Z Test Case '-[Stage2Tests.PermissionProbeProbeTests testServiceContinuesAfterThrowingProbeAndPreservesIdentity]' passed (0.000 seconds).
+2026-11-20T12:15:13.6098620Z Test Case '-[Stage2Tests.PermissionProbeProbeTests testServiceReportBuilderWritesGeneratedAt]' started.
+2026-11-20T12:15:13.6099280Z Test Case '-[Stage2Tests.PermissionProbeProbeTests testServiceReportBuilderWritesGeneratedAt]' passed (0.000 seconds).
+2026-11-20T12:15:13.6099820Z Test Suite 'PermissionProbeProbeTests' passed at 2026-11-20 12:15:12.372.
+2026-11-20T12:15:13.6100200Z 	 Executed 34 tests, with 0 failures (0 unexpected) in 0.010 (0.014) seconds
+2026-11-20T12:15:13.6100590Z Test Suite 'PermissionProbeReportTests' started at 2026-11-20 12:15:12.372.
+2026-11-20T12:15:13.6101080Z Test Case '-[Stage2Tests.PermissionProbeReportTests testEmptyReportCountsAreZero]' started.
+2026-11-20T12:15:13.6101670Z Test Case '-[Stage2Tests.PermissionProbeReportTests testEmptyReportCountsAreZero]' passed (0.000 seconds).
+2026-11-20T12:15:13.6102310Z Test Case '-[Stage2Tests.PermissionProbeReportTests testEvidenceOrderIsPreserved]' started.
+2026-11-20T12:15:13.6102970Z Test Case '-[Stage2Tests.PermissionProbeReportTests testEvidenceOrderIsPreserved]' passed (0.000 seconds).
+2026-11-20T12:15:13.6103530Z Test Case '-[Stage2Tests.PermissionProbeReportTests testMixedStatusCounts]' started.
+2026-11-20T12:15:13.6104050Z Test Case '-[Stage2Tests.PermissionProbeReportTests testMixedStatusCounts]' passed (0.000 seconds).
+2026-11-20T12:15:13.6104610Z Test Case '-[Stage2Tests.PermissionProbeReportTests testNotExecutedIsNotCountedAsFailed]' started.
+2026-11-20T12:15:13.6105210Z Test Case '-[Stage2Tests.PermissionProbeReportTests testNotExecutedIsNotCountedAsFailed]' passed (0.000 seconds).
+2026-11-20T12:15:13.6105770Z Test Case '-[Stage2Tests.PermissionProbeReportTests testReportRoundTrip]' started.
+2026-11-20T12:15:13.6106280Z Test Case '-[Stage2Tests.PermissionProbeReportTests testReportRoundTrip]' passed (0.000 seconds).
+2026-11-20T12:15:13.6106850Z Test Case '-[Stage2Tests.PermissionProbeReportTests testUnknownIsNotCountedAsPassedOrFailed]' started.
+2026-11-20T12:15:13.6107480Z Test Case '-[Stage2Tests.PermissionProbeReportTests testUnknownIsNotCountedAsPassedOrFailed]' passed (0.000 seconds).
+2026-11-20T12:15:13.6108040Z Test Suite 'PermissionProbeReportTests' passed at 2026-11-20 12:15:12.374.
+2026-11-20T12:15:13.6108640Z 	 Executed 6 tests, with 0 failures (0 unexpected) in 0.001 (0.002) seconds
+2026-11-20T12:15:13.6109020Z Test Suite 'PermissionProbeStatusTests' started at 2026-11-20 12:15:12.374.
+2026-11-20T12:15:13.6109460Z Test Case '-[Stage2Tests.PermissionProbeStatusTests testAllStatusesRoundTrip]' started.
+2026-11-20T12:15:13.6109990Z Test Case '-[Stage2Tests.PermissionProbeStatusTests testAllStatusesRoundTrip]' passed (0.000 seconds).
+2026-11-20T12:15:13.6110530Z Test Case '-[Stage2Tests.PermissionProbeStatusTests testNotExecutedIsNotFailed]' started.
+2026-11-20T12:15:13.6111070Z Test Case '-[Stage2Tests.PermissionProbeStatusTests testNotExecutedIsNotFailed]' passed (0.000 seconds).
+2026-11-20T12:15:13.6111570Z Test Case '-[Stage2Tests.PermissionProbeStatusTests testRawValues]' started.
+2026-11-20T12:15:13.6112040Z Test Case '-[Stage2Tests.PermissionProbeStatusTests testRawValues]' passed (0.000 seconds).
+2026-11-20T12:15:13.6112720Z Test Case '-[Stage2Tests.PermissionProbeStatusTests testUnknownIsIndependentFromPassedAndFailed]' started.
+2026-11-20T12:15:13.6113380Z Test Case '-[Stage2Tests.PermissionProbeStatusTests testUnknownIsIndependentFromPassedAndFailed]' passed (0.000 seconds).
+2026-11-20T12:15:13.6114030Z Test Suite 'PermissionProbeStatusTests' passed at 2026-11-20 12:15:12.375.
+2026-11-20T12:15:13.6114410Z 	 Executed 4 tests, with 0 failures (0 unexpected) in 0.001 (0.001) seconds
+2026-11-20T12:15:13.6114850Z Test Suite 'PlistDecoderTests' started at 2026-11-20 12:15:12.375.
+2026-11-20T12:15:13.6115750Z Test Case '-[Stage2Tests.PlistDecoderTests testDataAndDateValuesClassifyCorrectly]' started.
+2026-11-20T12:15:13.6116410Z Test Case '-[Stage2Tests.PlistDecoderTests testDataAndDateValuesClassifyCorrectly]' passed (0.002 seconds).
+2026-11-20T12:15:13.6117210Z Test Case '-[Stage2Tests.PlistDecoderTests testDecodeBinaryDictionarySucceeds]' started.
+2026-11-20T12:15:13.6117870Z Test Case '-[Stage2Tests.PlistDecoderTests testDecodeBinaryDictionarySucceeds]' passed (0.000 seconds).
+2026-11-20T12:15:13.6118570Z Test Case '-[Stage2Tests.PlistDecoderTests testDecodeEmptyDataFails]' started.
+2026-11-20T12:15:13.6119110Z Test Case '-[Stage2Tests.PlistDecoderTests testDecodeEmptyDataFails]' passed (0.000 seconds).
+2026-11-20T12:15:13.6119610Z Test Case '-[Stage2Tests.PlistDecoderTests testDecodeInvalidBytesFails]' started.
+2026-11-20T12:15:13.6120180Z Test Case '-[Stage2Tests.PlistDecoderTests testDecodeInvalidBytesFails]' passed (0.000 seconds).
+2026-11-20T12:15:13.6120840Z Test Case '-[Stage2Tests.PlistDecoderTests testDecodeXMLDictionarySucceeds]' started.
+2026-11-20T12:15:13.6121350Z Test Case '-[Stage2Tests.PlistDecoderTests testDecodeXMLDictionarySucceeds]' passed (0.000 seconds).
+2026-11-20T12:15:13.6121870Z Test Case '-[Stage2Tests.PlistDecoderTests testFailureResultNeverCarriesObject]' started.
+2026-11-20T12:15:13.6122530Z Test Case '-[Stage2Tests.PlistDecoderTests testFailureResultNeverCarriesObject]' passed (0.000 seconds).
+2026-11-20T12:15:13.6123110Z Test Case '-[Stage2Tests.PlistDecoderTests testNestedDictionaryAndArrayClassifyCorrectly]' started.
+2026-11-20T12:15:13.6123740Z Test Case '-[Stage2Tests.PlistDecoderTests testNestedDictionaryAndArrayClassifyCorrectly]' passed (0.000 seconds).
+2026-11-20T12:15:13.6124320Z Test Case '-[Stage2Tests.PlistDecoderTests testRootArrayClassifiesAsArray]' started.
+2026-11-20T12:15:13.6124820Z Test Case '-[Stage2Tests.PlistDecoderTests testRootArrayClassifiesAsArray]' passed (0.000 seconds).
+2026-11-20T12:15:13.6125370Z Test Case '-[Stage2Tests.PlistDecoderTests testRootDictionaryClassifiesAsDictionary]' started.
+2026-11-20T12:15:13.6125980Z Test Case '-[Stage2Tests.PlistDecoderTests testRootDictionaryClassifiesAsDictionary]' passed (0.000 seconds).
+2026-11-20T12:15:13.6126470Z Test Suite 'PlistDecoderTests' passed at 2026-11-20 12:15:12.380.
+2026-11-20T12:15:13.6126950Z 	 Executed 9 tests, with 0 failures (0 unexpected) in 0.005 (0.006) seconds
+2026-11-20T12:15:13.6127370Z Test Suite 'PlistReaderTests' started at 2026-11-20 12:15:12.380.
+2026-11-20T12:15:13.6127800Z Test Case '-[Stage2Tests.PlistReaderTests testEmptyFileReadsAsSuccessWithEmptyData]' started.
+2026-11-20T12:15:13.6128720Z Test Case '-[Stage2Tests.PlistReaderTests testEmptyFileReadsAsSuccessWithEmptyData]' passed (0.002 seconds).
+2026-11-20T12:15:13.6129290Z Test Case '-[Stage2Tests.PlistReaderTests testFailureResultNeverCarriesData]' started.
+2026-11-20T12:15:13.6129840Z Test Case '-[Stage2Tests.PlistReaderTests testFailureResultNeverCarriesData]' passed (0.002 seconds).
+2026-11-20T12:15:13.6130380Z Test Case '-[Stage2Tests.PlistReaderTests testMissingFileReturnsNotFound]' started.
+2026-11-20T12:15:13.6130900Z Test Case '-[Stage2Tests.PlistReaderTests testMissingFileReturnsNotFound]' passed (0.001 seconds).
+2026-11-20T12:15:13.6131480Z Test Case '-[Stage2Tests.PlistReaderTests testOtherIOErrorClassifiesAsReadFailed]' started.
+2026-11-20T12:15:13.6132040Z Test Case '-[Stage2Tests.PlistReaderTests testOtherIOErrorClassifiesAsReadFailed]' passed (0.000 seconds).
+2026-11-20T12:15:13.6132660Z Test Case '-[Stage2Tests.PlistReaderTests testPermissionDeniedClassifiesAsAccessDenied]' started.
+2026-11-20T12:15:13.6133260Z Test Case '-[Stage2Tests.PlistReaderTests testPermissionDeniedClassifiesAsAccessDenied]' passed (0.000 seconds).
+2026-11-20T12:15:13.6133850Z Test Case '-[Stage2Tests.PlistReaderTests testReadExistingFileReturnsSuccessWithData]' started.
+2026-11-20T12:15:13.6134540Z Test Case '-[Stage2Tests.PlistReaderTests testReadExistingFileReturnsSuccessWithData]' passed (0.001 seconds).
+2026-11-20T12:15:13.6135010Z Test Suite 'PlistReaderTests' passed at 2026-11-20 12:15:12.387.
+2026-11-20T12:15:13.6135350Z 	 Executed 6 tests, with 0 failures (0 unexpected) in 0.006 (0.007) seconds
+2026-11-20T12:15:13.6135730Z Test Suite 'PlistValueKindTests' started at 2026-11-20 12:15:12.387.
+2026-11-20T12:15:13.6136300Z Test Case '-[Stage2Tests.PlistValueKindTests testArrayClassifiesAsArray]' started.
+2026-11-20T12:15:13.6136790Z Test Case '-[Stage2Tests.PlistValueKindTests testArrayClassifiesAsArray]' passed (0.000 seconds).
+2026-11-20T12:15:13.6137270Z Test Case '-[Stage2Tests.PlistValueKindTests testDataClassifiesAsData]' started.
+2026-11-20T12:15:13.6137750Z Test Case '-[Stage2Tests.PlistValueKindTests testDataClassifiesAsData]' passed (0.000 seconds).
+2026-11-20T12:15:13.6138220Z Test Case '-[Stage2Tests.PlistValueKindTests testDateClassifiesAsDate]' started.
+2026-11-20T12:15:13.6138700Z Test Case '-[Stage2Tests.PlistValueKindTests testDateClassifiesAsDate]' passed (0.000 seconds).
+2026-11-20T12:15:13.6139220Z Test Case '-[Stage2Tests.PlistValueKindTests testDictionaryClassifiesAsDictionary]' started.
+2026-11-20T12:15:13.6139770Z Test Case '-[Stage2Tests.PlistValueKindTests testDictionaryClassifiesAsDictionary]' passed (0.000 seconds).
+2026-11-20T12:15:13.6140340Z Test Case '-[Stage2Tests.PlistValueKindTests testFloatingNSNumberClassifiesAsNumber]' started.
+2026-11-20T12:15:13.6140920Z Test Case '-[Stage2Tests.PlistValueKindTests testFloatingNSNumberClassifiesAsNumber]' passed (0.000 seconds).
+2026-11-20T12:15:13.6141480Z Test Case '-[Stage2Tests.PlistValueKindTests testIntegerNSNumberClassifiesAsNumber]' started.
+2026-11-20T12:15:13.6142060Z Test Case '-[Stage2Tests.PlistValueKindTests testIntegerNSNumberClassifiesAsNumber]' passed (0.000 seconds).
+2026-11-20T12:15:13.6142590Z Test Case '-[Stage2Tests.PlistValueKindTests testNilAndNSNullClassifyAsNull]' started.
+2026-11-20T12:15:13.6143130Z Test Case '-[Stage2Tests.PlistValueKindTests testNilAndNSNullClassifyAsNull]' passed (0.000 seconds).
+2026-11-20T12:15:13.6143730Z Test Case '-[Stage2Tests.PlistValueKindTests testNumberBridgedFromBoolClassifiesAsBooleanNotNumber]' started.
+2026-11-20T12:15:13.6144420Z Test Case '-[Stage2Tests.PlistValueKindTests testNumberBridgedFromBoolClassifiesAsBooleanNotNumber]' passed (0.000 seconds).
+2026-11-20T12:15:13.6145010Z Test Case '-[Stage2Tests.PlistValueKindTests testStringClassifiesAsString]' started.
+2026-11-20T12:15:13.6145610Z Test Case '-[Stage2Tests.PlistValueKindTests testStringClassifiesAsString]' passed (0.000 seconds).
+2026-11-20T12:15:13.6146240Z Test Case '-[Stage2Tests.PlistValueKindTests testSwiftBoolClassifiesAsBoolean]' started.
+2026-11-20T12:15:13.6146780Z Test Case '-[Stage2Tests.PlistValueKindTests testSwiftBoolClassifiesAsBoolean]' passed (0.000 seconds).
+2026-11-20T12:15:13.6147340Z Test Case '-[Stage2Tests.PlistValueKindTests testUnsupportedObjectClassifiesAsUnknown]' started.
+2026-11-20T12:15:13.6147930Z Test Case '-[Stage2Tests.PlistValueKindTests testUnsupportedObjectClassifiesAsUnknown]' passed (0.000 seconds).
+2026-11-20T12:15:13.6148410Z Test Suite 'PlistValueKindTests' passed at 2026-11-20 12:15:12.391.
+2026-11-20T12:15:13.6148770Z 	 Executed 11 tests, with 0 failures (0 unexpected) in 0.003 (0.004) seconds
+2026-11-20T12:15:13.6149150Z Test Suite 'PluginEnumerationTests' started at 2026-11-20 12:15:12.391.
+2026-11-20T12:15:13.6149570Z Test Case '-[Stage2Tests.PluginEnumerationTests testAccessDeniedEntryRetained]' started.
+2026-11-20T12:15:13.6150110Z Test Case '-[Stage2Tests.PluginEnumerationTests testAccessDeniedEntryRetained]' passed (0.001 seconds).
+2026-11-20T12:15:13.6150700Z Test Case '-[Stage2Tests.PluginEnumerationTests testEmptyDirectoryIsEnumeratedWithZeroCounts]' started.
+2026-11-20T12:15:13.6151330Z Test Case '-[Stage2Tests.PluginEnumerationTests testEmptyDirectoryIsEnumeratedWithZeroCounts]' passed (0.000 seconds).
+2026-11-20T12:15:13.6151920Z Test Case '-[Stage2Tests.PluginEnumerationTests testEnum011PathIdentityPreserved]' started.
+2026-11-20T12:15:13.6152480Z Test Case '-[Stage2Tests.PluginEnumerationTests testEnum011PathIdentityPreserved]' passed (0.000 seconds).
+2026-11-20T12:15:13.6153030Z Test Case '-[Stage2Tests.PluginEnumerationTests testEnum013RouteIsolationNoFallback]' started.
+2026-11-20T12:15:13.6153630Z Test Case '-[Stage2Tests.PluginEnumerationTests testEnum013RouteIsolationNoFallback]' passed (0.000 seconds).
+2026-11-20T12:15:13.6154340Z Test Case '-[Stage2Tests.PluginEnumerationTests testEnum014DeterministicRepeatedEnumeration]' started.
+2026-11-20T12:15:13.6155000Z Test Case '-[Stage2Tests.PluginEnumerationTests testEnum014DeterministicRepeatedEnumeration]' passed (0.000 seconds).
+2026-11-20T12:15:13.6155760Z Test Case '-[Stage2Tests.PluginEnumerationTests testExtensionIsCaseSensitive]' started.
+2026-11-20T12:15:13.6156420Z Test Case '-[Stage2Tests.PluginEnumerationTests testExtensionIsCaseSensitive]' passed (0.000 seconds).
+2026-11-20T12:15:13.6156950Z Test Case '-[Stage2Tests.PluginEnumerationTests testFiveKindCountsComplete]' started.
+2026-11-20T12:15:13.6157470Z Test Case '-[Stage2Tests.PluginEnumerationTests testFiveKindCountsComplete]' passed (0.000 seconds).
+2026-11-20T12:15:13.6158050Z Test Case '-[Stage2Tests.PluginEnumerationTests testHashSignalPassedThroughWithoutComputation]' started.
+2026-11-20T12:15:13.6158700Z Test Case '-[Stage2Tests.PluginEnumerationTests testHashSignalPassedThroughWithoutComputation]' passed (0.000 seconds).
+2026-11-20T12:15:13.6159270Z Test Case '-[Stage2Tests.PluginEnumerationTests testHiddenEntriesRetained]' started.
+2026-11-20T12:15:13.6159770Z Test Case '-[Stage2Tests.PluginEnumerationTests testHiddenEntriesRetained]' passed (0.000 seconds).
+2026-11-20T12:15:13.6160280Z Test Case '-[Stage2Tests.PluginEnumerationTests testMissingReadableStaysNil]' started.
+2026-11-20T12:15:13.6160800Z Test Case '-[Stage2Tests.PluginEnumerationTests testMissingReadableStaysNil]' passed (0.000 seconds).
+2026-11-20T12:15:13.6161330Z Test Case '-[Stage2Tests.PluginEnumerationTests testNamesSortedDeterministically]' started.
+2026-11-20T12:15:13.6161890Z Test Case '-[Stage2Tests.PluginEnumerationTests testNamesSortedDeterministically]' passed (0.000 seconds).
+2026-11-20T12:15:13.6162460Z Test Case '-[Stage2Tests.PluginEnumerationTests testNonRecursiveNestedEntriesExcluded]' started.
+2026-11-20T12:15:13.6163050Z Test Case '-[Stage2Tests.PluginEnumerationTests testNonRecursiveNestedEntriesExcluded]' passed (0.000 seconds).
+2026-11-20T12:15:13.6163610Z Test Case '-[Stage2Tests.PluginEnumerationTests testS104FixturesDeepComparison]' started.
+2026-11-20T12:15:13.6164140Z Test Case '-[Stage2Tests.PluginEnumerationTests testS104FixturesDeepComparison]' passed (0.005 seconds).
+2026-11-20T12:15:13.6164810Z Test Case '-[Stage2Tests.PluginEnumerationTests testSymlinkRetainedWithoutFollowing]' started.
+2026-11-20T12:15:13.6165380Z Test Case '-[Stage2Tests.PluginEnumerationTests testSymlinkRetainedWithoutFollowing]' passed (0.001 seconds).
+2026-11-20T12:15:13.6165870Z Test Suite 'PluginEnumerationTests' passed at 2026-11-20 12:15:12.403.
+2026-11-20T12:15:13.6166240Z 	 Executed 14 tests, with 0 failures (0 unexpected) in 0.010 (0.012) seconds
+2026-11-20T12:15:13.6166630Z Test Suite 'PluginInventoryCodableTests' started at 2026-11-20 12:15:12.403.
+2026-11-20T12:15:13.6167070Z Test Case '-[Stage2Tests.PluginInventoryCodableTests testCountsAccumulateByKind]' started.
+2026-11-20T12:15:13.6167630Z Test Case '-[Stage2Tests.PluginInventoryCodableTests testCountsAccumulateByKind]' passed (0.001 seconds).
+2026-11-20T12:15:13.6168180Z Test Case '-[Stage2Tests.PluginInventoryCodableTests testEnumerationStatusRawValues]' started.
+2026-11-20T12:15:13.6168760Z Test Case '-[Stage2Tests.PluginInventoryCodableTests testEnumerationStatusRawValues]' passed (0.000 seconds).
+2026-11-20T12:15:13.6169390Z Test Case '-[Stage2Tests.PluginInventoryCodableTests testEvidenceMissingOptionalsDecodeWithDefaults]' started.
+2026-11-20T12:15:13.6170070Z Test Case '-[Stage2Tests.PluginInventoryCodableTests testEvidenceMissingOptionalsDecodeWithDefaults]' passed (0.000 seconds).
+2026-11-20T12:15:13.6170740Z Test Case '-[Stage2Tests.PluginInventoryCodableTests testEvidenceRoundTripPreservesOptionals]' started.
+2026-11-20T12:15:13.6171380Z Test Case '-[Stage2Tests.PluginInventoryCodableTests testEvidenceRoundTripPreservesOptionals]' passed (0.000 seconds).
+2026-11-20T12:15:13.6172070Z Test Case '-[Stage2Tests.PluginInventoryCodableTests testPluginEntryStatusRawValues]' started.
+2026-11-20T12:15:13.6172640Z Test Case '-[Stage2Tests.PluginInventoryCodableTests testPluginEntryStatusRawValues]' passed (0.000 seconds).
+2026-11-20T12:15:13.6173210Z Test Case '-[Stage2Tests.PluginInventoryCodableTests testPluginFileKindRawValues]' started.
+2026-11-20T12:15:13.6173770Z Test Case '-[Stage2Tests.PluginInventoryCodableTests testPluginFileKindRawValues]' passed (0.000 seconds).
+2026-11-20T12:15:13.6174380Z Test Case '-[Stage2Tests.PluginInventoryCodableTests testSnapshotMinimalJSONDecodesWithDefaults]' started.
+2026-11-20T12:15:13.6175040Z Test Case '-[Stage2Tests.PluginInventoryCodableTests testSnapshotMinimalJSONDecodesWithDefaults]' passed (0.001 seconds).
+2026-11-20T12:15:13.6175620Z Test Case '-[Stage2Tests.PluginInventoryCodableTests testSnapshotRoundTrip]' started.
+2026-11-20T12:15:13.6176160Z Test Case '-[Stage2Tests.PluginInventoryCodableTests testSnapshotRoundTrip]' passed (0.000 seconds).
+2026-11-20T12:15:13.6176750Z Test Case '-[Stage2Tests.PluginInventoryCodableTests testUnknownKeysAreIgnored]' started.
+2026-11-20T12:15:13.6177290Z Test Case '-[Stage2Tests.PluginInventoryCodableTests testUnknownKeysAreIgnored]' passed (0.000 seconds).
+2026-11-20T12:15:13.6177780Z Test Suite 'PluginInventoryCodableTests' passed at 2026-11-20 12:15:12.408.
+2026-11-20T12:15:13.6178160Z 	 Executed 9 tests, with 0 failures (0 unexpected) in 0.003 (0.005) seconds
+2026-11-20T12:15:13.6178530Z Test Suite 'PluginPairingCodableTests' started at 2026-11-20 12:15:12.408.
+2026-11-20T12:15:13.6179010Z Test Case '-[Stage2Tests.PluginPairingCodableTests testAmbiguousCandidatesPreservedFull]' started.
+2026-11-20T12:15:13.6179610Z Test Case '-[Stage2Tests.PluginPairingCodableTests testAmbiguousCandidatesPreservedFull]' passed (0.000 seconds).
+2026-11-20T12:15:13.6180200Z Test Case '-[Stage2Tests.PluginPairingCodableTests testCountsTotalEqualsFiveBuckets]' started.
+2026-11-20T12:15:13.6180770Z Test Case '-[Stage2Tests.PluginPairingCodableTests testCountsTotalEqualsFiveBuckets]' passed (0.000 seconds).
+2026-11-20T12:15:13.6181360Z Test Case '-[Stage2Tests.PluginPairingCodableTests testDeterministicReconstructionEqual]' started.
+2026-11-20T12:15:13.6181960Z Test Case '-[Stage2Tests.PluginPairingCodableTests testDeterministicReconstructionEqual]' passed (0.000 seconds).
+2026-11-20T12:15:13.6182760Z Test Case '-[Stage2Tests.PluginPairingCodableTests testPairingCategoryRawValues]' started.
+2026-11-20T12:15:13.6183310Z Test Case '-[Stage2Tests.PluginPairingCodableTests testPairingCategoryRawValues]' passed (0.000 seconds).
+2026-11-20T12:15:13.6183880Z Test Case '-[Stage2Tests.PluginPairingCodableTests testPairingEvidenceBasisRawValues]' started.
+2026-11-20T12:15:13.6184460Z Test Case '-[Stage2Tests.PluginPairingCodableTests testPairingEvidenceBasisRawValues]' passed (0.000 seconds).
+2026-11-20T12:15:13.6185050Z Test Case '-[Stage2Tests.PluginPairingCodableTests testPairingFourValuesRemainUnchanged]' started.
+2026-11-20T12:15:13.6185660Z Test Case '-[Stage2Tests.PluginPairingCodableTests testPairingFourValuesRemainUnchanged]' passed (0.000 seconds).
+2026-11-20T12:15:13.6186220Z Test Case '-[Stage2Tests.PluginPairingCodableTests testPairingStatusRawValues]' started.
+2026-11-20T12:15:13.6186760Z Test Case '-[Stage2Tests.PluginPairingCodableTests testPairingStatusRawValues]' passed (0.000 seconds).
+2026-11-20T12:15:13.6187320Z Test Case '-[Stage2Tests.PluginPairingCodableTests testRecordCategoryToPairingMapping]' started.
+2026-11-20T12:15:13.6188010Z Test Case '-[Stage2Tests.PluginPairingCodableTests testRecordCategoryToPairingMapping]' passed (0.000 seconds).
+2026-11-20T12:15:13.6188810Z Test Case '-[Stage2Tests.PluginPairingCodableTests testRecordRoundTripPreservesNilOptionals]' started.
+2026-11-20T12:15:13.6189610Z Test Case '-[Stage2Tests.PluginPairingCodableTests testRecordRoundTripPreservesNilOptionals]' passed (0.007 seconds).
+2026-11-20T12:15:13.6190260Z Test Case '-[Stage2Tests.PluginPairingCodableTests testSnapshotMinimalJSONDecodesWithDefaults]' started.
+2026-11-20T12:15:13.6191180Z Test Case '-[Stage2Tests.PluginPairingCodableTests testSnapshotMinimalJSONDecodesWithDefaults]' passed (0.001 seconds).
+2026-11-20T12:15:13.6191990Z Test Case '-[Stage2Tests.PluginPairingCodableTests testSnapshotRoundTrip]' started.
+2026-11-20T12:15:13.6192540Z Test Case '-[Stage2Tests.PluginPairingCodableTests testSnapshotRoundTrip]' passed (0.000 seconds).
+2026-11-20T12:15:13.6193140Z Test Case '-[Stage2Tests.PluginPairingCodableTests testUnknownKeysAreIgnored]' started.
+2026-11-20T12:15:13.6194520Z Test Case '-[Stage2Tests.PluginPairingCodableTests testUnknownKeysAreIgnored]' passed (0.001 seconds).
+2026-11-20T12:15:13.6195450Z Test Suite 'PluginPairingCodableTests' passed at 2026-11-20 12:15:12.421.
+2026-11-20T12:15:13.6195860Z 	 Executed 12 tests, with 0 failures (0 unexpected) in 0.012 (0.013) seconds
+2026-11-20T12:15:13.6196270Z Test Suite 'PluginPairingEngineTests' started at 2026-11-20 12:15:12.421.
+2026-11-20T12:15:13.6196810Z Test Case '-[Stage2Tests.PluginPairingEngineTests testAmbiguousMultipleDylibs]' started.
+2026-11-20T12:15:13.6197440Z Test Case '-[Stage2Tests.PluginPairingEngineTests testAmbiguousMultipleDylibs]' passed (0.000 seconds).
+2026-11-20T12:15:13.6197990Z Test Case '-[Stage2Tests.PluginPairingEngineTests testAmbiguousMultiplePlists]' started.
+2026-11-20T12:15:13.6198540Z Test Case '-[Stage2Tests.PluginPairingEngineTests testAmbiguousMultiplePlists]' passed (0.000 seconds).
+2026-11-20T12:15:13.6199090Z Test Case '-[Stage2Tests.PluginPairingEngineTests testCountsTotalEqualsRecordCount]' started.
+2026-11-20T12:15:13.6199790Z Test Case '-[Stage2Tests.PluginPairingEngineTests testCountsTotalEqualsRecordCount]' passed (0.000 seconds).
+2026-11-20T12:15:13.6200390Z Test Case '-[Stage2Tests.PluginPairingEngineTests testDoesNotMergeAcrossSnapshots]' started.
+2026-11-20T12:15:13.6201030Z Test Case '-[Stage2Tests.PluginPairingEngineTests testDoesNotMergeAcrossSnapshots]' passed (0.000 seconds).
+2026-11-20T12:15:13.6201680Z Test Case '-[Stage2Tests.PluginPairingEngineTests testEmptyDirectoryEnumeratedZero]' started.
+2026-11-20T12:15:13.6202300Z Test Case '-[Stage2Tests.PluginPairingEngineTests testEmptyDirectoryEnumeratedZero]' passed (0.000 seconds).
+2026-11-20T12:15:13.6202950Z Test Case '-[Stage2Tests.PluginPairingEngineTests testEnumerationFailedStatus]' started.
+2026-11-20T12:15:13.6203750Z Test Case '-[Stage2Tests.PluginPairingEngineTests testEnumerationFailedStatus]' passed (0.000 seconds).
+2026-11-20T12:15:13.6204350Z Test Case '-[Stage2Tests.PluginPairingEngineTests testInputSnapshotNotMutated]' started.
+2026-11-20T12:15:13.6205320Z Test Case '-[Stage2Tests.PluginPairingEngineTests testInputSnapshotNotMutated]' passed (0.000 seconds).
+2026-11-20T12:15:13.6205880Z Test Case '-[Stage2Tests.PluginPairingEngineTests testMissingPlist]' started.
+2026-11-20T12:15:13.6206450Z Test Case '-[Stage2Tests.PluginPairingEngineTests testMissingPlist]' passed (0.000 seconds).
+2026-11-20T12:15:13.6206970Z Test Case '-[Stage2Tests.PluginPairingEngineTests testNotFoundClassifiedUncertain]' started.
+2026-11-20T12:15:13.6207590Z Test Case '-[Stage2Tests.PluginPairingEngineTests testNotFoundClassifiedUncertain]' passed (0.000 seconds).
+2026-11-20T12:15:13.6208140Z Test Case '-[Stage2Tests.PluginPairingEngineTests testOrphanPlist]' started.
+2026-11-20T12:15:13.6208670Z Test Case '-[Stage2Tests.PluginPairingEngineTests testOrphanPlist]' passed (0.000 seconds).
+2026-11-20T12:15:13.6209250Z Test Case '-[Stage2Tests.PluginPairingEngineTests testOtherExtensionsNotRecorded]' started.
+2026-11-20T12:15:13.6209900Z Test Case '-[Stage2Tests.PluginPairingEngineTests testOtherExtensionsNotRecorded]' passed (0.000 seconds).
+2026-11-20T12:15:13.6210410Z Test Case '-[Stage2Tests.PluginPairingEngineTests testPaired]' started.
+2026-11-20T12:15:13.6210890Z Test Case '-[Stage2Tests.PluginPairingEngineTests testPaired]' passed (0.001 seconds).
+2026-11-20T12:15:13.6211720Z Test Case '-[Stage2Tests.PluginPairingEngineTests testPairingFourValueMappingAndNilForUnresolvedBuckets]' started.
+2026-11-20T12:15:13.6212780Z Test Case '-[Stage2Tests.PluginPairingEngineTests testPairingFourValueMappingAndNilForUnresolvedBuckets]' passed (0.000 seconds).
+2026-11-20T12:15:13.6213420Z Test Case '-[Stage2Tests.PluginPairingEngineTests testPartialWhenUncertainPresent]' started.
+2026-11-20T12:15:13.6214060Z Test Case '-[Stage2Tests.PluginPairingEngineTests testPartialWhenUncertainPresent]' passed (0.000 seconds).
+2026-11-20T12:15:13.6214690Z Test Case '-[Stage2Tests.PluginPairingEngineTests testReadableNilWithOkStatusIsPaired]' started.
+2026-11-20T12:15:13.6215280Z Test Case '-[Stage2Tests.PluginPairingEngineTests testReadableNilWithOkStatusIsPaired]' passed (0.000 seconds).
+2026-11-20T12:15:13.6215980Z Test Case '-[Stage2Tests.PluginPairingEngineTests testRepeatedRunsAreDeterministic]' started.
+2026-11-20T12:15:13.6216580Z Test Case '-[Stage2Tests.PluginPairingEngineTests testRepeatedRunsAreDeterministic]' passed (0.002 seconds).
+2026-11-20T12:15:13.6217250Z Test Case '-[Stage2Tests.PluginPairingEngineTests testShuffledInputProducesSameRecords]' started.
+2026-11-20T12:15:13.6217920Z Test Case '-[Stage2Tests.PluginPairingEngineTests testShuffledInputProducesSameRecords]' passed (0.000 seconds).
+2026-11-20T12:15:13.6218570Z Test Case '-[Stage2Tests.PluginPairingEngineTests testUncertainAccessDeniedHoldsBothSides]' started.
+2026-11-20T12:15:13.6219310Z Test Case '-[Stage2Tests.PluginPairingEngineTests testUncertainAccessDeniedHoldsBothSides]' passed (0.000 seconds).
+2026-11-20T12:15:13.6219930Z Test Case '-[Stage2Tests.PluginPairingEngineTests testUncertainReadFailedPlistOnly]' started.
+2026-11-20T12:15:13.6220570Z Test Case '-[Stage2Tests.PluginPairingEngineTests testUncertainReadFailedPlistOnly]' passed (0.000 seconds).
+2026-11-20T12:15:13.6221280Z Test Case '-[Stage2Tests.PluginPairingEngineTests testUnknownItemsPassthroughAndEmptyKeyCollected]' started.
+2026-11-20T12:15:13.6221980Z Test Case '-[Stage2Tests.PluginPairingEngineTests testUnknownItemsPassthroughAndEmptyKeyCollected]' passed (0.000 seconds).
+2026-11-20T12:15:13.6222720Z Test Case '-[Stage2Tests.PluginPairingEngineTests testUnresolvedWhenSourceDirectoryMissing]' started.
+2026-11-20T12:15:13.6223420Z Test Case '-[Stage2Tests.PluginPairingEngineTests testUnresolvedWhenSourceDirectoryMissing]' passed (0.000 seconds).
+2026-11-20T12:15:13.6224110Z Test Suite 'PluginPairingEngineTests' passed at 2026-11-20 12:15:12.431.
+2026-11-20T12:15:13.6224590Z 	 Executed 21 tests, with 0 failures (0 unexpected) in 0.007 (0.010) seconds
+2026-11-20T12:15:13.6230380Z Test Suite 'PluginPairingIndexTests' started at 2026-11-20 12:15:12.431.
+2026-11-20T12:15:13.6230900Z Test Case '-[Stage2Tests.PluginPairingIndexTests testCandidatesSortedByPath]' started.
+2026-11-20T12:15:13.6231560Z Test Case '-[Stage2Tests.PluginPairingIndexTests testCandidatesSortedByPath]' passed (0.000 seconds).
+2026-11-20T12:15:13.6232250Z Test Case '-[Stage2Tests.PluginPairingIndexTests testDuplicateCandidatesRetainedNotOverwritten]' started.
+2026-11-20T12:15:13.6232900Z Test Case '-[Stage2Tests.PluginPairingIndexTests testDuplicateCandidatesRetainedNotOverwritten]' passed (0.000 seconds).
+2026-11-20T12:15:13.6233470Z Test Case '-[Stage2Tests.PluginPairingIndexTests testKeysUnionSorted]' started.
+2026-11-20T12:15:13.6233940Z Test Case '-[Stage2Tests.PluginPairingIndexTests testKeysUnionSorted]' passed (0.000 seconds).
+2026-11-20T12:15:13.6234610Z Test Case '-[Stage2Tests.PluginPairingIndexTests testNonCandidateKindsExcludedFromIndex]' started.
+2026-11-20T12:15:13.6235270Z Test Case '-[Stage2Tests.PluginPairingIndexTests testNonCandidateKindsExcludedFromIndex]' passed (0.000 seconds).
+2026-11-20T12:15:13.6235890Z Test Case '-[Stage2Tests.PluginPairingIndexTests testSameBasenameMultipleFilesNotCollapsed]' started.
+2026-11-20T12:15:13.6236520Z Test Case '-[Stage2Tests.PluginPairingIndexTests testSameBasenameMultipleFilesNotCollapsed]' passed (0.000 seconds).
+2026-11-20T12:15:13.6237030Z Test Suite 'PluginPairingIndexTests' passed at 2026-11-20 12:15:12.432.
+2026-11-20T12:15:13.6237590Z 	 Executed 5 tests, with 0 failures (0 unexpected) in 0.001 (0.002) seconds
+2026-11-20T12:15:13.6238080Z Test Suite 'PluginPairingIntegrationTests' started at 2026-11-20 12:15:12.432.
+2026-11-20T12:15:13.6238560Z Test Case '-[Stage2Tests.PluginPairingIntegrationTests testA01OnlyDylibPassedToInput]' started.
+2026-11-20T12:15:13.6239160Z Test Case '-[Stage2Tests.PluginPairingIntegrationTests testA01OnlyDylibPassedToInput]' passed (0.000 seconds).
+2026-11-20T12:15:13.6239760Z Test Case '-[Stage2Tests.PluginPairingIntegrationTests testA02OnlyPlistPassedToInput]' started.
+2026-11-20T12:15:13.6240420Z Test Case '-[Stage2Tests.PluginPairingIntegrationTests testA02OnlyPlistPassedToInput]' passed (0.000 seconds).
+2026-11-20T12:15:13.6241010Z Test Case '-[Stage2Tests.PluginPairingIntegrationTests testA03MixedFilesPassed]' started.
+2026-11-20T12:15:13.6241540Z Test Case '-[Stage2Tests.PluginPairingIntegrationTests testA03MixedFilesPassed]' passed (0.000 seconds).
+2026-11-20T12:15:13.6242120Z Test Case '-[Stage2Tests.PluginPairingIntegrationTests testA04DirectoryExcludedFromInput]' started.
+2026-11-20T12:15:13.6242730Z Test Case '-[Stage2Tests.PluginPairingIntegrationTests testA04DirectoryExcludedFromInput]' passed (0.000 seconds).
+2026-11-20T12:15:13.6243330Z Test Case '-[Stage2Tests.PluginPairingIntegrationTests testA05SymlinkExcludedFromInput]' started.
+2026-11-20T12:15:13.6243920Z Test Case '-[Stage2Tests.PluginPairingIntegrationTests testA05SymlinkExcludedFromInput]' passed (0.000 seconds).
+2026-11-20T12:15:13.6244520Z Test Case '-[Stage2Tests.PluginPairingIntegrationTests testA06OtherKindExcludedFromInput]' started.
+2026-11-20T12:15:13.6245130Z Test Case '-[Stage2Tests.PluginPairingIntegrationTests testA06OtherKindExcludedFromInput]' passed (0.000 seconds).
+2026-11-20T12:15:13.6245750Z Test Case '-[Stage2Tests.PluginPairingIntegrationTests testA07OriginalEvidenceFieldsUnchanged]' started.
+2026-11-20T12:15:13.6246390Z Test Case '-[Stage2Tests.PluginPairingIntegrationTests testA07OriginalEvidenceFieldsUnchanged]' passed (0.000 seconds).
+2026-11-20T12:15:13.6247000Z Test Case '-[Stage2Tests.PluginPairingIntegrationTests testA08EmptyDirectoryHandled]' started.
+2026-11-20T12:15:13.6247570Z Test Case '-[Stage2Tests.PluginPairingIntegrationTests testA08EmptyDirectoryHandled]' passed (0.000 seconds).
+2026-11-20T12:15:13.6248280Z Test Case '-[Stage2Tests.PluginPairingIntegrationTests testB09EnumeratedTransitionsNormally]' started.
+2026-11-20T12:15:13.6248910Z Test Case '-[Stage2Tests.PluginPairingIntegrationTests testB09EnumeratedTransitionsNormally]' passed (0.000 seconds).
+2026-11-20T12:15:13.6249540Z Test Case '-[Stage2Tests.PluginPairingIntegrationTests testB10PartialRetainsAvailableEvidence]' started.
+2026-11-20T12:15:13.6250170Z Test Case '-[Stage2Tests.PluginPairingIntegrationTests testB10PartialRetainsAvailableEvidence]' passed (0.000 seconds).
+2026-11-20T12:15:13.6250810Z Test Case '-[Stage2Tests.PluginPairingIntegrationTests testB11EnumerationFailedShortCircuits]' started.
+2026-11-20T12:15:13.6251450Z Test Case '-[Stage2Tests.PluginPairingIntegrationTests testB11EnumerationFailedShortCircuits]' passed (0.000 seconds).
+2026-11-20T12:15:13.6252060Z Test Case '-[Stage2Tests.PluginPairingIntegrationTests testB12UnresolvedShortCircuits]' started.
+2026-11-20T12:15:13.6252640Z Test Case '-[Stage2Tests.PluginPairingIntegrationTests testB12UnresolvedShortCircuits]' passed (0.000 seconds).
+2026-11-20T12:15:13.6253210Z Test Case '-[Stage2Tests.PluginPairingIntegrationTests testB13UnknownItemsNotLost]' started.
+2026-11-20T12:15:13.6253770Z Test Case '-[Stage2Tests.PluginPairingIntegrationTests testB13UnknownItemsNotLost]' passed (0.000 seconds).
+2026-11-20T12:15:13.6254320Z Test Case '-[Stage2Tests.PluginPairingIntegrationTests testB14WarningsNotLost]' started.
+2026-11-20T12:15:13.6254850Z Test Case '-[Stage2Tests.PluginPairingIntegrationTests testB14WarningsNotLost]' passed (0.000 seconds).
+2026-11-20T12:15:13.6255460Z Test Case '-[Stage2Tests.PluginPairingIntegrationTests testB15AddedWarningDoesNotOverwriteExisting]' started.
+2026-11-20T12:15:13.6256210Z Test Case '-[Stage2Tests.PluginPairingIntegrationTests testB15AddedWarningDoesNotOverwriteExisting]' passed (0.000 seconds).
+2026-11-20T12:15:13.6256800Z Test Case '-[Stage2Tests.PluginPairingIntegrationTests testC16SinglePairing]' started.
+2026-11-20T12:15:13.6257320Z Test Case '-[Stage2Tests.PluginPairingIntegrationTests testC16SinglePairing]' passed (0.000 seconds).
+2026-11-20T12:15:13.6257890Z Test Case '-[Stage2Tests.PluginPairingIntegrationTests testC17MissingPlist]' started.
+2026-11-20T12:15:13.6258450Z Test Case '-[Stage2Tests.PluginPairingIntegrationTests testC17MissingPlist]' passed (0.000 seconds).
+2026-11-20T12:15:13.6258960Z Test Case '-[Stage2Tests.PluginPairingIntegrationTests testC18OrphanPlist]' started.
+2026-11-20T12:15:13.6259470Z Test Case '-[Stage2Tests.PluginPairingIntegrationTests testC18OrphanPlist]' passed (0.000 seconds).
+2026-11-20T12:15:13.6260010Z Test Case '-[Stage2Tests.PluginPairingIntegrationTests testC19AmbiguousMultipleDylibs]' started.
+2026-11-20T12:15:13.6260700Z Test Case '-[Stage2Tests.PluginPairingIntegrationTests testC19AmbiguousMultipleDylibs]' passed (0.000 seconds).
+2026-11-20T12:15:13.6261290Z Test Case '-[Stage2Tests.PluginPairingIntegrationTests testC20AmbiguousMultiplePlists]' started.
+2026-11-20T12:15:13.6261870Z Test Case '-[Stage2Tests.PluginPairingIntegrationTests testC20AmbiguousMultiplePlists]' passed (0.000 seconds).
+2026-11-20T12:15:13.6262450Z Test Case '-[Stage2Tests.PluginPairingIntegrationTests testC21RestrictedEntryUncertain]' started.
+2026-11-20T12:15:13.6263040Z Test Case '-[Stage2Tests.PluginPairingIntegrationTests testC21RestrictedEntryUncertain]' passed (0.000 seconds).
+2026-11-20T12:15:13.6263640Z Test Case '-[Stage2Tests.PluginPairingIntegrationTests testC22ReadableNilWithOkStatusPaired]' started.
+2026-11-20T12:15:13.6264270Z Test Case '-[Stage2Tests.PluginPairingIntegrationTests testC22ReadableNilWithOkStatusPaired]' passed (0.000 seconds).
+2026-11-20T12:15:13.6264840Z Test Case '-[Stage2Tests.PluginPairingIntegrationTests testC23CountsMutex]' started.
+2026-11-20T12:15:13.6265350Z Test Case '-[Stage2Tests.PluginPairingIntegrationTests testC23CountsMutex]' passed (0.000 seconds).
+2026-11-20T12:15:13.6265920Z Test Case '-[Stage2Tests.PluginPairingIntegrationTests testC24PairingFourValueCompatibility]' started.
+2026-11-20T12:15:13.6266910Z Test Case '-[Stage2Tests.PluginPairingIntegrationTests testC24PairingFourValueCompatibility]' passed (0.000 seconds).
+2026-11-20T12:15:13.6267520Z Test Case '-[Stage2Tests.PluginPairingIntegrationTests testD25ShuffledInputOrderStable]' started.
+2026-11-20T12:15:13.6268120Z Test Case '-[Stage2Tests.PluginPairingIntegrationTests testD25ShuffledInputOrderStable]' passed (0.000 seconds).
+2026-11-20T12:15:13.6268710Z Test Case '-[Stage2Tests.PluginPairingIntegrationTests testD26RepeatedRunsDeterministic]' started.
+2026-11-20T12:15:13.6269310Z Test Case '-[Stage2Tests.PluginPairingIntegrationTests testD26RepeatedRunsDeterministic]' passed (0.002 seconds).
+2026-11-20T12:15:13.6269890Z Test Case '-[Stage2Tests.PluginPairingIntegrationTests testD27InputSnapshotNotMutated]' started.
+2026-11-20T12:15:13.6270470Z Test Case '-[Stage2Tests.PluginPairingIntegrationTests testD27InputSnapshotNotMutated]' passed (0.000 seconds).
+2026-11-20T12:15:13.6271050Z Test Case '-[Stage2Tests.PluginPairingIntegrationTests testD28RootHideRouteIsolation]' started.
+2026-11-20T12:15:13.6271630Z Test Case '-[Stage2Tests.PluginPairingIntegrationTests testD28RootHideRouteIsolation]' passed (0.000 seconds).
+2026-11-20T12:15:13.6272200Z Test Case '-[Stage2Tests.PluginPairingIntegrationTests testD29RootlessRouteIsolation]' started.
+2026-11-20T12:15:13.6272780Z Test Case '-[Stage2Tests.PluginPairingIntegrationTests testD29RootlessRouteIsolation]' passed (0.001 seconds).
+2026-11-20T12:15:13.6273480Z Test Case '-[Stage2Tests.PluginPairingIntegrationTests testD30DoesNotReadPlistContent]' started.
+2026-11-20T12:15:13.6274230Z Test Case '-[Stage2Tests.PluginPairingIntegrationTests testD30DoesNotReadPlistContent]' passed (0.000 seconds).
+2026-11-20T12:15:13.6275120Z Test Case '-[Stage2Tests.PluginPairingIntegrationTests testD31DoesNotAccessRealFilesystem]' started.
+2026-11-20T12:15:13.6275840Z Test Case '-[Stage2Tests.PluginPairingIntegrationTests testD31DoesNotAccessRealFilesystem]' passed (0.000 seconds).
+2026-11-20T12:15:13.6276450Z Test Case '-[Stage2Tests.PluginPairingIntegrationTests testD32OriginalDataNotModified]' started.
+2026-11-20T12:15:13.6277040Z Test Case '-[Stage2Tests.PluginPairingIntegrationTests testD32OriginalDataNotModified]' passed (0.000 seconds).
+2026-11-20T12:15:13.6277570Z Test Suite 'PluginPairingIntegrationTests' passed at 2026-11-20 12:15:12.446.
+2026-11-20T12:15:13.6277960Z 	 Executed 32 tests, with 0 failures (0 unexpected) in 0.010 (0.014) seconds
+2026-11-20T12:15:13.6278320Z Test Suite 'PluginPairingKeyTests' started at 2026-11-20 12:15:12.446.
+2026-11-20T12:15:13.6278740Z Test Case '-[Stage2Tests.PluginPairingKeyTests testCasePreservedNoLowercasing]' started.
+2026-11-20T12:15:13.6279270Z Test Case '-[Stage2Tests.PluginPairingKeyTests testCasePreservedNoLowercasing]' passed (0.000 seconds).
+2026-11-20T12:15:13.6279780Z Test Case '-[Stage2Tests.PluginPairingKeyTests testDirectoryExcluded]' started.
+2026-11-20T12:15:13.6280250Z Test Case '-[Stage2Tests.PluginPairingKeyTests testDirectoryExcluded]' passed (0.000 seconds).
+2026-11-20T12:15:13.6280730Z Test Case '-[Stage2Tests.PluginPairingKeyTests testDylibSuffixStripped]' started.
+2026-11-20T12:15:13.6281210Z Test Case '-[Stage2Tests.PluginPairingKeyTests testDylibSuffixStripped]' passed (0.000 seconds).
+2026-11-20T12:15:13.6281690Z Test Case '-[Stage2Tests.PluginPairingKeyTests testEmptyDylibKeyRejected]' started.
+2026-11-20T12:15:13.6282190Z Test Case '-[Stage2Tests.PluginPairingKeyTests testEmptyDylibKeyRejected]' passed (0.000 seconds).
+2026-11-20T12:15:13.6282690Z Test Case '-[Stage2Tests.PluginPairingKeyTests testEmptyPlistKeyRejected]' started.
+2026-11-20T12:15:13.6283180Z Test Case '-[Stage2Tests.PluginPairingKeyTests testEmptyPlistKeyRejected]' passed (0.000 seconds).
+2026-11-20T12:15:13.6283680Z Test Case '-[Stage2Tests.PluginPairingKeyTests testHiddenPrefixPreserved]' started.
+2026-11-20T12:15:13.6284180Z Test Case '-[Stage2Tests.PluginPairingKeyTests testHiddenPrefixPreserved]' passed (0.000 seconds).
+2026-11-20T12:15:13.6284670Z Test Case '-[Stage2Tests.PluginPairingKeyTests testLibraryPrefixPreserved]' started.
+2026-11-20T12:15:13.6285290Z Test Case '-[Stage2Tests.PluginPairingKeyTests testLibraryPrefixPreserved]' passed (0.000 seconds).
+2026-11-20T12:15:13.6285790Z Test Case '-[Stage2Tests.PluginPairingKeyTests testOtherKindExcluded]' started.
+2026-11-20T12:15:13.6286320Z Test Case '-[Stage2Tests.PluginPairingKeyTests testOtherKindExcluded]' passed (0.000 seconds).
+2026-11-20T12:15:13.6286840Z Test Case '-[Stage2Tests.PluginPairingKeyTests testPlistSuffixStripped]' started.
+2026-11-20T12:15:13.6287340Z Test Case '-[Stage2Tests.PluginPairingKeyTests testPlistSuffixStripped]' passed (0.000 seconds).
+2026-11-20T12:15:13.6287840Z Test Case '-[Stage2Tests.PluginPairingKeyTests testSymlinkExcluded]' started.
+2026-11-20T12:15:13.6288330Z Test Case '-[Stage2Tests.PluginPairingKeyTests testSymlinkExcluded]' passed (0.000 seconds).
+2026-11-20T12:15:13.6288850Z Test Case '-[Stage2Tests.PluginPairingKeyTests testUppercaseSuffixDoesNotMatch]' started.
+2026-11-20T12:15:13.6289410Z Test Case '-[Stage2Tests.PluginPairingKeyTests testUppercaseSuffixDoesNotMatch]' passed (0.000 seconds).
+2026-11-20T12:15:13.6289880Z Test Suite 'PluginPairingKeyTests' passed at 2026-11-20 12:15:12.450.
+2026-11-20T12:15:13.6290240Z 	 Executed 11 tests, with 0 failures (0 unexpected) in 0.002 (0.004) seconds
+2026-11-20T12:15:13.6290630Z Test Suite 'PluginPairingS105FixtureTests' started at 2026-11-20 12:15:12.450.
+2026-11-20T12:15:13.6291070Z Test Case '-[Stage2Tests.PluginPairingS105FixtureTests testPAIR001PairValid]' started.
+2026-11-20T12:15:13.6291610Z Test Case '-[Stage2Tests.PluginPairingS105FixtureTests testPAIR001PairValid]' passed (0.002 seconds).
+2026-11-20T12:15:13.6292180Z Test Case '-[Stage2Tests.PluginPairingS105FixtureTests testPAIR002MissingPlist]' started.
+2026-11-20T12:15:13.6293050Z Test Case '-[Stage2Tests.PluginPairingS105FixtureTests testPAIR002MissingPlist]' passed (0.001 seconds).
+2026-11-20T12:15:13.6293600Z Test Case '-[Stage2Tests.PluginPairingS105FixtureTests testPAIR003OrphanPlist]' started.
+2026-11-20T12:15:13.6294140Z Test Case '-[Stage2Tests.PluginPairingS105FixtureTests testPAIR003OrphanPlist]' passed (0.001 seconds).
+2026-11-20T12:15:13.6294710Z Test Case '-[Stage2Tests.PluginPairingS105FixtureTests testPAIR004Multi]' started.
+2026-11-20T12:15:13.6295240Z Test Case '-[Stage2Tests.PluginPairingS105FixtureTests testPAIR004Multi]' passed (0.000 seconds).
+2026-11-20T12:15:13.6295740Z Test Case '-[Stage2Tests.PluginPairingS105FixtureTests testPAIR005CaseMismatch]' started.
+2026-11-20T12:15:13.6296300Z Test Case '-[Stage2Tests.PluginPairingS105FixtureTests testPAIR005CaseMismatch]' passed (0.000 seconds).
+2026-11-20T12:15:13.6296820Z Test Case '-[Stage2Tests.PluginPairingS105FixtureTests testPAIR006CrossPath]' started.
+2026-11-20T12:15:13.6297340Z Test Case '-[Stage2Tests.PluginPairingS105FixtureTests testPAIR006CrossPath]' passed (0.000 seconds).
+2026-11-20T12:15:13.6298030Z Test Case '-[Stage2Tests.PluginPairingS105FixtureTests testPAIR006SyntheticRouteIsolation]' started.
+2026-11-20T12:15:13.6298710Z Test Case '-[Stage2Tests.PluginPairingS105FixtureTests testPAIR006SyntheticRouteIsolation]' passed (0.000 seconds).
+2026-11-20T12:15:13.6299330Z Test Case '-[Stage2Tests.PluginPairingS105FixtureTests testPAIR007Hidden]' started.
+2026-11-20T12:15:13.6299900Z Test Case '-[Stage2Tests.PluginPairingS105FixtureTests testPAIR007Hidden]' passed (0.000 seconds).
+2026-11-20T12:15:13.6300490Z Test Case '-[Stage2Tests.PluginPairingS105FixtureTests testPAIR008Symlink]' started.
+2026-11-20T12:15:13.6301150Z Test Case '-[Stage2Tests.PluginPairingS105FixtureTests testPAIR008Symlink]' passed (0.001 seconds).
+2026-11-20T12:15:13.6301750Z Test Case '-[Stage2Tests.PluginPairingS105FixtureTests testPAIR009OtherExt]' started.
+2026-11-20T12:15:13.6302330Z Test Case '-[Stage2Tests.PluginPairingS105FixtureTests testPAIR009OtherExt]' passed (0.001 seconds).
+2026-11-20T12:15:13.6302900Z Test Case '-[Stage2Tests.PluginPairingS105FixtureTests testPAIR010Duplicate]' started.
+2026-11-20T12:15:13.6303480Z Test Case '-[Stage2Tests.PluginPairingS105FixtureTests testPAIR010Duplicate]' passed (0.001 seconds).
+2026-11-20T12:15:13.6304240Z Test Case '-[Stage2Tests.PluginPairingS105FixtureTests testPAIR011AccessDenied]' started.
+2026-11-20T12:15:13.6304840Z Test Case '-[Stage2Tests.PluginPairingS105FixtureTests testPAIR011AccessDenied]' passed (0.000 seconds).
+2026-11-20T12:15:13.6305420Z Test Case '-[Stage2Tests.PluginPairingS105FixtureTests testPAIR012RouteGuard]' started.
+2026-11-20T12:15:13.6305950Z Test Case '-[Stage2Tests.PluginPairingS105FixtureTests testPAIR012RouteGuard]' passed (0.000 seconds).
+2026-11-20T12:15:13.6306510Z Test Case '-[Stage2Tests.PluginPairingS105FixtureTests testPAIR013DeterminismFixture]' started.
+2026-11-20T12:15:13.6307080Z Test Case '-[Stage2Tests.PluginPairingS105FixtureTests testPAIR013DeterminismFixture]' passed (0.000 seconds).
+2026-11-20T12:15:13.6307690Z Test Case '-[Stage2Tests.PluginPairingS105FixtureTests testPAIR013SyntheticDeterminism]' started.
+2026-11-20T12:15:13.6308280Z Test Case '-[Stage2Tests.PluginPairingS105FixtureTests testPAIR013SyntheticDeterminism]' passed (0.000 seconds).
+2026-11-20T12:15:13.6308810Z Test Suite 'PluginPairingS105FixtureTests' passed at 2026-11-20 12:15:12.462.
+2026-11-20T12:15:13.6309200Z 	 Executed 15 tests, with 0 failures (0 unexpected) in 0.009 (0.012) seconds
+2026-11-20T12:15:13.6309560Z Test Suite 'ReportBuilderTests' started at 2026-11-20 12:15:12.462.
+2026-11-20T12:15:13.6310040Z Test Case '-[Stage2Tests.ReportBuilderTests testBuilder001MixedSnapshotMergesAndKeepsFailures]' started.
+2026-11-20T12:15:13.6310710Z Test Case '-[Stage2Tests.ReportBuilderTests testBuilder001MixedSnapshotMergesAndKeepsFailures]' passed (0.002 seconds).
+2026-11-20T12:15:13.6311520Z Test Case '-[Stage2Tests.ReportBuilderTests testBuilder002DualRouteIsolationAndUnknownRouteUnknownItems]' started.
+2026-11-20T12:15:13.6312250Z Test Case '-[Stage2Tests.ReportBuilderTests testBuilder002DualRouteIsolationAndUnknownRouteUnknownItems]' passed (0.000 seconds).
+2026-11-20T12:15:13.6312950Z Test Case '-[Stage2Tests.ReportBuilderTests testBuilder003ParseFailureKeepsEvidenceWithoutFilter]' started.
+2026-11-20T12:15:13.6313650Z Test Case '-[Stage2Tests.ReportBuilderTests testBuilder003ParseFailureKeepsEvidenceWithoutFilter]' passed (0.000 seconds).
+2026-11-20T12:15:13.6314340Z Test Case '-[Stage2Tests.ReportBuilderTests testBuilder004OwnershipDetailsPreservedWithoutMerging]' started.
+2026-11-20T12:15:13.6315220Z Test Case '-[Stage2Tests.ReportBuilderTests testBuilder004OwnershipDetailsPreservedWithoutMerging]' passed (0.000 seconds).
+2026-11-20T12:15:13.6315850Z Test Case '-[Stage2Tests.ReportBuilderTests testBuilder005MissingStagesLeaveNilAndWarn]' started.
+2026-11-20T12:15:13.6316450Z Test Case '-[Stage2Tests.ReportBuilderTests testBuilder005MissingStagesLeaveNilAndWarn]' passed (0.000 seconds).
+2026-11-20T12:15:13.6317000Z Test Case '-[Stage2Tests.ReportBuilderTests testBuilder006StateSeparation]' started.
+2026-11-20T12:15:13.6317510Z Test Case '-[Stage2Tests.ReportBuilderTests testBuilder006StateSeparation]' passed (0.001 seconds).
+2026-11-20T12:15:13.6317970Z Test Suite 'ReportBuilderTests' passed at 2026-11-20 12:15:12.468.
+2026-11-20T12:15:13.6318320Z 	 Executed 6 tests, with 0 failures (0 unexpected) in 0.004 (0.005) seconds
+2026-11-20T12:15:13.6318670Z Test Suite 'ReportExporterTests' started at 2026-11-20 12:15:12.468.
+2026-11-20T12:15:13.6319100Z Test Case '-[Stage2Tests.ReportExporterTests testExporter001EncodesAndRoundTrips]' started.
+2026-11-20T12:15:13.6319660Z Test Case '-[Stage2Tests.ReportExporterTests testExporter001EncodesAndRoundTrips]' passed (0.001 seconds).
+2026-11-20T12:15:13.6320240Z Test Case '-[Stage2Tests.ReportExporterTests testExporter002OptionalBoolThreeStatesSurvive]' started.
+2026-11-20T12:15:13.6320870Z Test Case '-[Stage2Tests.ReportExporterTests testExporter002OptionalBoolThreeStatesSurvive]' passed (0.001 seconds).
+2026-11-20T12:15:13.6321530Z Test Case '-[Stage2Tests.ReportExporterTests testExporter003DeterministicOutputAcrossShuffledInput]' started.
+2026-11-20T12:15:13.6322390Z Test Case '-[Stage2Tests.ReportExporterTests testExporter003DeterministicOutputAcrossShuffledInput]' passed (0.001 seconds).
+2026-11-20T12:15:13.6323020Z Test Case '-[Stage2Tests.ReportExporterTests testExporter004EvidenceFieldsRoundTrip]' started.
+2026-11-20T12:15:13.6323580Z Test Case '-[Stage2Tests.ReportExporterTests testExporter004EvidenceFieldsRoundTrip]' passed (0.000 seconds).
+2026-11-20T12:15:13.6324230Z Test Case '-[Stage2Tests.ReportExporterTests testExporter005OriginalReportUnchangedAndErrorTypeExplicit]' started.
+2026-11-20T12:15:13.6324950Z Test Case '-[Stage2Tests.ReportExporterTests testExporter005OriginalReportUnchangedAndErrorTypeExplicit]' passed (0.000 seconds).
+2026-11-20T12:15:13.6325500Z Test Suite 'ReportExporterTests' passed at 2026-11-20 12:15:12.470.
+2026-11-20T12:15:13.6325860Z 	 Executed 5 tests, with 0 failures (0 unexpected) in 0.002 (0.003) seconds
+2026-11-20T12:15:13.6326250Z Test Suite 'ReportServiceTests' started at 2026-11-20 12:15:12.470.
+2026-11-20T12:15:13.6326760Z Test Case '-[Stage2Tests.ReportServiceTests testService001BuildValidateExportRoundTrip]' started.
+2026-11-20T12:15:13.6327340Z Test Case '-[Stage2Tests.ReportServiceTests testService001BuildValidateExportRoundTrip]' passed (0.000 seconds).
+2026-11-20T12:15:13.6328010Z Test Case '-[Stage2Tests.ReportServiceTests testService002InvalidReportDoesNotThrowAndExportIsCallerDecision]' started.
+2026-11-20T12:15:13.6328770Z Test Case '-[Stage2Tests.ReportServiceTests testService002InvalidReportDoesNotThrowAndExportIsCallerDecision]' passed (0.000 seconds).
+2026-11-20T12:15:13.6329490Z Test Case '-[Stage2Tests.ReportServiceTests testService003CollaboratorsInjectableThroughSeams]' started.
+2026-11-20T12:15:13.6330280Z Test Case '-[Stage2Tests.ReportServiceTests testService003CollaboratorsInjectableThroughSeams]' passed (0.001 seconds).
+2026-11-20T12:15:13.6330820Z Test Suite 'ReportServiceTests' passed at 2026-11-20 12:15:12.473.
+2026-11-20T12:15:13.6331180Z 	 Executed 3 tests, with 0 failures (0 unexpected) in 0.002 (0.002) seconds
+2026-11-20T12:15:13.6331540Z Test Suite 'ReportValidatorTests' started at 2026-11-20 12:15:12.473.
+2026-11-20T12:15:13.6331970Z Test Case '-[Stage2Tests.ReportValidatorTests testValidator001ValidReportPasses]' started.
+2026-11-20T12:15:13.6332540Z Test Case '-[Stage2Tests.ReportValidatorTests testValidator001ValidReportPasses]' passed (0.000 seconds).
+2026-11-20T12:15:13.6333160Z Test Case '-[Stage2Tests.ReportValidatorTests testValidator002InjectsInconsistenciesAndKeepsOriginal]' started.
+2026-11-20T12:15:13.6333840Z Test Case '-[Stage2Tests.ReportValidatorTests testValidator002InjectsInconsistenciesAndKeepsOriginal]' passed (0.000 seconds).
+2026-11-20T12:15:13.6334550Z Test Case '-[Stage2Tests.ReportValidatorTests testValidator003FailureAndUnknownItemsRetainIdentity]' started.
+2026-11-20T12:15:13.6335880Z Test Case '-[Stage2Tests.ReportValidatorTests testValidator003FailureAndUnknownItemsRetainIdentity]' passed (0.000 seconds).
+2026-11-20T12:15:13.6336700Z Test Case '-[Stage2Tests.ReportValidatorTests testValidator004DuplicateWarningsDetectedWithoutDeduping]' started.
+2026-11-20T12:15:13.6337440Z Test Case '-[Stage2Tests.ReportValidatorTests testValidator004DuplicateWarningsDetectedWithoutDeduping]' passed (0.000 seconds).
+2026-11-20T12:15:13.6337980Z Test Suite 'ReportValidatorTests' passed at 2026-11-20 12:15:12.474.
+2026-11-20T12:15:13.6338350Z 	 Executed 4 tests, with 0 failures (0 unexpected) in 0.001 (0.001) seconds
+2026-11-20T12:15:13.6338730Z Test Suite 'RootHideFilterParserTests' started at 2026-11-20 12:15:12.474.
+2026-11-20T12:15:13.6339200Z Test Case '-[Stage2Tests.RootHideFilterParserTests testBundlesNotArrayIsTypeMismatch]' started.
+2026-11-20T12:15:13.6339780Z Test Case '-[Stage2Tests.RootHideFilterParserTests testBundlesNotArrayIsTypeMismatch]' passed (0.000 seconds).
+2026-11-20T12:15:13.6340390Z Test Case '-[Stage2Tests.RootHideFilterParserTests testBundlesNullElementIsTolerated]' started.
+2026-11-20T12:15:13.6340990Z Test Case '-[Stage2Tests.RootHideFilterParserTests testBundlesNullElementIsTolerated]' passed (0.000 seconds).
+2026-11-20T12:15:13.6341830Z Test Case '-[Stage2Tests.RootHideFilterParserTests testCFVBoolElementIsNotNumber]' started.
+2026-11-20T12:15:13.6342390Z Test Case '-[Stage2Tests.RootHideFilterParserTests testCFVBoolElementIsNotNumber]' passed (0.000 seconds).
+2026-11-20T12:15:13.6342940Z Test Case '-[Stage2Tests.RootHideFilterParserTests testCFVLengthOneMapsToMaxMode]' started.
+2026-11-20T12:15:13.6343490Z Test Case '-[Stage2Tests.RootHideFilterParserTests testCFVLengthOneMapsToMaxMode]' passed (0.000 seconds).
+2026-11-20T12:15:13.6344100Z Test Case '-[Stage2Tests.RootHideFilterParserTests testCFVLengthThreeIsValidWithLengthClue]' started.
+2026-11-20T12:15:13.6344730Z Test Case '-[Stage2Tests.RootHideFilterParserTests testCFVLengthThreeIsValidWithLengthClue]' passed (0.000 seconds).
+2026-11-20T12:15:13.6345330Z Test Case '-[Stage2Tests.RootHideFilterParserTests testCFVLengthTwoMapsToRangeMode]' started.
+2026-11-20T12:15:13.6345900Z Test Case '-[Stage2Tests.RootHideFilterParserTests testCFVLengthTwoMapsToRangeMode]' passed (0.000 seconds).
+2026-11-20T12:15:13.6346500Z Test Case '-[Stage2Tests.RootHideFilterParserTests testCFVLengthZeroIsValidWithLengthClue]' started.
+2026-11-20T12:15:13.6347150Z Test Case '-[Stage2Tests.RootHideFilterParserTests testCFVLengthZeroIsValidWithLengthClue]' passed (0.000 seconds).
+2026-11-20T12:15:13.6347770Z Test Case '-[Stage2Tests.RootHideFilterParserTests testCFVMissingIsNil]' started.
+2026-11-20T12:15:13.6348250Z Test Case '-[Stage2Tests.RootHideFilterParserTests testCFVMissingIsNil]' passed (0.000 seconds).
+2026-11-20T12:15:13.6348760Z Test Case '-[Stage2Tests.RootHideFilterParserTests testCFVNonArrayIsTypeMismatch]' started.
+2026-11-20T12:15:13.6349420Z Test Case '-[Stage2Tests.RootHideFilterParserTests testCFVNonArrayIsTypeMismatch]' passed (0.000 seconds).
+2026-11-20T12:15:13.6349990Z Test Case '-[Stage2Tests.RootHideFilterParserTests testCFVStringElementIsTypeMismatch]' started.
+2026-11-20T12:15:13.6350580Z Test Case '-[Stage2Tests.RootHideFilterParserTests testCFVStringElementIsTypeMismatch]' passed (0.000 seconds).
+2026-11-20T12:15:13.6351160Z Test Case '-[Stage2Tests.RootHideFilterParserTests testClassesNotArrayIsTypeMismatch]' started.
+2026-11-20T12:15:13.6351740Z Test Case '-[Stage2Tests.RootHideFilterParserTests testClassesNotArrayIsTypeMismatch]' passed (0.000 seconds).
+2026-11-20T12:15:13.6352330Z Test Case '-[Stage2Tests.RootHideFilterParserTests testClassesNullElementIsTypeMismatch]' started.
+2026-11-20T12:15:13.6352920Z Test Case '-[Stage2Tests.RootHideFilterParserTests testClassesNullElementIsTypeMismatch]' passed (0.000 seconds).
+2026-11-20T12:15:13.6353520Z Test Case '-[Stage2Tests.RootHideFilterParserTests testEmptyFilterIsValidWithEmptyRule]' started.
+2026-11-20T12:15:13.6354120Z Test Case '-[Stage2Tests.RootHideFilterParserTests testEmptyFilterIsValidWithEmptyRule]' passed (0.000 seconds).
+2026-11-20T12:15:13.6354730Z Test Case '-[Stage2Tests.RootHideFilterParserTests testEmptyStringElementRetainedWithWarning]' started.
+2026-11-20T12:15:13.6356090Z Test Case '-[Stage2Tests.RootHideFilterParserTests testEmptyStringElementRetainedWithWarning]' passed (0.000 seconds).
+2026-11-20T12:15:13.6356730Z Test Case '-[Stage2Tests.RootHideFilterParserTests testExecutableNumberElementIsTypeMismatch]' started.
+2026-11-20T12:15:13.6357470Z Test Case '-[Stage2Tests.RootHideFilterParserTests testExecutableNumberElementIsTypeMismatch]' passed (0.000 seconds).
+2026-11-20T12:15:13.6358070Z Test Case '-[Stage2Tests.RootHideFilterParserTests testFilterMissingIsTypeMismatch]' started.
+2026-11-20T12:15:13.6358640Z Test Case '-[Stage2Tests.RootHideFilterParserTests testFilterMissingIsTypeMismatch]' passed (0.000 seconds).
+2026-11-20T12:15:13.6359230Z Test Case '-[Stage2Tests.RootHideFilterParserTests testFilterNonDictionaryIsTypeMismatch]' started.
+2026-11-20T12:15:13.6359840Z Test Case '-[Stage2Tests.RootHideFilterParserTests testFilterNonDictionaryIsTypeMismatch]' passed (0.000 seconds).
+2026-11-20T12:15:13.6360460Z Test Case '-[Stage2Tests.RootHideFilterParserTests testFilterNullIsTreatedAsMissing]' started.
+2026-11-20T12:15:13.6361250Z Test Case '-[Stage2Tests.RootHideFilterParserTests testFilterNullIsTreatedAsMissing]' passed (0.000 seconds).
+2026-11-20T12:15:13.6361820Z Test Case '-[Stage2Tests.RootHideFilterParserTests testIsTweakManagerFalseAccepted]' started.
+2026-11-20T12:15:13.6362470Z Test Case '-[Stage2Tests.RootHideFilterParserTests testIsTweakManagerFalseAccepted]' passed (0.000 seconds).
+2026-11-20T12:15:13.6363080Z Test Case '-[Stage2Tests.RootHideFilterParserTests testIsTweakManagerMissingDefaultsFalse]' started.
+2026-11-20T12:15:13.6363690Z Test Case '-[Stage2Tests.RootHideFilterParserTests testIsTweakManagerMissingDefaultsFalse]' passed (0.000 seconds).
+2026-11-20T12:15:13.6364430Z Test Case '-[Stage2Tests.RootHideFilterParserTests testIsTweakManagerNumberIsTypeMismatch]' started.
+2026-11-20T12:15:13.6365050Z Test Case '-[Stage2Tests.RootHideFilterParserTests testIsTweakManagerNumberIsTypeMismatch]' passed (0.000 seconds).
+2026-11-20T12:15:13.6365660Z Test Case '-[Stage2Tests.RootHideFilterParserTests testIsTweakManagerStringIsTypeMismatch]' started.
+2026-11-20T12:15:13.6366310Z Test Case '-[Stage2Tests.RootHideFilterParserTests testIsTweakManagerStringIsTypeMismatch]' passed (0.000 seconds).
+2026-11-20T12:15:13.6366960Z Test Case '-[Stage2Tests.RootHideFilterParserTests testIsTweakManagerTrueAccepted]' started.
+2026-11-20T12:15:13.6367580Z Test Case '-[Stage2Tests.RootHideFilterParserTests testIsTweakManagerTrueAccepted]' passed (0.000 seconds).
+2026-11-20T12:15:13.6368190Z Test Case '-[Stage2Tests.RootHideFilterParserTests testMismatchResultCarriesNoOtherKeys]' started.
+2026-11-20T12:15:13.6368810Z Test Case '-[Stage2Tests.RootHideFilterParserTests testMismatchResultCarriesNoOtherKeys]' passed (0.000 seconds).
+2026-11-20T12:15:13.6369650Z Test Case '-[Stage2Tests.RootHideFilterParserTests testMissingArrayFieldsRaiseFieldMissingWarnings]' started.
+2026-11-20T12:15:13.6370350Z Test Case '-[Stage2Tests.RootHideFilterParserTests testMissingArrayFieldsRaiseFieldMissingWarnings]' passed (0.000 seconds).
+2026-11-20T12:15:13.6371060Z Test Case '-[Stage2Tests.RootHideFilterParserTests testOtherKeysCollectedDeduplicatedAndSorted]' started.
+2026-11-20T12:15:13.6371740Z Test Case '-[Stage2Tests.RootHideFilterParserTests testOtherKeysCollectedDeduplicatedAndSorted]' passed (0.000 seconds).
+2026-11-20T12:15:13.6372510Z Test Case '-[Stage2Tests.RootHideFilterParserTests testParserDoesNotMutateInputRoot]' started.
+2026-11-20T12:15:13.6378930Z Test Case '-[Stage2Tests.RootHideFilterParserTests testParserDoesNotMutateInputRoot]' passed (0.000 seconds).
+2026-11-20T12:15:13.6379710Z Test Case '-[Stage2Tests.RootHideFilterParserTests testRepeatedParseProducesEqualResult]' started.
+2026-11-20T12:15:13.6380400Z Test Case '-[Stage2Tests.RootHideFilterParserTests testRepeatedParseProducesEqualResult]' passed (0.000 seconds).
+2026-11-20T12:15:13.6381420Z Test Case '-[Stage2Tests.RootHideFilterParserTests testRootArrayIsTypeMismatch]' started.
+2026-11-20T12:15:13.6382010Z Test Case '-[Stage2Tests.RootHideFilterParserTests testRootArrayIsTypeMismatch]' passed (0.000 seconds).
+2026-11-20T12:15:13.6382570Z Test Case '-[Stage2Tests.RootHideFilterParserTests testRootStringIsTypeMismatch]' started.
+2026-11-20T12:15:13.6383210Z Test Case '-[Stage2Tests.RootHideFilterParserTests testRootStringIsTypeMismatch]' passed (0.000 seconds).
+2026-11-20T12:15:13.6383860Z Test Case '-[Stage2Tests.RootHideFilterParserTests testSkippedFieldsRouteIsRootHide]' started.
+2026-11-20T12:15:13.6384430Z Test Case '-[Stage2Tests.RootHideFilterParserTests testSkippedFieldsRouteIsRootHide]' passed (0.000 seconds).
+2026-11-20T12:15:13.6384970Z Test Case '-[Stage2Tests.RootHideFilterParserTests testStringArrayAccepted]' started.
+2026-11-20T12:15:13.6385490Z Test Case '-[Stage2Tests.RootHideFilterParserTests testStringArrayAccepted]' passed (0.000 seconds).
+2026-11-20T12:15:13.6385960Z Test Suite 'RootHideFilterParserTests' passed at 2026-11-20 12:15:12.484.
+2026-11-20T12:15:13.6386450Z 	 Executed 32 tests, with 0 failures (0 unexpected) in 0.007 (0.010) seconds
+2026-11-20T12:15:13.6386840Z Test Suite 'RootlessFilterParserTests' started at 2026-11-20 12:15:12.484.
+2026-11-20T12:15:13.6387310Z Test Case '-[Stage2Tests.RootlessFilterParserTests testAllFieldsMissingValidEmptyRule]' started.
+2026-11-20T12:15:13.6387920Z Test Case '-[Stage2Tests.RootlessFilterParserTests testAllFieldsMissingValidEmptyRule]' passed (0.000 seconds).
+2026-11-20T12:15:13.6388510Z Test Case '-[Stage2Tests.RootlessFilterParserTests testBundlesAndExecutablesLowercased]' started.
+2026-11-20T12:15:13.6389100Z Test Case '-[Stage2Tests.RootlessFilterParserTests testBundlesAndExecutablesLowercased]' passed (0.000 seconds).
+2026-11-20T12:15:13.6389740Z Test Case '-[Stage2Tests.RootlessFilterParserTests testBundlesElementNonStringIsParseFailed]' started.
+2026-11-20T12:15:13.6390420Z Test Case '-[Stage2Tests.RootlessFilterParserTests testBundlesElementNonStringIsParseFailed]' passed (0.000 seconds).
+2026-11-20T12:15:13.6391080Z Test Case '-[Stage2Tests.RootlessFilterParserTests testBundlesNotArrayIsParseFailed]' started.
+2026-11-20T12:15:13.6391710Z Test Case '-[Stage2Tests.RootlessFilterParserTests testBundlesNotArrayIsParseFailed]' passed (0.000 seconds).
+2026-11-20T12:15:13.6392350Z Test Case '-[Stage2Tests.RootlessFilterParserTests testEmptyArraysAccepted]' started.
+2026-11-20T12:15:13.6392870Z Test Case '-[Stage2Tests.RootlessFilterParserTests testEmptyArraysAccepted]' passed (0.000 seconds).
+2026-11-20T12:15:13.6393430Z Test Case '-[Stage2Tests.RootlessFilterParserTests testExecutablesNotArrayIsParseFailed]' started.
+2026-11-20T12:15:13.6394030Z Test Case '-[Stage2Tests.RootlessFilterParserTests testExecutablesNotArrayIsParseFailed]' passed (0.000 seconds).
+2026-11-20T12:15:13.6394730Z Test Case '-[Stage2Tests.RootlessFilterParserTests testFailureCarriesNoFilterRule]' started.
+2026-11-20T12:15:13.6395360Z Test Case '-[Stage2Tests.RootlessFilterParserTests testFailureCarriesNoFilterRule]' passed (0.000 seconds).
+2026-11-20T12:15:13.6396060Z Test Case '-[Stage2Tests.RootlessFilterParserTests testFilterMissingIsParseFailed]' started.
+2026-11-20T12:15:13.6396720Z Test Case '-[Stage2Tests.RootlessFilterParserTests testFilterMissingIsParseFailed]' passed (0.000 seconds).
+2026-11-20T12:15:13.6397300Z Test Case '-[Stage2Tests.RootlessFilterParserTests testFilterNonDictionaryIsParseFailed]' started.
+2026-11-20T12:15:13.6397900Z Test Case '-[Stage2Tests.RootlessFilterParserTests testFilterNonDictionaryIsParseFailed]' passed (0.000 seconds).
+2026-11-20T12:15:13.6398460Z Test Case '-[Stage2Tests.RootlessFilterParserTests testFilterNullIsParseFailed]' started.
+2026-11-20T12:15:13.6399000Z Test Case '-[Stage2Tests.RootlessFilterParserTests testFilterNullIsParseFailed]' passed (0.000 seconds).
+2026-11-20T12:15:13.6399600Z Test Case '-[Stage2Tests.RootlessFilterParserTests testMissingArraysRaiseFieldMissingWarnings]' started.
+2026-11-20T12:15:13.6400250Z Test Case '-[Stage2Tests.RootlessFilterParserTests testMissingArraysRaiseFieldMissingWarnings]' passed (0.000 seconds).
+2026-11-20T12:15:13.6400880Z Test Case '-[Stage2Tests.RootlessFilterParserTests testOtherKeysSortedAndCaseSensitive]' started.
+2026-11-20T12:15:13.6401470Z Test Case '-[Stage2Tests.RootlessFilterParserTests testOtherKeysSortedAndCaseSensitive]' passed (0.000 seconds).
+2026-11-20T12:15:13.6402050Z Test Case '-[Stage2Tests.RootlessFilterParserTests testParserDoesNotMutateInputRoot]' started.
+2026-11-20T12:15:13.6402640Z Test Case '-[Stage2Tests.RootlessFilterParserTests testParserDoesNotMutateInputRoot]' passed (0.000 seconds).
+2026-11-20T12:15:13.6403230Z Test Case '-[Stage2Tests.RootlessFilterParserTests testRepeatedParseProducesEqualResult]' started.
+2026-11-20T12:15:13.6403850Z Test Case '-[Stage2Tests.RootlessFilterParserTests testRepeatedParseProducesEqualResult]' passed (0.000 seconds).
+2026-11-20T12:15:13.6404440Z Test Case '-[Stage2Tests.RootlessFilterParserTests testRootArrayIsParseFailed]' started.
+2026-11-20T12:15:13.6404970Z Test Case '-[Stage2Tests.RootlessFilterParserTests testRootArrayIsParseFailed]' passed (0.000 seconds).
+2026-11-20T12:15:13.6405700Z Test Case '-[Stage2Tests.RootlessFilterParserTests testRootStringIsParseFailed]' started.
+2026-11-20T12:15:13.6406240Z Test Case '-[Stage2Tests.RootlessFilterParserTests testRootStringIsParseFailed]' passed (0.000 seconds).
+2026-11-20T12:15:13.6406770Z Test Case '-[Stage2Tests.RootlessFilterParserTests testRouteEvidenceIsRootless]' started.
+2026-11-20T12:15:13.6407310Z Test Case '-[Stage2Tests.RootlessFilterParserTests testRouteEvidenceIsRootless]' passed (0.000 seconds).
+2026-11-20T12:15:13.6407920Z Test Case '-[Stage2Tests.RootlessFilterParserTests testUnknownKeySharedAcrossRootAndFilterDeduplicated]' started.
+2026-11-20T12:15:13.6408640Z Test Case '-[Stage2Tests.RootlessFilterParserTests testUnknownKeySharedAcrossRootAndFilterDeduplicated]' passed (0.000 seconds).
+2026-11-20T12:15:13.6409320Z Test Case '-[Stage2Tests.RootlessFilterParserTests testUnknownRouteFieldsGoToOtherKeysNotJudged]' started.
+2026-11-20T12:15:13.6409980Z Test Case '-[Stage2Tests.RootlessFilterParserTests testUnknownRouteFieldsGoToOtherKeysNotJudged]' passed (0.000 seconds).
+2026-11-20T12:15:13.6410590Z Test Case '-[Stage2Tests.RootlessFilterParserTests testUnloadAfterFalseAccepted]' started.
+2026-11-20T12:15:13.6411160Z Test Case '-[Stage2Tests.RootlessFilterParserTests testUnloadAfterFalseAccepted]' passed (0.000 seconds).
+2026-11-20T12:15:13.6411740Z Test Case '-[Stage2Tests.RootlessFilterParserTests testUnloadAfterNonBooleanIsParseFailed]' started.
+2026-11-20T12:15:13.6412350Z Test Case '-[Stage2Tests.RootlessFilterParserTests testUnloadAfterNonBooleanIsParseFailed]' passed (0.000 seconds).
+2026-11-20T12:15:13.6412920Z Test Case '-[Stage2Tests.RootlessFilterParserTests testUnloadAfterTrueAccepted]' started.
+2026-11-20T12:15:13.6413600Z Test Case '-[Stage2Tests.RootlessFilterParserTests testUnloadAfterTrueAccepted]' passed (0.000 seconds).
+2026-11-20T12:15:13.6414090Z Test Suite 'RootlessFilterParserTests' passed at 2026-11-20 12:15:12.491.
+2026-11-20T12:15:13.6414480Z 	 Executed 22 tests, with 0 failures (0 unexpected) in 0.005 (0.007) seconds
+2026-11-20T12:15:13.6414870Z Test Suite 'FilterKitPackageTests.xctest' passed at 2026-11-20 12:15:12.491.
+2026-11-20T12:15:13.6415340Z 	 Executed 458 tests, with 0 failures (0 unexpected) in 0.212 (0.269) seconds
+2026-11-20T12:15:13.6415710Z Test Suite 'All tests' passed at 2026-11-20 12:15:12.491.
+2026-11-20T12:15:13.6416110Z 	 Executed 458 tests, with 0 failures (0 unexpected) in 0.212 (0.282) seconds
+2026-11-20T12:15:13.6419980Z ◇ Test run started.
+2026-11-20T12:15:13.6420310Z ↳ Testing Library Version: 1902
+2026-11-20T12:15:13.6420550Z ↳ Target Platform: arm64e-apple-macos14.0
+2026-11-20T12:15:13.6421080Z ✔ Test run with 0 tests in 0 suites passed after 0.001 seconds.

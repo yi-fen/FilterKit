@@ -1,0 +1,14 @@
+{
+  "baselineGeneratorVersion" : "0.1.0-preview",
+  "counts" : {
+    "plugins" : 3,
+    "unknownItems" : 1,
+    "warnings" : 1
+  },
+  "decodable" : true,
+  "equalIgnoringGeneratedAt" : false,
+  "inputFile" : "build\/export\/FilterKit-Report-0-1-0-preview.json",
+  "messages" : [
+    "解码信封与合成基线（忽略 generatedAt）不等义"
+  ]
+}

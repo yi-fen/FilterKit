@@ -1,0 +1,696 @@
+﻿2026-11-19T17:25:58.6463040Z Current runner version: '2.338.2'
+2026-11-19T17:25:58.6480410Z ##[group]Runner Image Provisioner
+2026-11-19T17:25:58.6480970Z Hosted Compute Agent
+2026-11-19T17:25:58.6481360Z Version: 20261028.624
+2026-11-19T17:25:58.6481770Z Commit: 54898b74c23fde5556c9b3c3a2290865feef0dfe
+2026-11-19T17:25:58.6482230Z Build Date: 2026-10-28T21:51:42Z
+2026-11-19T17:25:58.6482710Z Worker ID: {34db297c-4915-4555-927e-42cd63b8ea4c}
+2026-11-19T17:25:58.6483170Z Region: westus
+2026-11-19T17:25:58.6483540Z Cloud: MacCloud
+2026-11-19T17:25:58.6483910Z ##[endgroup]
+2026-11-19T17:25:58.6484930Z ##[group]Operating System
+2026-11-19T17:25:58.6485330Z macOS
+2026-11-19T17:25:58.6485660Z 26.7.2
+2026-11-19T17:25:58.6486000Z 25G332
+2026-11-19T17:25:58.6486340Z ##[endgroup]
+2026-11-19T17:25:58.6486700Z ##[group]Runner Image
+2026-11-19T17:25:58.6487080Z Image: macos-26-arm64
+2026-11-19T17:25:58.6487470Z Version: 20261102.0473.1
+2026-11-19T17:25:58.6488340Z Included Software: https://github.com/actions/runner-images/blob/macos-26-arm64/20261102.0473/images/macos/macos-26-arm64-Readme.md
+2026-11-19T17:25:58.6489470Z Image Release: https://github.com/actions/runner-images/releases/tag/macos-26-arm64%2F20261102.0473
+2026-11-19T17:25:58.6490200Z ##[endgroup]
+2026-11-19T17:25:58.6492610Z ##[group]GITHUB_TOKEN Permissions
+2026-11-19T17:25:58.6494030Z Actions: write
+2026-11-19T17:25:58.6494480Z ArtifactMetadata: write
+2026-11-19T17:25:58.6494940Z Attestations: write
+2026-11-19T17:25:58.6495370Z Checks: write
+2026-11-19T17:25:58.6495740Z CodeQuality: write
+2026-11-19T17:25:58.6496100Z Contents: write
+2026-11-19T17:25:58.6496560Z CopilotRequests: write
+2026-11-19T17:25:58.6496990Z Deployments: write
+2026-11-19T17:25:58.6497480Z Discussions: write
+2026-11-19T17:25:58.6497920Z Drives: write
+2026-11-19T17:25:58.6498350Z Issues: write
+2026-11-19T17:25:58.6498820Z Metadata: read
+2026-11-19T17:25:58.6499180Z Models: read
+2026-11-19T17:25:58.6499570Z Packages: write
+2026-11-19T17:25:58.6499930Z Pages: write
+2026-11-19T17:25:58.6500370Z PullRequests: write
+2026-11-19T17:25:58.6500800Z RepositoryProjects: write
+2026-11-19T17:25:58.6501200Z SecurityEvents: write
+2026-11-19T17:25:58.6501590Z Statuses: write
+2026-11-19T17:25:58.6501970Z VulnerabilityAlerts: read
+2026-11-19T17:25:58.6502380Z ##[endgroup]
+2026-11-19T17:25:58.6504170Z Secret source: Actions
+2026-11-19T17:25:58.6504840Z Cache mode: write
+2026-11-19T17:25:58.6505310Z Prepare workflow directory
+2026-11-19T17:25:58.6746140Z Prepare all required actions
+2026-11-19T17:25:58.6784720Z Getting action download info
+2026-11-19T17:25:59.0099770Z Download action repository 'actions/checkout@v6' (SHA:d23441a48e516b6c34aea4fa41551a30e30af803)
+2026-11-19T17:25:59.1894960Z Download action repository 'actions/upload-artifact@v7' (SHA:cf430e030ddbb5b0abf93d22962f4752f3646cd9)
+2026-11-19T17:25:59.3166650Z Complete job name: build
+2026-11-19T17:25:59.3703280Z ##[group]Run actions/checkout@v6
+2026-11-19T17:25:59.3704300Z with:
+2026-11-19T17:25:59.3704790Z   repository: yi-fen/FilterKit
+2026-11-19T17:25:59.3708220Z   token: ***
+2026-11-19T17:25:59.3708610Z   ssh-strict: true
+2026-11-19T17:25:59.3708980Z   ssh-user: git
+2026-11-19T17:25:59.3709330Z   persist-credentials: true
+2026-11-19T17:25:59.3709770Z   clean: true
+2026-11-19T17:25:59.3710210Z   sparse-checkout-cone-mode: true
+2026-11-19T17:25:59.3710620Z   fetch-depth: 1
+2026-11-19T17:25:59.3710950Z   fetch-tags: false
+2026-11-19T17:25:59.3711270Z   show-progress: true
+2026-11-19T17:25:59.3711670Z   lfs: false
+2026-11-19T17:25:59.3712040Z   submodules: false
+2026-11-19T17:25:59.3712420Z   set-safe-directory: true
+2026-11-19T17:25:59.3712890Z   allow-unsafe-pr-checkout: false
+2026-11-19T17:25:59.3713610Z ##[endgroup]
+2026-11-19T17:25:59.6829770Z Syncing repository: yi-fen/FilterKit
+2026-11-19T17:25:59.6831310Z ##[group]Getting Git version info
+2026-11-19T17:25:59.6832100Z Working directory is '/Users/runner/work/FilterKit/FilterKit'
+2026-11-19T17:25:59.6833230Z [command]/opt/homebrew/bin/git version
+2026-11-19T17:25:59.7331190Z git version 2.56.0
+2026-11-19T17:25:59.7345160Z ##[endgroup]
+2026-11-19T17:25:59.7352660Z Copying '/Users/runner/.gitconfig' to '/Users/runner/work/_temp/7e6a734e-c712-4a07-91e2-9038601413d6/.gitconfig'
+2026-11-19T17:25:59.7358160Z Temporarily overriding HOME='/Users/runner/work/_temp/7e6a734e-c712-4a07-91e2-9038601413d6' before making global git config changes
+2026-11-19T17:25:59.7359530Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-19T17:25:59.7362020Z [command]/opt/homebrew/bin/git config --global --add safe.directory /Users/runner/work/FilterKit/FilterKit
+2026-11-19T17:25:59.7480670Z Deleting the contents of '/Users/runner/work/FilterKit/FilterKit'
+2026-11-19T17:25:59.7483140Z ##[group]Determining repository object format
+2026-11-19T17:25:59.7484320Z ##[endgroup]
+2026-11-19T17:25:59.7486500Z ##[group]Initializing the repository
+2026-11-19T17:25:59.7488360Z [command]/opt/homebrew/bin/git init /Users/runner/work/FilterKit/FilterKit
+2026-11-19T17:25:59.7703980Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-11-19T17:25:59.7705490Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-11-19T17:25:59.7706600Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-11-19T17:25:59.7707390Z hint: call:
+2026-11-19T17:25:59.7708040Z hint:
+2026-11-19T17:25:59.7708600Z hint: 	git config --global init.defaultBranch <name>
+2026-11-19T17:25:59.7709330Z hint:
+2026-11-19T17:25:59.7710120Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-11-19T17:25:59.7711110Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-11-19T17:25:59.7712020Z hint:
+2026-11-19T17:25:59.7712620Z hint: 	git branch -m <name>
+2026-11-19T17:25:59.7713290Z hint:
+2026-11-19T17:25:59.7714090Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-11-19T17:25:59.7715130Z Initialized empty Git repository in /Users/runner/work/FilterKit/FilterKit/.git/
+2026-11-19T17:25:59.7722010Z [command]/opt/homebrew/bin/git remote add origin https://github.com/yi-fen/FilterKit
+2026-11-19T17:25:59.7796430Z ##[endgroup]
+2026-11-19T17:25:59.7797370Z ##[group]Disabling automatic garbage collection
+2026-11-19T17:25:59.7798920Z [command]/opt/homebrew/bin/git config --local gc.auto 0
+2026-11-19T17:25:59.7862360Z ##[endgroup]
+2026-11-19T17:25:59.7879320Z ##[group]Setting up auth
+2026-11-19T17:25:59.7879980Z Removing SSH command configuration
+2026-11-19T17:25:59.7880820Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-19T17:25:59.7929810Z [command]/opt/homebrew/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-19T17:25:59.8739270Z Removing HTTP extra header
+2026-11-19T17:25:59.8742450Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-19T17:25:59.8806960Z [command]/opt/homebrew/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-19T17:25:59.9669050Z Removing includeIf entries pointing to credentials config files
+2026-11-19T17:25:59.9673840Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-19T17:25:59.9735340Z [command]/opt/homebrew/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-19T17:26:00.0647360Z [command]/opt/homebrew/bin/git config --file /Users/runner/work/_temp/git-credentials-8e8cad06-921e-4a05-a670-c1d1da5d7d42.config http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-11-19T17:26:00.0895760Z [command]/opt/homebrew/bin/git config --local includeIf.gitdir:/Users/runner/work/FilterKit/FilterKit/.git.path /Users/runner/work/_temp/git-credentials-8e8cad06-921e-4a05-a670-c1d1da5d7d42.config
+2026-11-19T17:26:00.0960320Z [command]/opt/homebrew/bin/git config --local includeIf.gitdir:/Users/runner/work/FilterKit/FilterKit/.git/worktrees/*.path /Users/runner/work/_temp/git-credentials-8e8cad06-921e-4a05-a670-c1d1da5d7d42.config
+2026-11-19T17:26:00.1019490Z [command]/opt/homebrew/bin/git config --local includeIf.gitdir:/github/workspace/.git.path /github/runner_temp/git-credentials-8e8cad06-921e-4a05-a670-c1d1da5d7d42.config
+2026-11-19T17:26:00.1083860Z [command]/opt/homebrew/bin/git config --local includeIf.gitdir:/github/workspace/.git/worktrees/*.path /github/runner_temp/git-credentials-8e8cad06-921e-4a05-a670-c1d1da5d7d42.config
+2026-11-19T17:26:00.1138600Z ##[endgroup]
+2026-11-19T17:26:00.1139270Z ##[group]Fetching the repository
+2026-11-19T17:26:00.1144580Z [command]/opt/homebrew/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +967d815200f91273ecae54ea6eea3b1cc6334455:refs/remotes/origin/main
+2026-11-19T17:26:01.0908500Z From https://github.com/yi-fen/FilterKit
+2026-11-19T17:26:01.1008610Z  * [new ref]         967d815200f91273ecae54ea6eea3b1cc6334455 -> origin/main
+2026-11-19T17:26:01.1314810Z [command]/opt/homebrew/bin/git branch --list --remote origin/main
+2026-11-19T17:26:01.1339670Z   origin/main
+2026-11-19T17:26:01.1357700Z [command]/opt/homebrew/bin/git rev-parse refs/remotes/origin/main
+2026-11-19T17:26:01.1359110Z 967d815200f91273ecae54ea6eea3b1cc6334455
+2026-11-19T17:26:01.1361800Z ##[endgroup]
+2026-11-19T17:26:01.1362860Z ##[group]Determining the checkout info
+2026-11-19T17:26:01.1364120Z ##[endgroup]
+2026-11-19T17:26:01.1365380Z [command]/opt/homebrew/bin/git sparse-checkout disable
+2026-11-19T17:26:01.1367990Z [command]/opt/homebrew/bin/git config --local --unset-all extensions.worktreeConfig
+2026-11-19T17:26:01.1371030Z ##[group]Checking out the ref
+2026-11-19T17:26:01.1372220Z [command]/opt/homebrew/bin/git checkout --progress --force -B main refs/remotes/origin/main
+2026-11-19T17:26:01.3906600Z Switched to a new branch 'main'
+2026-11-19T17:26:01.3916110Z branch 'main' set up to track 'origin/main'.
+2026-11-19T17:26:01.3926540Z ##[endgroup]
+2026-11-19T17:26:01.4019810Z [command]/opt/homebrew/bin/git log -1 --format=%H
+2026-11-19T17:26:01.4095200Z 967d815200f91273ecae54ea6eea3b1cc6334455
+2026-11-19T17:26:01.4314020Z ##[group]Run set -o pipefail
+2026-11-19T17:26:01.4314990Z [36;1mset -o pipefail[0m
+2026-11-19T17:26:01.4315950Z [36;1mmkdir -p .build[0m
+2026-11-19T17:26:01.4316970Z [36;1mswift build 2>&1 | tee .build/swift-build.log[0m
+2026-11-19T17:26:01.4358360Z shell: /bin/bash -e {0}
+2026-11-19T17:26:01.4359430Z ##[endgroup]
+2026-11-19T17:26:16.7933910Z Building for debugging...
+2026-11-19T17:26:16.8008900Z [0/10] Write sources
+2026-11-19T17:26:16.8011300Z [1/10] Write ReportRoundtripValidator-entitlement.plist
+2026-11-19T17:26:16.8011860Z [2/10] Write sources
+2026-11-19T17:26:16.9312760Z [6/10] Write swift-version-7974D3F7F03D5E95.txt
+2026-11-19T17:26:20.6492000Z [8/20] Compiling Models ProbeEvidence.swift
+2026-11-19T17:26:20.6546510Z [9/20] Compiling Models ProbeOperation.swift
+2026-11-19T17:26:20.6553790Z [10/20] Compiling Models ProbeStatus.swift
+2026-11-19T17:26:20.6554300Z [11/20] Compiling Models PluginEntryStatus.swift
+2026-11-19T17:26:20.6555370Z [12/20] Emitting module Models
+2026-11-19T17:26:20.6555770Z [13/20] Compiling Models EnvironmentAdvisor.swift
+2026-11-19T17:26:20.6556270Z [14/20] Compiling Models EnvironmentModels.swift
+2026-11-19T17:26:20.6556660Z [15/20] Compiling Models ModelEnums.swift
+2026-11-19T17:26:20.6557120Z [16/20] Compiling Models PermissionProbeReport.swift
+2026-11-19T17:26:20.6557520Z [17/20] Compiling Models ProbeCategory.swift
+2026-11-19T17:26:21.3671640Z [18/24] Compiling Models PluginFileEvidence.swift
+2026-11-19T17:26:21.3672080Z [19/24] Compiling Models PluginFileKind.swift
+2026-11-19T17:26:21.3672520Z [20/24] Compiling Models PluginModels.swift
+2026-11-19T17:26:21.3672860Z [21/24] Compiling Models ReportEnvelope.swift
+2026-11-19T17:26:21.7264730Z [22/34] Emitting module AppPresentation
+2026-11-19T17:26:21.7886850Z [23/36] Emitting module Adapters
+2026-11-19T17:26:21.7988180Z [24/36] Compiling Adapters ElleKitAdapter.swift
+2026-11-19T17:26:21.7988570Z [25/36] Compiling Adapters RootHideAdapter.swift
+2026-11-19T17:26:21.9042050Z [26/37] Compiling AppPresentation ReportLabels.swift
+2026-11-19T17:26:21.9042580Z [27/37] Compiling AppPresentation SyntheticReportFactory.swift
+2026-11-19T17:26:21.9168230Z [28/37] Compiling Adapters RootlessAdapter.swift
+2026-11-19T17:26:21.9865140Z [29/37] Compiling AppPresentation PluginDetailModel.swift
+2026-11-19T17:26:21.9865940Z [30/37] Compiling AppPresentation PluginRowSummary.swift
+2026-11-19T17:26:21.9866670Z [31/37] Compiling AppPresentation ProbeDiagnostics.swift
+2026-11-19T17:26:21.9940870Z [32/37] Compiling AppPresentation DashboardOverview.swift
+2026-11-19T17:26:21.9983200Z [33/37] Compiling AppPresentation DiagnosticsSections.swift
+2026-11-19T17:26:21.9986040Z [34/37] Compiling AppPresentation DisplayStatus.swift
+2026-11-19T17:26:22.4579430Z [35/88] Compiling Core ProbeStatusClassifier.swift
+2026-11-19T17:26:22.4679840Z /Users/runner/work/FilterKit/FilterKit/Core/PermissionProbe/Probes/PlistReadProbe.swift:45:28: error: 'nil' cannot be assigned to type 'String'
+2026-11-19T17:26:22.4781600Z 43 |             case .notFound:
+2026-11-19T17:26:22.4882800Z 44 |                 status = .unavailable
+2026-11-19T17:26:22.4983080Z 45 |                 observed = nil
+2026-11-19T17:26:22.5084900Z    |                            `- error: 'nil' cannot be assigned to type 'String'
+2026-11-19T17:26:22.5184860Z 46 |             case .accessDenied:
+2026-11-19T17:26:22.5286140Z 47 |                 status = .permissionDenied
+2026-11-19T17:26:22.5302850Z 
+2026-11-19T17:26:22.5303970Z /Users/runner/work/FilterKit/FilterKit/Core/PermissionProbe/Services/PermissionProbeService.swift:31:15: warning: 'catch' block is unreachable because no errors are thrown in 'do' block
+2026-11-19T17:26:22.5305050Z 29 |             do {
+2026-11-19T17:26:22.5305580Z 30 |                 probeEvidence = probe.run()
+2026-11-19T17:26:22.5306200Z 31 |             } catch {
+2026-11-19T17:26:22.5306820Z    |               `- warning: 'catch' block is unreachable because no errors are thrown in 'do' block
+2026-11-19T17:26:22.5308160Z 32 |                 probeEvidence = [Self.failureEvidence(probe: probe, error: error)]
+2026-11-19T17:26:22.5308540Z 33 |             }
+2026-11-19T17:26:22.5308840Z [36/88] Compiling Core JBRootResolving.swift
+2026-11-19T17:26:22.5309610Z /Users/runner/work/FilterKit/FilterKit/Core/PermissionProbe/Probes/PlistReadProbe.swift:45:28: error: 'nil' cannot be assigned to type 'String'
+2026-11-19T17:26:22.5310130Z 43 |             case .notFound:
+2026-11-19T17:26:22.5310340Z 44 |                 status = .unavailable
+2026-11-19T17:26:22.5310570Z 45 |                 observed = nil
+2026-11-19T17:26:22.5310910Z    |                            `- error: 'nil' cannot be assigned to type 'String'
+2026-11-19T17:26:22.5311210Z 46 |             case .accessDenied:
+2026-11-19T17:26:22.5311460Z 47 |                 status = .permissionDenied
+2026-11-19T17:26:22.5311620Z 
+2026-11-19T17:26:22.5312210Z /Users/runner/work/FilterKit/FilterKit/Core/PermissionProbe/Services/PermissionProbeService.swift:31:15: warning: 'catch' block is unreachable because no errors are thrown in 'do' block
+2026-11-19T17:26:22.5312910Z 29 |             do {
+2026-11-19T17:26:22.5313140Z 30 |                 probeEvidence = probe.run()
+2026-11-19T17:26:22.5313380Z 31 |             } catch {
+2026-11-19T17:26:22.5313750Z    |               `- warning: 'catch' block is unreachable because no errors are thrown in 'do' block
+2026-11-19T17:26:22.5314240Z 32 |                 probeEvidence = [Self.failureEvidence(probe: probe, error: error)]
+2026-11-19T17:26:22.5314560Z 33 |             }
+2026-11-19T17:26:22.5314770Z [37/88] Compiling Core UnavailableJBRootResolver.swift
+2026-11-19T17:26:22.5315420Z /Users/runner/work/FilterKit/FilterKit/Core/PermissionProbe/Probes/PlistReadProbe.swift:45:28: error: 'nil' cannot be assigned to type 'String'
+2026-11-19T17:26:22.5347320Z 43 |             case .notFound:
+2026-11-19T17:26:22.5347570Z 44 |                 status = .unavailable
+2026-11-19T17:26:22.5347870Z 45 |                 observed = nil
+2026-11-19T17:26:22.5348190Z    |                            `- error: 'nil' cannot be assigned to type 'String'
+2026-11-19T17:26:22.5348730Z 46 |             case .accessDenied:
+2026-11-19T17:26:22.5349030Z 47 |                 status = .permissionDenied
+2026-11-19T17:26:22.5349290Z 
+2026-11-19T17:26:22.5349960Z /Users/runner/work/FilterKit/FilterKit/Core/PermissionProbe/Services/PermissionProbeService.swift:31:15: warning: 'catch' block is unreachable because no errors are thrown in 'do' block
+2026-11-19T17:26:22.5350720Z 29 |             do {
+2026-11-19T17:26:22.5350990Z 30 |                 probeEvidence = probe.run()
+2026-11-19T17:26:22.5351340Z 31 |             } catch {
+2026-11-19T17:26:22.5351700Z    |               `- warning: 'catch' block is unreachable because no errors are thrown in 'do' block
+2026-11-19T17:26:22.5352150Z 32 |                 probeEvidence = [Self.failureEvidence(probe: probe, error: error)]
+2026-11-19T17:26:22.5352520Z 33 |             }
+2026-11-19T17:26:22.5352790Z [38/88] Compiling Core DpkgDatabaseProbe.swift
+2026-11-19T17:26:22.5353400Z /Users/runner/work/FilterKit/FilterKit/Core/PermissionProbe/Probes/PlistReadProbe.swift:45:28: error: 'nil' cannot be assigned to type 'String'
+2026-11-19T17:26:22.5353910Z 43 |             case .notFound:
+2026-11-19T17:26:22.5354110Z 44 |                 status = .unavailable
+2026-11-19T17:26:22.5354360Z 45 |                 observed = nil
+2026-11-19T17:26:22.5354770Z    |                            `- error: 'nil' cannot be assigned to type 'String'
+2026-11-19T17:26:22.5355120Z 46 |             case .accessDenied:
+2026-11-19T17:26:22.5355460Z 47 |                 status = .permissionDenied
+2026-11-19T17:26:22.5355680Z 
+2026-11-19T17:26:22.5356250Z /Users/runner/work/FilterKit/FilterKit/Core/PermissionProbe/Services/PermissionProbeService.swift:31:15: warning: 'catch' block is unreachable because no errors are thrown in 'do' block
+2026-11-19T17:26:22.5357060Z 29 |             do {
+2026-11-19T17:26:22.5357390Z 30 |                 probeEvidence = probe.run()
+2026-11-19T17:26:22.5358270Z 31 |             } catch {
+2026-11-19T17:26:22.5358730Z    |               `- warning: 'catch' block is unreachable because no errors are thrown in 'do' block
+2026-11-19T17:26:22.5359450Z 32 |                 probeEvidence = [Self.failureEvidence(probe: probe, error: error)]
+2026-11-19T17:26:22.5359840Z 33 |             }
+2026-11-19T17:26:22.5360210Z [39/88] Compiling Core ElleKitDirectoryProbe.swift
+2026-11-19T17:26:22.5360890Z /Users/runner/work/FilterKit/FilterKit/Core/PermissionProbe/Probes/PlistReadProbe.swift:45:28: error: 'nil' cannot be assigned to type 'String'
+2026-11-19T17:26:22.5361600Z 43 |             case .notFound:
+2026-11-19T17:26:22.5361910Z 44 |                 status = .unavailable
+2026-11-19T17:26:22.5362160Z 45 |                 observed = nil
+2026-11-19T17:26:22.5362440Z    |                            `- error: 'nil' cannot be assigned to type 'String'
+2026-11-19T17:26:22.5362750Z 46 |             case .accessDenied:
+2026-11-19T17:26:22.5362960Z 47 |                 status = .permissionDenied
+2026-11-19T17:26:22.5363120Z 
+2026-11-19T17:26:22.5363690Z /Users/runner/work/FilterKit/FilterKit/Core/PermissionProbe/Services/PermissionProbeService.swift:31:15: warning: 'catch' block is unreachable because no errors are thrown in 'do' block
+2026-11-19T17:26:22.5364440Z 29 |             do {
+2026-11-19T17:26:22.5364730Z 30 |                 probeEvidence = probe.run()
+2026-11-19T17:26:22.5365150Z 31 |             } catch {
+2026-11-19T17:26:22.5365520Z    |               `- warning: 'catch' block is unreachable because no errors are thrown in 'do' block
+2026-11-19T17:26:22.5366070Z 32 |                 probeEvidence = [Self.failureEvidence(probe: probe, error: error)]
+2026-11-19T17:26:22.5366480Z 33 |             }
+2026-11-19T17:26:22.5366820Z [40/88] Compiling Core EntitlementProbe.swift
+2026-11-19T17:26:22.5368260Z /Users/runner/work/FilterKit/FilterKit/Core/PermissionProbe/Probes/PlistReadProbe.swift:45:28: error: 'nil' cannot be assigned to type 'String'
+2026-11-19T17:26:22.5368890Z 43 |             case .notFound:
+2026-11-19T17:26:22.5369240Z 44 |                 status = .unavailable
+2026-11-19T17:26:22.5369560Z 45 |                 observed = nil
+2026-11-19T17:26:22.5369940Z    |                            `- error: 'nil' cannot be assigned to type 'String'
+2026-11-19T17:26:22.5370270Z 46 |             case .accessDenied:
+2026-11-19T17:26:22.5370610Z 47 |                 status = .permissionDenied
+2026-11-19T17:26:22.5370860Z 
+2026-11-19T17:26:22.5371390Z /Users/runner/work/FilterKit/FilterKit/Core/PermissionProbe/Services/PermissionProbeService.swift:31:15: warning: 'catch' block is unreachable because no errors are thrown in 'do' block
+2026-11-19T17:26:22.5372120Z 29 |             do {
+2026-11-19T17:26:22.5372450Z 30 |                 probeEvidence = probe.run()
+2026-11-19T17:26:22.5372840Z 31 |             } catch {
+2026-11-19T17:26:22.5373330Z    |               `- warning: 'catch' block is unreachable because no errors are thrown in 'do' block
+2026-11-19T17:26:22.5373840Z 32 |                 probeEvidence = [Self.failureEvidence(probe: probe, error: error)]
+2026-11-19T17:26:22.5374370Z 33 |             }
+2026-11-19T17:26:22.5374540Z [41/88] Compiling Core JBRootAPIProbe.swift
+2026-11-19T17:26:22.5375230Z /Users/runner/work/FilterKit/FilterKit/Core/PermissionProbe/Probes/PlistReadProbe.swift:45:28: error: 'nil' cannot be assigned to type 'String'
+2026-11-19T17:26:22.5375920Z 43 |             case .notFound:
+2026-11-19T17:26:22.5376190Z 44 |                 status = .unavailable
+2026-11-19T17:26:22.5376450Z 45 |                 observed = nil
+2026-11-19T17:26:22.5376820Z    |                            `- error: 'nil' cannot be assigned to type 'String'
+2026-11-19T17:26:22.5377270Z 46 |             case .accessDenied:
+2026-11-19T17:26:22.5377540Z 47 |                 status = .permissionDenied
+2026-11-19T17:26:22.5377760Z 
+2026-11-19T17:26:22.5378480Z /Users/runner/work/FilterKit/FilterKit/Core/PermissionProbe/Services/PermissionProbeService.swift:31:15: warning: 'catch' block is unreachable because no errors are thrown in 'do' block
+2026-11-19T17:26:22.5379220Z 29 |             do {
+2026-11-19T17:26:22.5379450Z 30 |                 probeEvidence = probe.run()
+2026-11-19T17:26:22.5379720Z 31 |             } catch {
+2026-11-19T17:26:22.5380070Z    |               `- warning: 'catch' block is unreachable because no errors are thrown in 'do' block
+2026-11-19T17:26:22.5380550Z 32 |                 probeEvidence = [Self.failureEvidence(probe: probe, error: error)]
+2026-11-19T17:26:22.5380920Z 33 |             }
+2026-11-19T17:26:22.5381180Z [42/88] Compiling Core JBRootProbe.swift
+2026-11-19T17:26:22.5381800Z /Users/runner/work/FilterKit/FilterKit/Core/PermissionProbe/Probes/PlistReadProbe.swift:45:28: error: 'nil' cannot be assigned to type 'String'
+2026-11-19T17:26:22.5382390Z 43 |             case .notFound:
+2026-11-19T17:26:22.5382590Z 44 |                 status = .unavailable
+2026-11-19T17:26:22.5382890Z 45 |                 observed = nil
+2026-11-19T17:26:22.5383290Z    |                            `- error: 'nil' cannot be assigned to type 'String'
+2026-11-19T17:26:22.5383560Z 46 |             case .accessDenied:
+2026-11-19T17:26:22.5383840Z 47 |                 status = .permissionDenied
+2026-11-19T17:26:22.5384050Z 
+2026-11-19T17:26:22.5384660Z /Users/runner/work/FilterKit/FilterKit/Core/PermissionProbe/Services/PermissionProbeService.swift:31:15: warning: 'catch' block is unreachable because no errors are thrown in 'do' block
+2026-11-19T17:26:22.5385370Z 29 |             do {
+2026-11-19T17:26:22.5385730Z 30 |                 probeEvidence = probe.run()
+2026-11-19T17:26:22.5386060Z 31 |             } catch {
+2026-11-19T17:26:22.5386480Z    |               `- warning: 'catch' block is unreachable because no errors are thrown in 'do' block
+2026-11-19T17:26:22.5387100Z 32 |                 probeEvidence = [Self.failureEvidence(probe: probe, error: error)]
+2026-11-19T17:26:22.5387630Z 33 |             }
+2026-11-19T17:26:22.5387900Z [43/88] Compiling Core PlistReadProbe.swift
+2026-11-19T17:26:22.5388540Z /Users/runner/work/FilterKit/FilterKit/Core/PermissionProbe/Probes/PlistReadProbe.swift:45:28: error: 'nil' cannot be assigned to type 'String'
+2026-11-19T17:26:22.5389190Z 43 |             case .notFound:
+2026-11-19T17:26:22.5389450Z 44 |                 status = .unavailable
+2026-11-19T17:26:22.5389730Z 45 |                 observed = nil
+2026-11-19T17:26:22.5389990Z    |                            `- error: 'nil' cannot be assigned to type 'String'
+2026-11-19T17:26:22.5390430Z 46 |             case .accessDenied:
+2026-11-19T17:26:22.5390790Z 47 |                 status = .permissionDenied
+2026-11-19T17:26:22.5390950Z 
+2026-11-19T17:26:22.5391430Z /Users/runner/work/FilterKit/FilterKit/Core/PermissionProbe/Services/PermissionProbeService.swift:31:15: warning: 'catch' block is unreachable because no errors are thrown in 'do' block
+2026-11-19T17:26:22.5392090Z 29 |             do {
+2026-11-19T17:26:22.5392380Z 30 |                 probeEvidence = probe.run()
+2026-11-19T17:26:22.5392600Z 31 |             } catch {
+2026-11-19T17:26:22.5392920Z    |               `- warning: 'catch' block is unreachable because no errors are thrown in 'do' block
+2026-11-19T17:26:22.5393740Z 32 |                 probeEvidence = [Self.failureEvidence(probe: probe, error: error)]
+2026-11-19T17:26:22.5394200Z 33 |             }
+2026-11-19T17:26:22.5394540Z [44/88] Compiling Core PluginFileProbe.swift
+2026-11-19T17:26:22.5395230Z /Users/runner/work/FilterKit/FilterKit/Core/PermissionProbe/Probes/PlistReadProbe.swift:45:28: error: 'nil' cannot be assigned to type 'String'
+2026-11-19T17:26:22.5395800Z 43 |             case .notFound:
+2026-11-19T17:26:22.5396100Z 44 |                 status = .unavailable
+2026-11-19T17:26:22.5396480Z 45 |                 observed = nil
+2026-11-19T17:26:22.5396940Z    |                            `- error: 'nil' cannot be assigned to type 'String'
+2026-11-19T17:26:22.5397290Z 46 |             case .accessDenied:
+2026-11-19T17:26:22.5397580Z 47 |                 status = .permissionDenied
+2026-11-19T17:26:22.5397740Z 
+2026-11-19T17:26:22.5398580Z /Users/runner/work/FilterKit/FilterKit/Core/PermissionProbe/Services/PermissionProbeService.swift:31:15: warning: 'catch' block is unreachable because no errors are thrown in 'do' block
+2026-11-19T17:26:22.5399370Z 29 |             do {
+2026-11-19T17:26:22.5399660Z 30 |                 probeEvidence = probe.run()
+2026-11-19T17:26:22.5399890Z 31 |             } catch {
+2026-11-19T17:26:22.5400190Z    |               `- warning: 'catch' block is unreachable because no errors are thrown in 'do' block
+2026-11-19T17:26:22.5400850Z 32 |                 probeEvidence = [Self.failureEvidence(probe: probe, error: error)]
+2026-11-19T17:26:22.5401370Z 33 |             }
+2026-11-19T17:26:22.5401610Z [45/88] Compiling Core SandboxAccessProbe.swift
+2026-11-19T17:26:22.5402310Z /Users/runner/work/FilterKit/FilterKit/Core/PermissionProbe/Probes/PlistReadProbe.swift:45:28: error: 'nil' cannot be assigned to type 'String'
+2026-11-19T17:26:22.5402900Z 43 |             case .notFound:
+2026-11-19T17:26:22.5403100Z 44 |                 status = .unavailable
+2026-11-19T17:26:22.5403380Z 45 |                 observed = nil
+2026-11-19T17:26:22.5403630Z    |                            `- error: 'nil' cannot be assigned to type 'String'
+2026-11-19T17:26:22.5404040Z 46 |             case .accessDenied:
+2026-11-19T17:26:22.5404460Z 47 |                 status = .permissionDenied
+2026-11-19T17:26:22.5404620Z 
+2026-11-19T17:26:22.5405150Z /Users/runner/work/FilterKit/FilterKit/Core/PermissionProbe/Services/PermissionProbeService.swift:31:15: warning: 'catch' block is unreachable because no errors are thrown in 'do' block
+2026-11-19T17:26:22.5405890Z 29 |             do {
+2026-11-19T17:26:22.5406130Z 30 |                 probeEvidence = probe.run()
+2026-11-19T17:26:22.5406550Z 31 |             } catch {
+2026-11-19T17:26:22.5406880Z    |               `- warning: 'catch' block is unreachable because no errors are thrown in 'do' block
+2026-11-19T17:26:22.5407380Z 32 |                 probeEvidence = [Self.failureEvidence(probe: probe, error: error)]
+2026-11-19T17:26:22.5407680Z 33 |             }
+2026-11-19T17:26:22.5407900Z [46/88] Compiling Core PermissionProbeServiceProtocol.swift
+2026-11-19T17:26:22.5408650Z /Users/runner/work/FilterKit/FilterKit/Core/PermissionProbe/Probes/PlistReadProbe.swift:45:28: error: 'nil' cannot be assigned to type 'String'
+2026-11-19T17:26:22.5409290Z 43 |             case .notFound:
+2026-11-19T17:26:22.5409480Z 44 |                 status = .unavailable
+2026-11-19T17:26:22.5409800Z 45 |                 observed = nil
+2026-11-19T17:26:22.5410190Z    |                            `- error: 'nil' cannot be assigned to type 'String'
+2026-11-19T17:26:22.5410570Z 46 |             case .accessDenied:
+2026-11-19T17:26:22.5410780Z 47 |                 status = .permissionDenied
+2026-11-19T17:26:22.5410940Z 
+2026-11-19T17:26:22.5411520Z /Users/runner/work/FilterKit/FilterKit/Core/PermissionProbe/Services/PermissionProbeService.swift:31:15: warning: 'catch' block is unreachable because no errors are thrown in 'do' block
+2026-11-19T17:26:22.5412160Z 29 |             do {
+2026-11-19T17:26:22.5412390Z 30 |                 probeEvidence = probe.run()
+2026-11-19T17:26:22.5412750Z 31 |             } catch {
+2026-11-19T17:26:22.5413170Z    |               `- warning: 'catch' block is unreachable because no errors are thrown in 'do' block
+2026-11-19T17:26:22.5413680Z 32 |                 probeEvidence = [Self.failureEvidence(probe: probe, error: error)]
+2026-11-19T17:26:22.5413980Z 33 |             }
+2026-11-19T17:26:22.5414230Z [47/88] Compiling Core PermissionProbing.swift
+2026-11-19T17:26:22.5414850Z /Users/runner/work/FilterKit/FilterKit/Core/PermissionProbe/Probes/PlistReadProbe.swift:45:28: error: 'nil' cannot be assigned to type 'String'
+2026-11-19T17:26:22.5415440Z 43 |             case .notFound:
+2026-11-19T17:26:22.5415650Z 44 |                 status = .unavailable
+2026-11-19T17:26:22.5415940Z 45 |                 observed = nil
+2026-11-19T17:26:22.5416420Z    |                            `- error: 'nil' cannot be assigned to type 'String'
+2026-11-19T17:26:22.5416700Z 46 |             case .accessDenied:
+2026-11-19T17:26:22.5416910Z 47 |                 status = .permissionDenied
+2026-11-19T17:26:22.5417070Z 
+2026-11-19T17:26:22.5417640Z /Users/runner/work/FilterKit/FilterKit/Core/PermissionProbe/Services/PermissionProbeService.swift:31:15: warning: 'catch' block is unreachable because no errors are thrown in 'do' block
+2026-11-19T17:26:22.5418300Z 29 |             do {
+2026-11-19T17:26:22.5418480Z 30 |                 probeEvidence = probe.run()
+2026-11-19T17:26:22.5418690Z 31 |             } catch {
+2026-11-19T17:26:22.5419060Z    |               `- warning: 'catch' block is unreachable because no errors are thrown in 'do' block
+2026-11-19T17:26:22.5419560Z 32 |                 probeEvidence = [Self.failureEvidence(probe: probe, error: error)]
+2026-11-19T17:26:22.5419910Z 33 |             }
+2026-11-19T17:26:22.5420160Z [48/88] Compiling Core PermissionProbeReportBuilder.swift
+2026-11-19T17:26:22.5420800Z /Users/runner/work/FilterKit/FilterKit/Core/PermissionProbe/Probes/PlistReadProbe.swift:45:28: error: 'nil' cannot be assigned to type 'String'
+2026-11-19T17:26:22.5421370Z 43 |             case .notFound:
+2026-11-19T17:26:22.5421590Z 44 |                 status = .unavailable
+2026-11-19T17:26:22.5421850Z 45 |                 observed = nil
+2026-11-19T17:26:22.5422150Z    |                            `- error: 'nil' cannot be assigned to type 'String'
+2026-11-19T17:26:22.5422450Z 46 |             case .accessDenied:
+2026-11-19T17:26:22.5422690Z 47 |                 status = .permissionDenied
+2026-11-19T17:26:22.5422870Z 
+2026-11-19T17:26:22.5423380Z /Users/runner/work/FilterKit/FilterKit/Core/PermissionProbe/Services/PermissionProbeService.swift:31:15: warning: 'catch' block is unreachable because no errors are thrown in 'do' block
+2026-11-19T17:26:22.5424320Z 29 |             do {
+2026-11-19T17:26:22.5424530Z 30 |                 probeEvidence = probe.run()
+2026-11-19T17:26:22.5424790Z 31 |             } catch {
+2026-11-19T17:26:22.5425110Z    |               `- warning: 'catch' block is unreachable because no errors are thrown in 'do' block
+2026-11-19T17:26:22.5425570Z 32 |                 probeEvidence = [Self.failureEvidence(probe: probe, error: error)]
+2026-11-19T17:26:22.5425900Z 33 |             }
+2026-11-19T17:26:22.5426090Z [49/88] Compiling Core PermissionProbeService.swift
+2026-11-19T17:26:22.5426720Z /Users/runner/work/FilterKit/FilterKit/Core/PermissionProbe/Probes/PlistReadProbe.swift:45:28: error: 'nil' cannot be assigned to type 'String'
+2026-11-19T17:26:22.5427240Z 43 |             case .notFound:
+2026-11-19T17:26:22.5427480Z 44 |                 status = .unavailable
+2026-11-19T17:26:22.5427730Z 45 |                 observed = nil
+2026-11-19T17:26:22.5428120Z    |                            `- error: 'nil' cannot be assigned to type 'String'
+2026-11-19T17:26:22.5428440Z 46 |             case .accessDenied:
+2026-11-19T17:26:22.5428690Z 47 |                 status = .permissionDenied
+2026-11-19T17:26:22.5428870Z 
+2026-11-19T17:26:22.5429400Z /Users/runner/work/FilterKit/FilterKit/Core/PermissionProbe/Services/PermissionProbeService.swift:31:15: warning: 'catch' block is unreachable because no errors are thrown in 'do' block
+2026-11-19T17:26:22.5430060Z 29 |             do {
+2026-11-19T17:26:22.5430230Z 30 |                 probeEvidence = probe.run()
+2026-11-19T17:26:22.5430440Z 31 |             } catch {
+2026-11-19T17:26:22.5430760Z    |               `- warning: 'catch' block is unreachable because no errors are thrown in 'do' block
+2026-11-19T17:26:22.5431270Z 32 |                 probeEvidence = [Self.failureEvidence(probe: probe, error: error)]
+2026-11-19T17:26:22.5431570Z 33 |             }
+2026-11-19T17:26:22.5431740Z [50/88] Compiling Core ProbeTimestamp.swift
+2026-11-19T17:26:22.5432300Z /Users/runner/work/FilterKit/FilterKit/Core/PermissionProbe/Probes/PlistReadProbe.swift:45:28: error: 'nil' cannot be assigned to type 'String'
+2026-11-19T17:26:22.5432900Z 43 |             case .notFound:
+2026-11-19T17:26:22.5433260Z 44 |                 status = .unavailable
+2026-11-19T17:26:22.5433520Z 45 |                 observed = nil
+2026-11-19T17:26:22.5433830Z    |                            `- error: 'nil' cannot be assigned to type 'String'
+2026-11-19T17:26:22.5434160Z 46 |             case .accessDenied:
+2026-11-19T17:26:22.5434390Z 47 |                 status = .permissionDenied
+2026-11-19T17:26:22.5434570Z 
+2026-11-19T17:26:22.5435130Z /Users/runner/work/FilterKit/FilterKit/Core/PermissionProbe/Services/PermissionProbeService.swift:31:15: warning: 'catch' block is unreachable because no errors are thrown in 'do' block
+2026-11-19T17:26:22.5435850Z 29 |             do {
+2026-11-19T17:26:22.5436030Z 30 |                 probeEvidence = probe.run()
+2026-11-19T17:26:22.5436250Z 31 |             } catch {
+2026-11-19T17:26:22.5436540Z    |               `- warning: 'catch' block is unreachable because no errors are thrown in 'do' block
+2026-11-19T17:26:22.5437050Z 32 |                 probeEvidence = [Self.failureEvidence(probe: probe, error: error)]
+2026-11-19T17:26:22.5437380Z 33 |             }
+2026-11-19T17:26:22.5437550Z [51/88] Compiling Core PlistDecodeResult.swift
+2026-11-19T17:26:22.5438090Z /Users/runner/work/FilterKit/FilterKit/Core/PermissionProbe/Probes/PlistReadProbe.swift:45:28: error: 'nil' cannot be assigned to type 'String'
+2026-11-19T17:26:22.5438680Z 43 |             case .notFound:
+2026-11-19T17:26:22.5438870Z 44 |                 status = .unavailable
+2026-11-19T17:26:22.5439070Z 45 |                 observed = nil
+2026-11-19T17:26:22.5439320Z    |                            `- error: 'nil' cannot be assigned to type 'String'
+2026-11-19T17:26:22.5439590Z 46 |             case .accessDenied:
+2026-11-19T17:26:22.5439830Z 47 |                 status = .permissionDenied
+2026-11-19T17:26:22.5440180Z 
+2026-11-19T17:26:22.5440660Z /Users/runner/work/FilterKit/FilterKit/Core/PermissionProbe/Services/PermissionProbeService.swift:31:15: warning: 'catch' block is unreachable because no errors are thrown in 'do' block
+2026-11-19T17:26:22.5441280Z 29 |             do {
+2026-11-19T17:26:22.5441500Z 30 |                 probeEvidence = probe.run()
+2026-11-19T17:26:22.5441740Z 31 |             } catch {
+2026-11-19T17:26:22.5442040Z    |               `- warning: 'catch' block is unreachable because no errors are thrown in 'do' block
+2026-11-19T17:26:22.5442470Z 32 |                 probeEvidence = [Self.failureEvidence(probe: probe, error: error)]
+2026-11-19T17:26:22.5442780Z 33 |             }
+2026-11-19T17:26:22.5443000Z [52/88] Compiling Core PlistDecodeStatus.swift
+2026-11-19T17:26:22.5443660Z /Users/runner/work/FilterKit/FilterKit/Core/PermissionProbe/Probes/PlistReadProbe.swift:45:28: error: 'nil' cannot be assigned to type 'String'
+2026-11-19T17:26:22.5444170Z 43 |             case .notFound:
+2026-11-19T17:26:22.5444390Z 44 |                 status = .unavailable
+2026-11-19T17:26:22.5444640Z 45 |                 observed = nil
+2026-11-19T17:26:22.5444910Z    |                            `- error: 'nil' cannot be assigned to type 'String'
+2026-11-19T17:26:22.5445240Z 46 |             case .accessDenied:
+2026-11-19T17:26:22.5445520Z 47 |                 status = .permissionDenied
+2026-11-19T17:26:22.5445680Z 
+2026-11-19T17:26:22.5446260Z /Users/runner/work/FilterKit/FilterKit/Core/PermissionProbe/Services/PermissionProbeService.swift:31:15: warning: 'catch' block is unreachable because no errors are thrown in 'do' block
+2026-11-19T17:26:22.5446880Z 29 |             do {
+2026-11-19T17:26:22.5447070Z 30 |                 probeEvidence = probe.run()
+2026-11-19T17:26:22.5447320Z 31 |             } catch {
+2026-11-19T17:26:22.5447720Z    |               `- warning: 'catch' block is unreachable because no errors are thrown in 'do' block
+2026-11-19T17:26:22.5448160Z 32 |                 probeEvidence = [Self.failureEvidence(probe: probe, error: error)]
+2026-11-19T17:26:22.5448480Z 33 |             }
+2026-11-19T17:26:22.5448680Z [53/88] Compiling Core PlistDecodedObject.swift
+2026-11-19T17:26:22.5449450Z /Users/runner/work/FilterKit/FilterKit/Core/PermissionProbe/Probes/PlistReadProbe.swift:45:28: error: 'nil' cannot be assigned to type 'String'
+2026-11-19T17:26:22.5450000Z 43 |             case .notFound:
+2026-11-19T17:26:22.5450210Z 44 |                 status = .unavailable
+2026-11-19T17:26:22.5450460Z 45 |                 observed = nil
+2026-11-19T17:26:22.5450790Z    |                            `- error: 'nil' cannot be assigned to type 'String'
+2026-11-19T17:26:22.5505930Z 46 |             case .accessDenied:
+2026-11-19T17:26:22.5506280Z 47 |                 status = .permissionDenied
+2026-11-19T17:26:22.5506490Z 
+2026-11-19T17:26:22.5507020Z /Users/runner/work/FilterKit/FilterKit/Core/PermissionProbe/Services/PermissionProbeService.swift:31:15: warning: 'catch' block is unreachable because no errors are thrown in 'do' block
+2026-11-19T17:26:22.5507830Z 29 |             do {
+2026-11-19T17:26:22.5508040Z 30 |                 probeEvidence = probe.run()
+2026-11-19T17:26:22.5508300Z 31 |             } catch {
+2026-11-19T17:26:22.5508660Z    |               `- warning: 'catch' block is unreachable because no errors are thrown in 'do' block
+2026-11-19T17:26:22.5509160Z 32 |                 probeEvidence = [Self.failureEvidence(probe: probe, error: error)]
+2026-11-19T17:26:22.5509530Z 33 |             }
+2026-11-19T17:26:22.5509720Z [54/88] Compiling Core PlistDecoder.swift
+2026-11-19T17:26:22.5510270Z /Users/runner/work/FilterKit/FilterKit/Core/PermissionProbe/Probes/PlistReadProbe.swift:45:28: error: 'nil' cannot be assigned to type 'String'
+2026-11-19T17:26:22.5510890Z 43 |             case .notFound:
+2026-11-19T17:26:22.5511100Z 44 |                 status = .unavailable
+2026-11-19T17:26:22.5511310Z 45 |                 observed = nil
+2026-11-19T17:26:22.5511930Z    |                            `- error: 'nil' cannot be assigned to type 'String'
+2026-11-19T17:26:22.5512260Z 46 |             case .accessDenied:
+2026-11-19T17:26:22.5512510Z 47 |                 status = .permissionDenied
+2026-11-19T17:26:22.5512680Z 
+2026-11-19T17:26:22.5513160Z /Users/runner/work/FilterKit/FilterKit/Core/PermissionProbe/Services/PermissionProbeService.swift:31:15: warning: 'catch' block is unreachable because no errors are thrown in 'do' block
+2026-11-19T17:26:22.5513830Z 29 |             do {
+2026-11-19T17:26:22.5514030Z 30 |                 probeEvidence = probe.run()
+2026-11-19T17:26:22.5514240Z 31 |             } catch {
+2026-11-19T17:26:22.5514540Z    |               `- warning: 'catch' block is unreachable because no errors are thrown in 'do' block
+2026-11-19T17:26:22.5514980Z 32 |                 probeEvidence = [Self.failureEvidence(probe: probe, error: error)]
+2026-11-19T17:26:22.5515350Z 33 |             }
+2026-11-19T17:26:22.5515540Z [55/88] Compiling Core PlistValueKind.swift
+2026-11-19T17:26:22.5516080Z /Users/runner/work/FilterKit/FilterKit/Core/PermissionProbe/Probes/PlistReadProbe.swift:45:28: error: 'nil' cannot be assigned to type 'String'
+2026-11-19T17:26:22.5516600Z 43 |             case .notFound:
+2026-11-19T17:26:22.5516840Z 44 |                 status = .unavailable
+2026-11-19T17:26:22.5517090Z 45 |                 observed = nil
+2026-11-19T17:26:22.5517340Z    |                            `- error: 'nil' cannot be assigned to type 'String'
+2026-11-19T17:26:22.5517610Z 46 |             case .accessDenied:
+2026-11-19T17:26:22.5517820Z 47 |                 status = .permissionDenied
+2026-11-19T17:26:22.5517990Z 
+2026-11-19T17:26:22.5518560Z /Users/runner/work/FilterKit/FilterKit/Core/PermissionProbe/Services/PermissionProbeService.swift:31:15: warning: 'catch' block is unreachable because no errors are thrown in 'do' block
+2026-11-19T17:26:22.5519170Z 29 |             do {
+2026-11-19T17:26:22.5519350Z 30 |                 probeEvidence = probe.run()
+2026-11-19T17:26:22.5519580Z 31 |             } catch {
+2026-11-19T17:26:22.5519950Z    |               `- warning: 'catch' block is unreachable because no errors are thrown in 'do' block
+2026-11-19T17:26:22.5520560Z 32 |                 probeEvidence = [Self.failureEvidence(probe: probe, error: error)]
+2026-11-19T17:26:22.5520860Z 33 |             }
+2026-11-19T17:26:22.5521100Z [56/88] Compiling Core FilterParseIntegrationValidator.swift
+2026-11-19T17:26:22.5521750Z /Users/runner/work/FilterKit/FilterKit/Core/PermissionProbe/Probes/PlistReadProbe.swift:45:28: error: 'nil' cannot be assigned to type 'String'
+2026-11-19T17:26:22.5522260Z 43 |             case .notFound:
+2026-11-19T17:26:22.5522450Z 44 |                 status = .unavailable
+2026-11-19T17:26:22.5522690Z 45 |                 observed = nil
+2026-11-19T17:26:22.5523000Z    |                            `- error: 'nil' cannot be assigned to type 'String'
+2026-11-19T17:26:22.5523270Z 46 |             case .accessDenied:
+2026-11-19T17:26:22.5523500Z 47 |                 status = .permissionDenied
+2026-11-19T17:26:22.5524080Z 
+2026-11-19T17:26:22.5524720Z /Users/runner/work/FilterKit/FilterKit/Core/PermissionProbe/Services/PermissionProbeService.swift:31:15: warning: 'catch' block is unreachable because no errors are thrown in 'do' block
+2026-11-19T17:26:22.5525350Z 29 |             do {
+2026-11-19T17:26:22.5525550Z 30 |                 probeEvidence = probe.run()
+2026-11-19T17:26:22.5525820Z 31 |             } catch {
+2026-11-19T17:26:22.5526160Z    |               `- warning: 'catch' block is unreachable because no errors are thrown in 'do' block
+2026-11-19T17:26:22.5526610Z 32 |                 probeEvidence = [Self.failureEvidence(probe: probe, error: error)]
+2026-11-19T17:26:22.5526910Z 33 |             }
+2026-11-19T17:26:22.5527120Z [57/88] Compiling Core FilterParseRoute.swift
+2026-11-19T17:26:22.5527720Z /Users/runner/work/FilterKit/FilterKit/Core/PermissionProbe/Probes/PlistReadProbe.swift:45:28: error: 'nil' cannot be assigned to type 'String'
+2026-11-19T17:26:22.5528480Z 43 |             case .notFound:
+2026-11-19T17:26:22.5528720Z 44 |                 status = .unavailable
+2026-11-19T17:26:22.5528970Z 45 |                 observed = nil
+2026-11-19T17:26:22.5529240Z    |                            `- error: 'nil' cannot be assigned to type 'String'
+2026-11-19T17:26:22.5529510Z 46 |             case .accessDenied:
+2026-11-19T17:26:22.5529730Z 47 |                 status = .permissionDenied
+2026-11-19T17:26:22.5529890Z 
+2026-11-19T17:26:22.5530470Z /Users/runner/work/FilterKit/FilterKit/Core/PermissionProbe/Services/PermissionProbeService.swift:31:15: warning: 'catch' block is unreachable because no errors are thrown in 'do' block
+2026-11-19T17:26:22.5531070Z 29 |             do {
+2026-11-19T17:26:22.5531250Z 30 |                 probeEvidence = probe.run()
+2026-11-19T17:26:22.5531460Z 31 |             } catch {
+2026-11-19T17:26:22.5531840Z    |               `- warning: 'catch' block is unreachable because no errors are thrown in 'do' block
+2026-11-19T17:26:22.5532310Z 32 |                 probeEvidence = [Self.failureEvidence(probe: probe, error: error)]
+2026-11-19T17:26:22.5532610Z 33 |             }
+2026-11-19T17:26:22.5532810Z [58/88] Compiling Core FilterParseRouteResolver.swift
+2026-11-19T17:26:22.5533460Z /Users/runner/work/FilterKit/FilterKit/Core/PermissionProbe/Probes/PlistReadProbe.swift:45:28: error: 'nil' cannot be assigned to type 'String'
+2026-11-19T17:26:22.5534060Z 43 |             case .notFound:
+2026-11-19T17:26:22.5534270Z 44 |                 status = .unavailable
+2026-11-19T17:26:22.5534470Z 45 |                 observed = nil
+2026-11-19T17:26:22.5534740Z    |                            `- error: 'nil' cannot be assigned to type 'String'
+2026-11-19T17:26:22.5535070Z 46 |             case .accessDenied:
+2026-11-19T17:26:22.5535300Z 47 |                 status = .permissionDenied
+2026-11-19T17:26:22.5535460Z 
+2026-11-19T17:26:22.5535930Z /Users/runner/work/FilterKit/FilterKit/Core/PermissionProbe/Services/PermissionProbeService.swift:31:15: warning: 'catch' block is unreachable because no errors are thrown in 'do' block
+2026-11-19T17:26:22.5536640Z 29 |             do {
+2026-11-19T17:26:22.5536820Z 30 |                 probeEvidence = probe.run()
+2026-11-19T17:26:22.5537030Z 31 |             } catch {
+2026-11-19T17:26:22.5537480Z    |               `- warning: 'catch' block is unreachable because no errors are thrown in 'do' block
+2026-11-19T17:26:22.5538000Z 32 |                 probeEvidence = [Self.failureEvidence(probe: probe, error: error)]
+2026-11-19T17:26:22.5538320Z 33 |             }
+2026-11-19T17:26:22.5538520Z [59/112] Compiling ReportRoundtripValidator main.swift
+2026-11-19T17:26:22.5538800Z [60/112] Emitting module ReportRoundtripValidator
+2026-11-19T17:26:22.5539040Z [60/112] Write Objects.LinkFileList
+2026-11-19T17:26:22.6714250Z [62/112] Emitting module Core
+2026-11-19T17:26:22.9352720Z [62/136] Linking ReportRoundtripValidator
+2026-11-19T17:26:22.9520750Z [63/136] Applying ReportRoundtripValidator
+2026-11-19T17:26:23.6942960Z [65/136] Compiling Core FilterParseSnapshotBuilder.swift
+2026-11-19T17:26:23.7043980Z [66/136] Compiling Core FilterParsing.swift
+2026-11-19T17:26:23.7072350Z [67/136] Compiling Core PluginFilterParseEngine.swift
+2026-11-19T17:26:23.7072790Z [68/136] Compiling Core PlistDataReader.swift
+2026-11-19T17:26:23.7073110Z [69/136] Compiling Core PlistReadResult.swift
+2026-11-19T17:26:23.7073410Z [70/136] Compiling Core PlistReadStatus.swift
+2026-11-19T17:26:23.7073700Z [71/136] Compiling Core FilterParseCounts.swift
+2026-11-19T17:26:23.7074000Z [72/136] Compiling Core FilterParseResult.swift
+2026-11-19T17:26:23.7074330Z [73/136] Compiling Core FilterParseSnapshot.swift
+2026-11-19T17:26:23.7074640Z [74/136] Compiling Core FilterParseStatus.swift
+2026-11-19T17:26:23.7074930Z [75/136] Compiling Core SkippedField.swift
+2026-11-19T17:26:23.7075220Z [76/136] Compiling Core RootHideFilterMapper.swift
+2026-11-19T17:26:23.7075550Z [77/136] Compiling Core RootHideFilterParser.swift
+2026-11-19T17:26:23.7075880Z [78/136] Compiling Core RootHideFilterTypeChecker.swift
+2026-11-19T17:26:23.7077170Z [79/136] Compiling Core RootHideFilterValidator.swift
+2026-11-19T17:26:23.7077510Z [80/136] Compiling Core RootlessFilterCodable.swift
+2026-11-19T17:26:23.7077840Z [81/136] Compiling Core RootlessFilterMapper.swift
+2026-11-19T17:26:23.7078150Z [82/136] Compiling Core RootlessFilterParser.swift
+2026-11-19T17:26:23.7078470Z [83/136] Compiling Core PluginPairingClassifier.swift
+2026-11-19T17:26:23.7078850Z [84/136] Compiling Core PluginPairingEngine.swift
+2026-11-19T17:26:23.7079200Z [85/136] Compiling Core PluginPairingSnapshotBuilder.swift
+2026-11-19T17:26:23.7079530Z [86/136] Compiling Core PluginPairingIndex.swift
+2026-11-19T17:26:23.7079860Z [87/136] Compiling Core PluginPairingIndexBuilder.swift
+2026-11-19T17:26:23.7081580Z [88/136] Compiling Core PluginPairingInput.swift
+2026-11-19T17:26:23.8751210Z [89/136] Compiling Core CoreServices.swift
+2026-11-19T17:26:23.8751820Z [90/136] Compiling Core EnvironmentDetector.swift
+2026-11-19T17:26:23.8752240Z [91/136] Compiling Core EnvironmentSnapshot.swift
+2026-11-19T17:26:23.8752700Z [92/136] Compiling Core VersionParser.swift
+2026-11-19T17:26:23.8753090Z [93/136] Compiling Core ElleKitDirectoryResolution.swift
+2026-11-19T17:26:23.8753490Z [94/136] Compiling Core ElleKitDirectoryResolver.swift
+2026-11-19T17:26:23.8753910Z [95/136] Compiling Core ElleKitDirectorySnapshot.swift
+2026-11-19T17:26:23.8756720Z [96/136] Compiling Core ElleKitDirectoryValidator.swift
+2026-11-19T17:26:23.8757100Z [97/136] Compiling Core ElleKitPathDeriver.swift
+2026-11-19T17:26:23.8757460Z [98/136] Compiling Core ElleKitSymlinkInspector.swift
+2026-11-19T17:26:23.8757840Z [99/136] Compiling Core JBRootCandidateCollector.swift
+2026-11-19T17:26:23.8758210Z [100/136] Compiling Core JBRootCandidateSnapshot.swift
+2026-11-19T17:26:23.8759390Z [101/136] Compiling Core JBRootDecisionResolver.swift
+2026-11-19T17:26:23.8760550Z [102/136] Compiling Core JBRootNameValidator.swift
+2026-11-19T17:26:23.8760900Z [103/136] Compiling Core JBRootResolver.swift
+2026-11-19T17:26:23.8761270Z [104/136] Compiling Core JBRootStatusClassifier.swift
+2026-11-19T17:26:23.8761640Z [105/136] Compiling Core JBRootValidator.swift
+2026-11-19T17:26:23.8762080Z [106/136] Compiling Core ElleKitDirectoryPipeline.swift
+2026-11-19T17:26:23.8762710Z [107/136] Compiling Core EnvironmentRouteMapper.swift
+2026-11-19T17:26:23.8763120Z [108/136] Compiling Core JBRootToDirectoryBridge.swift
+2026-11-19T17:26:23.8763570Z [109/136] Compiling Core EntitlementInspecting.swift
+2026-11-19T17:26:23.8763960Z [110/136] Compiling Core UnavailableEntitlementInspector.swift
+2026-11-19T17:26:23.8764350Z [111/136] Compiling Core FileAccessChecking.swift
+2026-11-19T17:26:23.8764770Z [112/136] Compiling Core FoundationFileAccessChecker.swift
+2026-11-19T17:26:24.0843920Z [113/136] Compiling Core PluginPairingInputAdapter.swift
+2026-11-19T17:26:24.0845740Z [114/136] Compiling Core PluginPairingIntegrationResult.swift
+2026-11-19T17:26:24.0846220Z [115/136] Compiling Core PluginPairingIntegrationValidator.swift
+2026-11-19T17:26:24.0846650Z [116/136] Compiling Core PluginPairingPipeline.swift
+2026-11-19T17:26:24.0847030Z [117/136] Compiling Core PluginPairingKeyBuilder.swift
+2026-11-19T17:26:24.0847350Z [118/136] Compiling Core PairingCategory.swift
+2026-11-19T17:26:24.0847720Z [119/136] Compiling Core PairingEvidenceBasis.swift
+2026-11-19T17:26:24.0848050Z [120/136] Compiling Core PairingStatus.swift
+2026-11-19T17:26:24.0848370Z [121/136] Compiling Core PluginPairingCounts.swift
+2026-11-19T17:26:24.0848660Z [122/136] Compiling Core PluginPairingRecord.swift
+2026-11-19T17:26:24.0848930Z [123/136] Compiling Core PluginPairingSnapshot.swift
+2026-11-19T17:26:24.0849190Z [124/136] Compiling Core EnumerationStatus.swift
+2026-11-19T17:26:24.0849470Z [125/136] Compiling Core PluginDirectoryEnumerator.swift
+2026-11-19T17:26:24.0849810Z [126/136] Compiling Core PluginEntryClassifier.swift
+2026-11-19T17:26:24.0850130Z [127/136] Compiling Core PluginFileEvidenceBuilder.swift
+2026-11-19T17:26:24.0850420Z [128/136] Compiling Core PluginInventoryBuilder.swift
+2026-11-19T17:26:24.0851000Z [129/136] Compiling Core PluginInventoryFixtureSignal.swift
+2026-11-19T17:26:24.0851370Z [130/136] Compiling Core PluginInventorySnapshot.swift
+2026-11-19T17:26:24.0851670Z [131/136] Compiling Core PluginKindCounts.swift
+2026-11-19T17:26:24.0851920Z [132/136] Compiling Core ReportExporter.swift
+2026-11-19T17:26:24.0852180Z [133/136] Compiling Core ReportSerialization.swift
+2026-11-19T17:26:24.0852430Z [134/136] Compiling Core ReportBuilder.swift
+2026-11-19T17:26:24.0852830Z [135/136] Compiling Core ReportService.swift
+2026-11-19T17:26:24.0853100Z [136/136] Compiling Core ReportValidator.swift
+2026-11-19T17:26:24.1231450Z ##[error]Process completed with exit code 1.
+2026-11-19T17:26:24.1349370Z ##[group]Run actions/upload-artifact@v7
+2026-11-19T17:26:24.1349680Z with:
+2026-11-19T17:26:24.1349870Z   name: filterkit-non-ui-build
+2026-11-19T17:26:24.1350090Z   path: .build/swift-build.log
+2026-11-19T17:26:24.1350260Z   retention-days: 14
+2026-11-19T17:26:24.1350430Z   if-no-files-found: warn
+2026-11-19T17:26:24.1350600Z   compression-level: 6
+2026-11-19T17:26:24.1350760Z   overwrite: false
+2026-11-19T17:26:24.1350910Z   include-hidden-files: false
+2026-11-19T17:26:24.1351080Z   archive: true
+2026-11-19T17:26:24.1351250Z ##[endgroup]
+2026-11-19T17:26:24.4711310Z With the provided path, there will be 1 file uploaded
+2026-11-19T17:26:24.4713980Z Artifact name is valid!
+2026-11-19T17:26:24.4714420Z Root directory input is valid!
+2026-11-19T17:26:24.7832680Z Uploading artifact: filterkit-non-ui-build.zip
+2026-11-19T17:26:24.7854120Z Beginning upload of artifact content to blob storage
+2026-11-19T17:26:24.9989420Z Uploaded bytes 2191
+2026-11-19T17:26:25.0440930Z Finished uploading artifact content to blob storage!
+2026-11-19T17:26:25.0442870Z SHA256 digest of uploaded artifact is 910adf45b992357a2a621a3fbd69f6b7b8e719a9999dbd50f444280418d0a40d
+2026-11-19T17:26:25.0443430Z Finalizing artifact upload
+2026-11-19T17:26:25.5451460Z Artifact filterkit-non-ui-build successfully finalized. Artifact ID 14556712449
+2026-11-19T17:26:25.5452300Z Artifact filterkit-non-ui-build has been successfully uploaded! Final size is 2191 bytes. Artifact ID is 14556712449
+2026-11-19T17:26:25.5456610Z Artifact download URL: https://github.com/yi-fen/FilterKit/actions/runs/44574293514/artifacts/14556712449
+2026-11-19T17:26:25.5625120Z Post job cleanup.
+2026-11-19T17:26:25.6858010Z [command]/opt/homebrew/bin/git version
+2026-11-19T17:26:25.6922970Z git version 2.56.0
+2026-11-19T17:26:25.6942830Z Copying '/Users/runner/.gitconfig' to '/Users/runner/work/_temp/bb47b971-0ebc-4879-bc7d-57213f1aecb9/.gitconfig'
+2026-11-19T17:26:25.6949160Z Temporarily overriding HOME='/Users/runner/work/_temp/bb47b971-0ebc-4879-bc7d-57213f1aecb9' before making global git config changes
+2026-11-19T17:26:25.6949990Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-19T17:26:25.6952750Z [command]/opt/homebrew/bin/git config --global --add safe.directory /Users/runner/work/FilterKit/FilterKit
+2026-11-19T17:26:25.7042880Z Removing SSH command configuration
+2026-11-19T17:26:25.7058500Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-19T17:26:25.7122870Z [command]/opt/homebrew/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-19T17:26:25.8078320Z Removing HTTP extra header
+2026-11-19T17:26:25.8083030Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-19T17:26:25.8159590Z [command]/opt/homebrew/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-19T17:26:25.9425800Z Removing includeIf entries pointing to credentials config files
+2026-11-19T17:26:25.9436740Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-19T17:26:25.9506590Z includeif.gitdir:/Users/runner/work/FilterKit/FilterKit/.git.path
+2026-11-19T17:26:25.9507160Z includeif.gitdir:/Users/runner/work/FilterKit/FilterKit/.git/worktrees/*.path
+2026-11-19T17:26:25.9507660Z includeif.gitdir:/github/workspace/.git.path
+2026-11-19T17:26:25.9508050Z includeif.gitdir:/github/workspace/.git/worktrees/*.path
+2026-11-19T17:26:25.9513230Z [command]/opt/homebrew/bin/git config --local --get-all includeif.gitdir:/Users/runner/work/FilterKit/FilterKit/.git.path
+2026-11-19T17:26:25.9579050Z /Users/runner/work/_temp/git-credentials-8e8cad06-921e-4a05-a670-c1d1da5d7d42.config
+2026-11-19T17:26:25.9589910Z [command]/opt/homebrew/bin/git config --local --unset includeif.gitdir:/Users/runner/work/FilterKit/FilterKit/.git.path /Users/runner/work/_temp/git-credentials-8e8cad06-921e-4a05-a670-c1d1da5d7d42.config
+2026-11-19T17:26:25.9663920Z [command]/opt/homebrew/bin/git config --local --get-all includeif.gitdir:/Users/runner/work/FilterKit/FilterKit/.git/worktrees/*.path
+2026-11-19T17:26:25.9730330Z /Users/runner/work/_temp/git-credentials-8e8cad06-921e-4a05-a670-c1d1da5d7d42.config
+2026-11-19T17:26:25.9736200Z [command]/opt/homebrew/bin/git config --local --unset includeif.gitdir:/Users/runner/work/FilterKit/FilterKit/.git/worktrees/*.path /Users/runner/work/_temp/git-credentials-8e8cad06-921e-4a05-a670-c1d1da5d7d42.config
+2026-11-19T17:26:25.9809930Z [command]/opt/homebrew/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git.path
+2026-11-19T17:26:25.9875910Z /github/runner_temp/git-credentials-8e8cad06-921e-4a05-a670-c1d1da5d7d42.config
+2026-11-19T17:26:25.9881430Z [command]/opt/homebrew/bin/git config --local --unset includeif.gitdir:/github/workspace/.git.path /github/runner_temp/git-credentials-8e8cad06-921e-4a05-a670-c1d1da5d7d42.config
+2026-11-19T17:26:25.9983040Z [command]/opt/homebrew/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git/worktrees/*.path
+2026-11-19T17:26:26.0020490Z /github/runner_temp/git-credentials-8e8cad06-921e-4a05-a670-c1d1da5d7d42.config
+2026-11-19T17:26:26.0175130Z [command]/opt/homebrew/bin/git config --local --unset includeif.gitdir:/github/workspace/.git/worktrees/*.path /github/runner_temp/git-credentials-8e8cad06-921e-4a05-a670-c1d1da5d7d42.config
+2026-11-19T17:26:26.0479610Z [command]/opt/homebrew/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-19T17:26:26.1557060Z Removing credentials config '/Users/runner/work/_temp/git-credentials-8e8cad06-921e-4a05-a670-c1d1da5d7d42.config'
+2026-11-19T17:26:26.1615320Z Cleaning up orphan processes

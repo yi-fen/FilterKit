@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<!--
+  FilterKit.entitlements — R4-B 签名配置草稿（未验证，不作可用签名方案）
+
+  候选键来源：官方 RootHide Manager 解包与旧 0.1.18 PoC 参考（reference/0.1.18-src/entitlements.plist），
+  仅为候选清单，不代表：
+    1. 签名工具允许写入这些键；
+    2. 签名后二进制实际包含这些键；
+    3. RootHide 环境接受该签名；
+    4. iOS 实际放行对应资源访问。
+
+  签名路线（Developer 证书 + 描述文件 / ldid）与本文件的绑定关系待 R4-B 真机前核实；
+  entitlement 出现在签名中 ≠ 运行时获得权限。runtime entitlement 读取沿用 R1-B 结论：
+  iOS GUI 进程无公开稳定枚举 API，runtime 证据保持 unavailable/unknown。
+-->
+<dict>
+    <key>platform-application</key><true/>
+    <key>com.apple.private.security.no-sandbox</key><true/>
+    <key>com.apple.private.security.storage.AppBundles</key><true/>
+    <key>com.apple.private.security.storage.AppDataContainers</key><true/>
+</dict>
+</plist>

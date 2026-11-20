@@ -1,0 +1,27 @@
+﻿2026-11-19T00:06:36.1136560Z ##[group]Run actions/upload-artifact@v7
+2026-11-19T00:06:36.1137530Z with:
+2026-11-19T00:06:36.1138190Z   name: filterkit-isolation
+2026-11-19T00:06:36.1139010Z   path: build/isolation-output.log
+build/isolation-summary.json
+
+2026-11-19T00:06:36.1140090Z   retention-days: 14
+2026-11-19T00:06:36.1140850Z   if-no-files-found: warn
+2026-11-19T00:06:36.1141690Z   compression-level: 6
+2026-11-19T00:06:36.1142300Z   overwrite: false
+2026-11-19T00:06:36.1142880Z   include-hidden-files: false
+2026-11-19T00:06:36.1143640Z   archive: true
+2026-11-19T00:06:36.1144180Z ##[endgroup]
+2026-11-19T00:06:36.2328130Z Multiple search paths detected. Calculating the least common ancestor of all paths
+2026-11-19T00:06:36.2330800Z The least common ancestor is /Users/runner/work/FilterKit/FilterKit/build. This will be the root directory of the artifact
+2026-11-19T00:06:36.2332460Z With the provided path, there will be 2 files uploaded
+2026-11-19T00:06:36.2333700Z Artifact name is valid!
+2026-11-19T00:06:36.2334400Z Root directory input is valid!
+2026-11-19T00:06:36.5139740Z Uploading artifact: filterkit-isolation.zip
+2026-11-19T00:06:36.5157900Z Beginning upload of artifact content to blob storage
+2026-11-19T00:06:36.6664870Z Uploaded bytes 891
+2026-11-19T00:06:36.7057340Z Finished uploading artifact content to blob storage!
+2026-11-19T00:06:36.7058980Z SHA256 digest of uploaded artifact is 6573f5c14cd58f276ef101c3fd8722de982615e2b08d68fce57bdc26ef13da17
+2026-11-19T00:06:36.7060170Z Finalizing artifact upload
+2026-11-19T00:06:37.1327300Z Artifact filterkit-isolation successfully finalized. Artifact ID 14484926020
+2026-11-19T00:06:37.1329640Z Artifact filterkit-isolation has been successfully uploaded! Final size is 891 bytes. Artifact ID is 14484926020
+2026-11-19T00:06:37.1330900Z Artifact download URL: https://github.com/yi-fen/FilterKit/actions/runs/44426297905/artifacts/14484926020

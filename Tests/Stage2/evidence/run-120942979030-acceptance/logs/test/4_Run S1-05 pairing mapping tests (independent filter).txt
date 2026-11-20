@@ -1,0 +1,53 @@
+﻿2026-11-20T05:31:05.9836280Z ##[group]Run set -o pipefail
+2026-11-20T05:31:05.9836450Z [36;1mset -o pipefail[0m
+2026-11-20T05:31:05.9836510Z [36;1mmkdir -p .build[0m
+2026-11-20T05:31:05.9836770Z [36;1mswift test --filter PluginPairingS105FixtureTests 2>&1 | tee .build/test-log-s105.txt[0m
+2026-11-20T05:31:06.0226200Z shell: /bin/bash -e {0}
+2026-11-20T05:31:06.0226770Z ##[endgroup]
+2026-11-20T05:31:10.8421490Z [0/1] Planning build
+2026-11-20T05:31:10.8493250Z Building for debugging...
+2026-11-20T05:31:10.9701550Z [0/4] Write swift-version-7974D3F7F03D5E95.txt
+2026-11-20T05:31:10.9744080Z Build complete! (0.27s)
+2026-11-20T05:31:11.1703080Z Test Suite 'Selected tests' started at 2026-11-20 05:31:11.112.
+2026-11-20T05:31:11.1704440Z Test Suite 'FilterKitPackageTests.xctest' started at 2026-11-20 05:31:11.113.
+2026-11-20T05:31:11.1705730Z Test Suite 'PluginPairingS105FixtureTests' started at 2026-11-20 05:31:11.113.
+2026-11-20T05:31:11.1708290Z Test Case '-[Stage2Tests.PluginPairingS105FixtureTests testPAIR001PairValid]' started.
+2026-11-20T05:31:11.1710350Z Test Case '-[Stage2Tests.PluginPairingS105FixtureTests testPAIR001PairValid]' passed (0.002 seconds).
+2026-11-20T05:31:11.1711920Z Test Case '-[Stage2Tests.PluginPairingS105FixtureTests testPAIR002MissingPlist]' started.
+2026-11-20T05:31:11.1713620Z Test Case '-[Stage2Tests.PluginPairingS105FixtureTests testPAIR002MissingPlist]' passed (0.001 seconds).
+2026-11-20T05:31:11.1715390Z Test Case '-[Stage2Tests.PluginPairingS105FixtureTests testPAIR003OrphanPlist]' started.
+2026-11-20T05:31:11.1716920Z Test Case '-[Stage2Tests.PluginPairingS105FixtureTests testPAIR003OrphanPlist]' passed (0.000 seconds).
+2026-11-20T05:31:11.1718370Z Test Case '-[Stage2Tests.PluginPairingS105FixtureTests testPAIR004Multi]' started.
+2026-11-20T05:31:11.1719710Z Test Case '-[Stage2Tests.PluginPairingS105FixtureTests testPAIR004Multi]' passed (0.000 seconds).
+2026-11-20T05:31:11.1721110Z Test Case '-[Stage2Tests.PluginPairingS105FixtureTests testPAIR005CaseMismatch]' started.
+2026-11-20T05:31:11.1722360Z Test Case '-[Stage2Tests.PluginPairingS105FixtureTests testPAIR005CaseMismatch]' passed (0.000 seconds).
+2026-11-20T05:31:11.1723370Z Test Case '-[Stage2Tests.PluginPairingS105FixtureTests testPAIR006CrossPath]' started.
+2026-11-20T05:31:11.1723930Z Test Case '-[Stage2Tests.PluginPairingS105FixtureTests testPAIR006CrossPath]' passed (0.000 seconds).
+2026-11-20T05:31:11.1724530Z Test Case '-[Stage2Tests.PluginPairingS105FixtureTests testPAIR006SyntheticRouteIsolation]' started.
+2026-11-20T05:31:11.1725170Z Test Case '-[Stage2Tests.PluginPairingS105FixtureTests testPAIR006SyntheticRouteIsolation]' passed (0.000 seconds).
+2026-11-20T05:31:11.1725740Z Test Case '-[Stage2Tests.PluginPairingS105FixtureTests testPAIR007Hidden]' started.
+2026-11-20T05:31:11.1726260Z Test Case '-[Stage2Tests.PluginPairingS105FixtureTests testPAIR007Hidden]' passed (0.000 seconds).
+2026-11-20T05:31:11.1726800Z Test Case '-[Stage2Tests.PluginPairingS105FixtureTests testPAIR008Symlink]' started.
+2026-11-20T05:31:11.1727320Z Test Case '-[Stage2Tests.PluginPairingS105FixtureTests testPAIR008Symlink]' passed (0.000 seconds).
+2026-11-20T05:31:11.1728050Z Test Case '-[Stage2Tests.PluginPairingS105FixtureTests testPAIR009OtherExt]' started.
+2026-11-20T05:31:11.1728590Z Test Case '-[Stage2Tests.PluginPairingS105FixtureTests testPAIR009OtherExt]' passed (0.000 seconds).
+2026-11-20T05:31:11.1729140Z Test Case '-[Stage2Tests.PluginPairingS105FixtureTests testPAIR010Duplicate]' started.
+2026-11-20T05:31:11.1729700Z Test Case '-[Stage2Tests.PluginPairingS105FixtureTests testPAIR010Duplicate]' passed (0.000 seconds).
+2026-11-20T05:31:11.1730330Z Test Case '-[Stage2Tests.PluginPairingS105FixtureTests testPAIR011AccessDenied]' started.
+2026-11-20T05:31:11.1730900Z Test Case '-[Stage2Tests.PluginPairingS105FixtureTests testPAIR011AccessDenied]' passed (0.000 seconds).
+2026-11-20T05:31:11.1731450Z Test Case '-[Stage2Tests.PluginPairingS105FixtureTests testPAIR012RouteGuard]' started.
+2026-11-20T05:31:11.1731980Z Test Case '-[Stage2Tests.PluginPairingS105FixtureTests testPAIR012RouteGuard]' passed (0.000 seconds).
+2026-11-20T05:31:11.1733130Z Test Case '-[Stage2Tests.PluginPairingS105FixtureTests testPAIR013DeterminismFixture]' started.
+2026-11-20T05:31:11.1733760Z Test Case '-[Stage2Tests.PluginPairingS105FixtureTests testPAIR013DeterminismFixture]' passed (0.000 seconds).
+2026-11-20T05:31:11.1734380Z Test Case '-[Stage2Tests.PluginPairingS105FixtureTests testPAIR013SyntheticDeterminism]' started.
+2026-11-20T05:31:11.1734990Z Test Case '-[Stage2Tests.PluginPairingS105FixtureTests testPAIR013SyntheticDeterminism]' passed (0.000 seconds).
+2026-11-20T05:31:11.1735510Z Test Suite 'PluginPairingS105FixtureTests' passed at 2026-11-20 05:31:11.121.
+2026-11-20T05:31:11.1735960Z 	 Executed 15 tests, with 0 failures (0 unexpected) in 0.006 (0.008) seconds
+2026-11-20T05:31:11.1736360Z Test Suite 'FilterKitPackageTests.xctest' passed at 2026-11-20 05:31:11.121.
+2026-11-20T05:31:11.1736760Z 	 Executed 15 tests, with 0 failures (0 unexpected) in 0.006 (0.008) seconds
+2026-11-20T05:31:11.1737190Z Test Suite 'Selected tests' passed at 2026-11-20 05:31:11.121.
+2026-11-20T05:31:11.1737560Z 	 Executed 15 tests, with 0 failures (0 unexpected) in 0.006 (0.010) seconds
+2026-11-20T05:31:11.1738170Z ◇ Test run started.
+2026-11-20T05:31:11.1738380Z ↳ Testing Library Version: 1902
+2026-11-20T05:31:11.1738660Z ↳ Target Platform: arm64e-apple-macos14.0
+2026-11-20T05:31:11.1739010Z ✔ Test run with 0 tests in 0 suites passed after 0.001 seconds.

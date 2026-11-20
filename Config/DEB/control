@@ -1,0 +1,8 @@
+Package: com.filterkit.manager
+Name: FilterKit
+Version: 0.1.0-1
+Architecture: iphoneos-arm64e
+Maintainer: FilterKit Development
+Section: Utilities
+Depends: firmware (>= 15.0)
+Description: RootHide and ElleKit read-only plugin manager (test package; no write or toggle features)

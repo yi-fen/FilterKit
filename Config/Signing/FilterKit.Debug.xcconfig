@@ -1,0 +1,12 @@
+# FilterKit.Debug.xcconfig — R4-B 签名配置草稿（未验证，待 Runner / 真机前核实）
+#
+# 本文件仅为设备构建签名口径占位，不代表已配置可安装签名。
+# 离线设备构建阶段（R4-A）默认 CODE_SIGNING_ALLOWED=NO，先验证未签名设备产物；
+# 正式签名路线（Developer 证书 / ldid）在 R4-B 核实后绑定，不在本草稿内推定放行。
+
+CODE_SIGN_STYLE = Manual
+CODE_SIGN_ENTITLEMENTS = Config/Signing/FilterKit.entitlements
+CODE_SIGNING_ALLOWED = NO
+# 待 R4-B 核实后填入：开发团队标识 / 描述文件 / ldid 授权参数；草稿阶段留空。
+DEVELOPMENT_TEAM =
+PROVISIONING_PROFILE_SPECIFIER =

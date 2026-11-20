@@ -1,0 +1,29 @@
+﻿2026-11-19T00:09:28.6453330Z ##[group]Run actions/upload-artifact@v7
+2026-11-19T00:09:28.6453600Z with:
+2026-11-19T00:09:28.6453760Z   name: filterkit-app-build
+2026-11-19T00:09:28.6454200Z   path: build/app-xcodebuild.log
+build/sim-launch.log
+build/dashboard.png
+build/DerivedData/Build/Products/Debug-iphonesimulator/FilterKit.app
+
+2026-11-19T00:09:28.6454750Z   retention-days: 14
+2026-11-19T00:09:28.6454920Z   if-no-files-found: warn
+2026-11-19T00:09:28.6455070Z   compression-level: 6
+2026-11-19T00:09:28.6455230Z   overwrite: false
+2026-11-19T00:09:28.6455400Z   include-hidden-files: false
+2026-11-19T00:09:28.6455600Z   archive: true
+2026-11-19T00:09:28.6455720Z ##[endgroup]
+2026-11-19T00:09:29.3729500Z Multiple search paths detected. Calculating the least common ancestor of all paths
+2026-11-19T00:09:29.4248480Z The least common ancestor is /Users/runner/work/FilterKit/FilterKit/build. This will be the root directory of the artifact
+2026-11-19T00:09:29.4350520Z With the provided path, there will be 9 files uploaded
+2026-11-19T00:09:29.4553900Z Artifact name is valid!
+2026-11-19T00:09:29.4655260Z Root directory input is valid!
+2026-11-19T00:09:29.5891990Z Uploading artifact: filterkit-app-build.zip
+2026-11-19T00:09:29.6094700Z Beginning upload of artifact content to blob storage
+2026-11-19T00:09:30.1049270Z Uploaded bytes 2740242
+2026-11-19T00:09:30.1427180Z Finished uploading artifact content to blob storage!
+2026-11-19T00:09:30.1527900Z SHA256 digest of uploaded artifact is 09ff346869adfbf72e78c09e8aef5e4b96cfdf34e4aec4aee9ed94576cf257ee
+2026-11-19T00:09:30.1628990Z Finalizing artifact upload
+2026-11-19T00:09:30.5663580Z Artifact filterkit-app-build successfully finalized. Artifact ID 14483279990
+2026-11-19T00:09:30.5766250Z Artifact filterkit-app-build has been successfully uploaded! Final size is 2740242 bytes. Artifact ID is 14483279990
+2026-11-19T00:09:30.5869330Z Artifact download URL: https://github.com/yi-fen/FilterKit/actions/runs/44426297905/artifacts/14483279990

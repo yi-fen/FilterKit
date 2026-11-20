@@ -1,0 +1,29 @@
+﻿2026-11-20T12:20:21.7466070Z ##[group]Run actions/upload-artifact@v7
+2026-11-20T12:20:21.7467070Z with:
+2026-11-20T12:20:21.7468840Z   name: filterkit-app-build
+2026-11-20T12:20:21.7469590Z   path: build/app-xcodebuild.log
+build/sim-launch.log
+build/dashboard.png
+build/DerivedData/Build/Products/Debug-iphonesimulator/FilterKit.app
+
+2026-11-20T12:20:21.7470470Z   retention-days: 14
+2026-11-20T12:20:21.7470760Z   if-no-files-found: warn
+2026-11-20T12:20:21.7471150Z   compression-level: 6
+2026-11-20T12:20:21.7471370Z   overwrite: false
+2026-11-20T12:20:21.7471790Z   include-hidden-files: false
+2026-11-20T12:20:21.7472490Z   archive: true
+2026-11-20T12:20:21.7472770Z ##[endgroup]
+2026-11-20T12:20:22.5496950Z Multiple search paths detected. Calculating the least common ancestor of all paths
+2026-11-20T12:20:22.5541200Z The least common ancestor is /Users/runner/work/FilterKit/FilterKit/build. This will be the root directory of the artifact
+2026-11-20T12:20:22.5546570Z With the provided path, there will be 9 files uploaded
+2026-11-20T12:20:22.5560880Z Artifact name is valid!
+2026-11-20T12:20:22.5561510Z Root directory input is valid!
+2026-11-20T12:20:23.4236070Z Uploading artifact: filterkit-app-build.zip
+2026-11-20T12:20:23.4280990Z Beginning upload of artifact content to blob storage
+2026-11-20T12:20:24.7075640Z Uploaded bytes 3290345
+2026-11-20T12:20:24.7707310Z Finished uploading artifact content to blob storage!
+2026-11-20T12:20:24.7742300Z SHA256 digest of uploaded artifact is 49ef3208cdb04284d7f2f27d3881dcf945577ea557ec2d180ad9ffe478bd6b40
+2026-11-20T12:20:24.7793620Z Finalizing artifact upload
+2026-11-20T12:20:25.2327870Z Artifact filterkit-app-build successfully finalized. Artifact ID 14628406277
+2026-11-20T12:20:25.2329880Z Artifact filterkit-app-build has been successfully uploaded! Final size is 3290345 bytes. Artifact ID is 14628406277
+2026-11-20T12:20:25.2443490Z Artifact download URL: https://github.com/yi-fen/FilterKit/actions/runs/44733898711/artifacts/14628406277

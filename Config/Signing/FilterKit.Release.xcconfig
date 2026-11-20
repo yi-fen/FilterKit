@@ -1,0 +1,12 @@
+# FilterKit.Release.xcconfig — R4-B 签名配置草稿（未验证，待 Runner / 真机前核实）
+#
+# 本文件仅为设备 Release 构建签名口径占位，不代表已配置可安装签名。
+# Release 签名路线（Developer 证书 + 描述文件 / 越狱 ldid）须在 R4-B 分别核实：
+# 签名工具是否写入 entitlement、二进制是否包含、RootHide 是否接受、iOS 是否放行。
+
+CODE_SIGN_STYLE = Manual
+CODE_SIGN_ENTITLEMENTS = Config/Signing/FilterKit.entitlements
+# 离线静态打包阶段保持 NO；产出物标注为"未签名结构包"，不得称可安装包。
+CODE_SIGNING_ALLOWED = NO
+DEVELOPMENT_TEAM =
+PROVISIONING_PROFILE_SPECIFIER =

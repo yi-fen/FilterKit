@@ -1,0 +1,6 @@
+S1-05 独立过滤摘要（run 44426297905 / SHA 2445ef1）
+命令: swift test --filter PluginPairingS105FixtureTests
+目标平台: arm64e-apple-macos14.0；Testing Library 1902
+结果: Executed 15 tests, with 0 failures (0 unexpected) in 0.015 (0.017) seconds
+跳过: 0（日志无 XCTSkip / skipped 记录）
+口径: 本日志归属远端 main = 2445ef1；与本地 HEAD e6845aa 无 .swift 源码差异；G8/G9/G10 交互与导出取证仍缺，不构成 0.1-C 闭环证据。

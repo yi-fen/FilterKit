@@ -1,0 +1,27 @@
+== 1a. 检查 RootHide Adapter 未引用 Rootless ==
+OK
+== 1b. 检查 RootHide Parser 未引用 Rootless 类型 ==
+OK
+== 2a. 检查 Rootless Adapter 未引用 RootHide ==
+OK
+== 2b. 检查 Rootless Parser 未引用 RootHide 类型 ==
+OK
+== 3. 检查 Core 未直接实例化具体 Adapter ==
+OK
+== 4. 检查 App 未私有实现扫描 / 解析 / 路径解析 ==
+OK
+== 4b. 检查 App 未直接依赖 Adapters 具体适配 ==
+OK
+== 隔离检查通过（静态文本层面） ==
+{
+  "checks": [
+    {"id": "1a", "name": "RootHide adapter isolation", "status": "passed"},
+    {"id": "1b", "name": "RootHide parser isolation", "status": "passed"},
+    {"id": "2a", "name": "Rootless adapter isolation", "status": "passed"},
+    {"id": "2b", "name": "Rootless parser isolation", "status": "passed"},
+    {"id": "3", "name": "Core concrete adapter instantiation", "status": "passed"},
+    {"id": "4", "name": "App core implementation isolation", "status": "passed"},
+    {"id": "4b", "name": "App adapter import prohibition", "status": "passed"}
+  ],
+  "failed": 0
+}

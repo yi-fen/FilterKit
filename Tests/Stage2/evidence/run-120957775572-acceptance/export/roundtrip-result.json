@@ -1,0 +1,14 @@
+{
+  "baselineGeneratorVersion" : "0.1.0-preview",
+  "counts" : {
+    "plugins" : 3,
+    "unknownItems" : 1,
+    "warnings" : 1
+  },
+  "decodable" : true,
+  "equalIgnoringGeneratedAt" : true,
+  "inputFile" : "build\/export\/FilterKit-Report-0-1-0-preview.json",
+  "messages" : [
+
+  ]
+}

@@ -1,0 +1,13 @@
+﻿2026-11-20T12:21:03.8500810Z ##[group]Run DEVICE_LINE=$(xcrun simctl list devices available \
+2026-11-20T12:21:03.8501290Z [36;1mDEVICE_LINE=$(xcrun simctl list devices available \[0m
+2026-11-20T12:21:03.8501750Z [36;1m  | awk '/iPhone/ && /[0-9A-Fa-f-]{36}/ {print; exit}')[0m
+2026-11-20T12:21:03.8502100Z [36;1mif [ -z "$DEVICE_LINE" ]; then[0m
+2026-11-20T12:21:03.8504310Z [36;1m  echo "::error::No available iPhone simulator found"[0m
+2026-11-20T12:21:03.8504650Z [36;1m  exit 1[0m
+2026-11-20T12:21:03.8504930Z [36;1mfi[0m
+2026-11-20T12:21:03.8505250Z [36;1mDEVICE_ID=$(echo "$DEVICE_LINE" | grep -oE '[0-9A-Fa-f-]{36}' | head -1)[0m
+2026-11-20T12:21:03.8505650Z [36;1mecho "device_id=$DEVICE_ID" >> "$GITHUB_OUTPUT"[0m
+2026-11-20T12:21:03.8506220Z [36;1mecho "Selected simulator: $DEVICE_ID"[0m
+2026-11-20T12:21:03.8538430Z shell: /bin/bash -e {0}
+2026-11-20T12:21:03.8538690Z ##[endgroup]
+2026-11-20T12:21:07.9220730Z Selected simulator: 5AB3DACF-C352-49D1-BF9A-3C0104FA4ED3

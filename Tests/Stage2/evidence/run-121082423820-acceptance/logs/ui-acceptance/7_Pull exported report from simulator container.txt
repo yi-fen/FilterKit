@@ -1,0 +1,16 @@
+﻿2026-11-20T12:29:16.6995690Z ##[group]Run set -euo pipefail
+2026-11-20T12:29:16.6996290Z [36;1mset -euo pipefail[0m
+2026-11-20T12:29:16.6997340Z [36;1mDEVICE_ID="5AB3DACF-C352-49D1-BF9A-3C0104FA4ED3"[0m
+2026-11-20T12:29:16.6998320Z [36;1m# xcodebuild test 结束后模拟器会被置为 Shutdown；未启动时[0m
+2026-11-20T12:29:16.6998810Z [36;1m# get_app_container 直接报 SimError 405（Unable to lookup in current[0m
+2026-11-20T12:29:16.7002040Z [36;1m# state: Shutdown，exit 149）。先拉起模拟器再查容器数据目录。[0m
+2026-11-20T12:29:16.7002640Z [36;1mxcrun simctl boot "$DEVICE_ID" 2>/dev/null || true[0m
+2026-11-20T12:29:16.7003350Z [36;1mCONTAINER=$(xcrun simctl get_app_container "$DEVICE_ID" com.filterkit.manager data)[0m
+2026-11-20T12:29:16.7003790Z [36;1mmkdir -p build/export[0m
+2026-11-20T12:29:16.7004470Z [36;1mif ls "$CONTAINER/tmp"/FilterKit-Report-*.json >/dev/null 2>&1; then[0m
+2026-11-20T12:29:16.7017450Z [36;1m  cp "$CONTAINER/tmp"/FilterKit-Report-*.json build/export/[0m
+2026-11-20T12:29:16.7019900Z [36;1melse[0m
+2026-11-20T12:29:16.7021370Z [36;1m  echo "::warning::未在容器临时目录找到导出 JSON"[0m
+2026-11-20T12:29:16.7023980Z [36;1mfi[0m
+2026-11-20T12:29:17.4750400Z shell: /bin/bash -e {0}
+2026-11-20T12:29:17.4751580Z ##[endgroup]

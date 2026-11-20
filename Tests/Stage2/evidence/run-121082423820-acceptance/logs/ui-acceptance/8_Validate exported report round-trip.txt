@@ -1,0 +1,44 @@
+﻿2026-11-20T12:30:07.7915440Z ##[group]Run set -euo pipefail
+2026-11-20T12:30:07.7916780Z [36;1mset -euo pipefail[0m
+2026-11-20T12:30:07.7934300Z [36;1mREPORT=$(ls build/export/FilterKit-Report-*.json 2>/dev/null | head -1)[0m
+2026-11-20T12:30:07.7935070Z [36;1mif [ -z "$REPORT" ]; then[0m
+2026-11-20T12:30:07.7935380Z [36;1m  echo "::error::缺少导出 JSON 样本，无法往返校验"[0m
+2026-11-20T12:30:07.7935750Z [36;1m  exit 1[0m
+2026-11-20T12:30:07.7935970Z [36;1mfi[0m
+2026-11-20T12:30:07.7936530Z [36;1mswift run ReportRoundtripValidator --input "$REPORT" --output build/export/roundtrip-result.json[0m
+2026-11-20T12:30:07.7937310Z [36;1mshasum -a 256 build/export/FilterKit-Report-*.json build/export/roundtrip-result.json > build/export/SHA256SUMS[0m
+2026-11-20T12:30:14.4905100Z shell: /bin/bash -e {0}
+2026-11-20T12:30:14.4905900Z ##[endgroup]
+2026-11-20T12:31:49.3279320Z Building for debugging...
+2026-11-20T12:31:49.3470510Z [0/8] Write ReportRoundtripValidator-entitlement.plist
+2026-11-20T12:31:49.3472980Z [0/8] Write sources
+2026-11-20T12:31:49.5590680Z [4/8] Write swift-version-7974D3F7F03D5E95.txt
+2026-11-20T12:31:54.0159200Z [6/18] Emitting module Models
+2026-11-20T12:31:56.6922320Z [7/22] Compiling Models PluginFileEvidence.swift
+2026-11-20T12:31:56.7173970Z [8/22] Compiling Models PluginFileKind.swift
+2026-11-20T12:31:56.7175900Z [9/22] Compiling Models PluginModels.swift
+2026-11-20T12:31:56.7177130Z [10/22] Compiling Models ReportEnvelope.swift
+2026-11-20T12:31:56.7554630Z [11/22] Compiling Models EnvironmentAdvisor.swift
+2026-11-20T12:31:56.7879980Z [12/22] Compiling Models EnvironmentModels.swift
+2026-11-20T12:31:56.7894120Z [13/22] Compiling Models ModelEnums.swift
+2026-11-20T12:31:56.7896770Z [14/22] Compiling Models PermissionProbeReport.swift
+2026-11-20T12:31:56.7898360Z [15/22] Compiling Models ProbeCategory.swift
+2026-11-20T12:31:56.8403510Z [16/22] Compiling Models ProbeEvidence.swift
+2026-11-20T12:31:56.8404090Z [17/22] Compiling Models ProbeOperation.swift
+2026-11-20T12:31:56.8404400Z [18/22] Compiling Models ProbeStatus.swift
+2026-11-20T12:31:56.8404850Z [19/22] Compiling Models PluginEntryStatus.swift
+2026-11-20T12:31:57.4985570Z [20/29] Compiling AppPresentation PluginDetailModel.swift
+2026-11-20T12:31:57.5088800Z [21/29] Compiling AppPresentation PluginRowSummary.swift
+2026-11-20T12:31:57.5192040Z [22/29] Compiling AppPresentation ProbeDiagnostics.swift
+2026-11-20T12:31:57.5543720Z [23/31] Compiling AppPresentation DashboardOverview.swift
+2026-11-20T12:31:57.5553500Z [24/31] Compiling AppPresentation DiagnosticsSections.swift
+2026-11-20T12:31:57.5560440Z [25/31] Compiling AppPresentation DisplayStatus.swift
+2026-11-20T12:31:57.5560900Z [26/31] Emitting module AppPresentation
+2026-11-20T12:31:57.6961880Z [27/31] Compiling AppPresentation ReportLabels.swift
+2026-11-20T12:31:57.6962590Z [28/31] Compiling AppPresentation SyntheticReportFactory.swift
+2026-11-20T12:31:58.1438180Z [29/33] Emitting module ReportRoundtripValidator
+2026-11-20T12:31:58.1438900Z [30/33] Compiling ReportRoundtripValidator main.swift
+2026-11-20T12:31:58.1519960Z [30/33] Write Objects.LinkFileList
+2026-11-20T12:31:58.6670390Z [31/33] Linking ReportRoundtripValidator
+2026-11-20T12:31:58.7163810Z [32/33] Applying ReportRoundtripValidator
+2026-11-20T12:31:58.7191530Z Build of product 'ReportRoundtripValidator' complete! (9.55s)

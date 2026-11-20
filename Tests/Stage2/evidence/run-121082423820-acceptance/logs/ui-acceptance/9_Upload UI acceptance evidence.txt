@@ -1,0 +1,28 @@
+﻿2026-11-20T12:31:58.8816780Z ##[group]Run actions/upload-artifact@v7
+2026-11-20T12:31:58.8817270Z with:
+2026-11-20T12:31:58.8817720Z   name: filterkit-ui-acceptance
+2026-11-20T12:31:58.8818120Z   path: build/simulator
+build/export
+build/uitest
+
+2026-11-20T12:31:58.8818590Z   retention-days: 14
+2026-11-20T12:31:58.8818990Z   if-no-files-found: warn
+2026-11-20T12:31:58.8824420Z   compression-level: 6
+2026-11-20T12:31:58.8824730Z   overwrite: false
+2026-11-20T12:31:58.8825010Z   include-hidden-files: false
+2026-11-20T12:31:58.8825690Z   archive: true
+2026-11-20T12:31:58.8825860Z ##[endgroup]
+2026-11-20T12:31:59.6838140Z Multiple search paths detected. Calculating the least common ancestor of all paths
+2026-11-20T12:31:59.6841500Z The least common ancestor is /Users/runner/work/FilterKit/FilterKit/build. This will be the root directory of the artifact
+2026-11-20T12:31:59.6842930Z With the provided path, there will be 75 files uploaded
+2026-11-20T12:31:59.6850610Z Artifact name is valid!
+2026-11-20T12:31:59.6851180Z Root directory input is valid!
+2026-11-20T12:32:00.0014010Z Uploading artifact: filterkit-ui-acceptance.zip
+2026-11-20T12:32:00.0071390Z Beginning upload of artifact content to blob storage
+2026-11-20T12:32:00.8378310Z Uploaded bytes 3988631
+2026-11-20T12:32:00.8990430Z Finished uploading artifact content to blob storage!
+2026-11-20T12:32:00.9094370Z SHA256 digest of uploaded artifact is c26cf6aabd3114c69340f1d757278432512c96a7f4314075622ac0eab4aa0165
+2026-11-20T12:32:00.9197580Z Finalizing artifact upload
+2026-11-20T12:32:01.3568030Z Artifact filterkit-ui-acceptance successfully finalized. Artifact ID 14628522739
+2026-11-20T12:32:01.3569850Z Artifact filterkit-ui-acceptance has been successfully uploaded! Final size is 3988631 bytes. Artifact ID is 14628522739
+2026-11-20T12:32:01.3577830Z Artifact download URL: https://github.com/yi-fen/FilterKit/actions/runs/44733898711/artifacts/14628522739

@@ -1,0 +1,229 @@
+{
+  "evidenceRole": "C-F4 第二轮统一验收 run 44426297905（SHA 2445ef1）SwiftPM XCTest 全量日志与 S1-05 过滤日志；工作流 yml 与本地 HEAD 逐字节一致。",
+  "workflowRun": "GitHub Actions run 44426297905，branch main，conclusion success，duration 3m 40s，2026-11-19",
+  "checkedOutSha": "2445ef1f11d1b71ffbff68fd8f9209ed6ffb76f3",
+  "localHead": "e6845aadfe2239aa119c5d3410a3234ca0051801",
+  "treeComparison": "git diff e6845aa origin/main：无 .swift 源码与 .yml 内容差异；check-adapter-isolation.sh 仅远端执行位 100755→100644；Research/ 与设备私有 JSON 未随远端上传；远端另含 PACKAGE-NOTE.md。",
+  "logTimeUtc": "2026-11-19 00:08:34.633.",
+  "targetPlatform": "arm64e-apple-macos14.0",
+  "testingLibrary": "1902",
+  "command": "swift test（Stage2Tests）；S1-05 为 swift test --filter PluginPairingS105FixtureTests",
+  "result": {
+    "totalTests": 405,
+    "failures": 0,
+    "unexpectedFailures": 0,
+    "skipped": 0,
+    "note": "全日志无 XCTSkip / skipped 记录；汇总行 Executed 405 tests, with 0 failures (0 unexpected)。"
+  },
+  "breakdown": {
+    "baselineRegression": 397,
+    "guiPresentation": 8,
+    "reporting": 18,
+    "s105IndependentFilter": 15,
+    "note": "S1-05 15 例已计入 397 基线；GUI 8 例为 0.1-C 新增；Reporting 18 例（Builder 6 / Validator 4 / Exporter 5 / Service 3）含在基线内。"
+  },
+  "keySuites": {
+    "GUIPresentationTests": 8,
+    "PluginPairingS105FixtureTests": 15,
+    "ReportBuilderTests": 6,
+    "ReportValidatorTests": 4,
+    "ReportExporterTests": 5,
+    "ReportServiceTests": 3
+  },
+  "suites": [
+    {
+      "suite": "B5DeterminismTests",
+      "passed": 6,
+      "failed": 0
+    },
+    {
+      "suite": "B5FixtureComparisonTests",
+      "passed": 4,
+      "failed": 0
+    },
+    {
+      "suite": "B5IntegrationTests",
+      "passed": 10,
+      "failed": 0
+    },
+    {
+      "suite": "ElleKitDirectoryTests",
+      "passed": 15,
+      "failed": 0
+    },
+    {
+      "suite": "EngineC1EngineBaselineTests",
+      "passed": 7,
+      "failed": 0
+    },
+    {
+      "suite": "EngineC1ParserBaselineTests",
+      "passed": 8,
+      "failed": 0
+    },
+    {
+      "suite": "EngineC2BaselineIntegrationTests",
+      "passed": 2,
+      "failed": 0
+    },
+    {
+      "suite": "EngineC2BatchIsolationTests",
+      "passed": 4,
+      "failed": 0
+    },
+    {
+      "suite": "EngineC2CombinedScenarioTests",
+      "passed": 5,
+      "failed": 0
+    },
+    {
+      "suite": "EngineC2ERegressionPlanTests",
+      "passed": 11,
+      "failed": 0
+    },
+    {
+      "suite": "EngineC2EndToEndTests",
+      "passed": 6,
+      "failed": 0
+    },
+    {
+      "suite": "EngineC2EvidenceTraceTests",
+      "passed": 8,
+      "failed": 0
+    },
+    {
+      "suite": "EngineC2RouteSymmetryTests",
+      "passed": 6,
+      "failed": 0
+    },
+    {
+      "suite": "EngineC2SnapshotWarningsTests",
+      "passed": 6,
+      "failed": 0
+    },
+    {
+      "suite": "EnvironmentDetectionTests",
+      "passed": 7,
+      "failed": 0
+    },
+    {
+      "suite": "FilterParseEngineTests",
+      "passed": 19,
+      "failed": 0
+    },
+    {
+      "suite": "FilterParseResultTests",
+      "passed": 7,
+      "failed": 0
+    },
+    {
+      "suite": "GUIPresentationTests",
+      "passed": 8,
+      "failed": 0
+    },
+    {
+      "suite": "JBRootCandidateCollectionTests",
+      "passed": 10,
+      "failed": 0
+    },
+    {
+      "suite": "JBRootValidationTests",
+      "passed": 18,
+      "failed": 0
+    },
+    {
+      "suite": "ModelsCodableTests",
+      "passed": 21,
+      "failed": 0
+    },
+    {
+      "suite": "PlistDecoderTests",
+      "passed": 9,
+      "failed": 0
+    },
+    {
+      "suite": "PlistReaderTests",
+      "passed": 6,
+      "failed": 0
+    },
+    {
+      "suite": "PlistValueKindTests",
+      "passed": 11,
+      "failed": 0
+    },
+    {
+      "suite": "PluginEnumerationTests",
+      "passed": 14,
+      "failed": 0
+    },
+    {
+      "suite": "PluginInventoryCodableTests",
+      "passed": 9,
+      "failed": 0
+    },
+    {
+      "suite": "PluginPairingCodableTests",
+      "passed": 12,
+      "failed": 0
+    },
+    {
+      "suite": "PluginPairingEngineTests",
+      "passed": 21,
+      "failed": 0
+    },
+    {
+      "suite": "PluginPairingIndexTests",
+      "passed": 5,
+      "failed": 0
+    },
+    {
+      "suite": "PluginPairingIntegrationTests",
+      "passed": 32,
+      "failed": 0
+    },
+    {
+      "suite": "PluginPairingKeyTests",
+      "passed": 11,
+      "failed": 0
+    },
+    {
+      "suite": "PluginPairingS105FixtureTests",
+      "passed": 15,
+      "failed": 0
+    },
+    {
+      "suite": "ReportBuilderTests",
+      "passed": 6,
+      "failed": 0
+    },
+    {
+      "suite": "ReportExporterTests",
+      "passed": 5,
+      "failed": 0
+    },
+    {
+      "suite": "ReportServiceTests",
+      "passed": 3,
+      "failed": 0
+    },
+    {
+      "suite": "ReportValidatorTests",
+      "passed": 4,
+      "failed": 0
+    },
+    {
+      "suite": "RootHideFilterParserTests",
+      "passed": 32,
+      "failed": 0
+    },
+    {
+      "suite": "RootlessFilterParserTests",
+      "passed": 22,
+      "failed": 0
+    }
+  ],
+  "hashes": {
+    "test-log.txt": "775540d9a895e900d74eb1d98be9d41106c447c4650911a214fc30c6152be9ab",
+    "test-log-s105.txt": "81b8d4a0e10bb8ee5e1a68697cc4622989fa365f4d88404a8dea59cd677915f5"
+  }
+}
