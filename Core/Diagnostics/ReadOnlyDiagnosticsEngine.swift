@@ -15,6 +15,10 @@ import Foundation
 
 #if canImport(Darwin)
 import Darwin
+// `_dyld_image_count` / `_dyld_get_image_name` live in the MachO.dyld submodule;
+// the iOS SDK does not re-export them through the Darwin umbrella, so import the
+// submodule explicitly on Darwin platforms (absent on Linux/non-Darwin).
+import MachO.dyld
 #endif
 #if canImport(CommonCrypto)
 import CommonCrypto
