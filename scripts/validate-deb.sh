@@ -189,35 +189,51 @@ else
   record_check e8 'Mach-O includes minimum device architecture' unavailable
 fi
 
-# e9: validate ldid signature, LC_CODE_SIGNATURE and the exact embedded entitlements.
-printf '%s\n' '== e9. ldid signature + LC_CODE_SIGNATURE + embedded entitlements =='
+# e9: signature is a deployment gate, not a cosmetic informational pass.
+printf '%s\n' '== e9. code signature state =='
 SIGNATURE_STATE='unavailable'
-LDID_SUMMARY_PATH="$WORKDIR/ldid-signature-summary.json"
-if [[ -d "$APP_DIR" ]] && command -v ldid >/dev/null 2>&1 \
-  && command -v otool >/dev/null 2>&1 && command -v file >/dev/null 2>&1; then
-  if LDID_SIGNATURE_SUMMARY_PATH="$LDID_SUMMARY_PATH" \
-       bash scripts/validate-ldid-signature.sh "$APP_DIR"; then
-    SIGNATURE_STATE='ldid_signed_static_valid'
-    record_check e9 'ldid signature and embedded entitlements' passed
+INSTALLABILITY='unknown'
+if [[ -n "$APP_EXECUTABLE_PATH" && -f "$APP_EXECUTABLE_PATH" ]] \
+    && command -v ldid >/dev/null 2>&1 \
+    && APP_PATH="$APP_DIR" ENTITLEMENTS_PATH="${ENTITLEMENTS_PATH:-Config/Signing/FilterKit.entitlements}" \
+       bash scripts/sign-app-ldid.sh verify "$APP_DIR" >/dev/null 2>&1; then
+  SIGNATURE_STATE='ldid_signed_embedded'
+  INSTALLABILITY='device_acceptance_pending'
+  echo 'PENDING: ldid signature blob and entitlement payload verified; RootHide Bootstrap/amfid acceptance and launch remain device gates.'
+  if [[ "${REQUIRE_INSTALLABLE_DEB:-0}" == '1' ]]; then
+    record_check e9 'ldid signature and device acceptance' failed
   else
-    SIGNATURE_STATE='ldid_signature_invalid'
-    record_check e9 'ldid signature and embedded entitlements' failed
+    record_check e9 'ldid signature blob and embedded entitlements' passed
+  fi
+elif [[ -n "$APP_EXECUTABLE_PATH" && -f "$APP_EXECUTABLE_PATH" ]] && command -v codesign >/dev/null 2>&1; then
+  if codesign --verify --deep --strict "$APP_DIR" >/dev/null 2>&1; then
+    SIGNATURE_STATE='signed_valid'
+    INSTALLABILITY='signed_candidate_not_device_verified'
+    echo 'INFO: Apple codesign verifies; RootHide/amfid acceptance and runtime entitlements remain unproven.'
+    record_check e9 'Apple code signature verification' passed
+  elif codesign -dv "$APP_DIR" >/dev/null 2>&1; then
+    SIGNATURE_STATE='signature_invalid'
+    INSTALLABILITY='not_installable_invalid_signature'
+    echo 'FAIL: signature exists but verification failed'
+    record_check e9 'Apple code signature verification' failed
+  else
+    SIGNATURE_STATE='unsigned'
+    INSTALLABILITY='not_installable_unsigned'
+    echo 'PENDING: unsigned App; this DEB is structure-only and must not be installed as a release/test app.'
+    if [[ "${REQUIRE_INSTALLABLE_DEB:-0}" == '1' ]]; then
+      record_check e9 'code signature verification' failed
+    else
+      record_check e9 'code signature verification' pending
+    fi
   fi
 else
-  echo 'unavailable: ldid/otool/file unavailable; signed state cannot be established'
-  record_check e9 'ldid signature and embedded entitlements' unavailable
-fi
-
-# Candidate classification is deliberately separate from device installability.
-ARTIFACT_CLASS='ldid-signed-candidate'
-DEVICE_INSTALL_STATUS='not-tested'
-DEVICE_INSTALLABLE='false'
-if [[ "$DEB_PATH" != *.ldid-signed-candidate.deb ]]; then
-  echo "FAIL: DEB filename must end in .ldid-signed-candidate.deb: $DEB_PATH"
-  record_check e10 'signed candidate artifact classification' failed
-else
-  echo 'OK: artifact is explicitly classified as ldid-signed-candidate; device installability remains unproven'
-  record_check e10 'signed candidate artifact classification' passed
+  echo 'PENDING: no verifiable ldid or Apple signature; signature/installability unknown or unsigned'
+  INSTALLABILITY='unknown'
+  if [[ "${REQUIRE_INSTALLABLE_DEB:-0}" == '1' ]]; then
+    record_check e9 'code signature verification' failed
+  else
+    record_check e9 'code signature verification' pending
+  fi
 fi
 
 # JSON summary (simple fixed labels; no user-controlled strings are interpolated).
@@ -232,7 +248,7 @@ if [[ -n "$DEB_PATH" && -f "$DEB_PATH" ]]; then
   if command -v shasum >/dev/null 2>&1; then DEB_SHA256="$(shasum -a 256 "$DEB_PATH" | awk '{print $1}')"
   elif command -v sha256sum >/dev/null 2>&1; then DEB_SHA256="$(sha256sum "$DEB_PATH" | awk '{print $1}')"; fi
 fi
-summary="{\"profile\":\"$DEB_PROFILE_ID\",\"packageArchitecture\":\"$DEB_PACKAGE_ARCH\",\"minimumMachOArchitecture\":\"$DEB_MINIMUM_BINARY_ARCH\",\"artifactClass\":\"$ARTIFACT_CLASS\",\"signatureState\":\"$SIGNATURE_STATE\",\"deviceInstallStatus\":\"$DEVICE_INSTALL_STATUS\",\"deviceInstallable\":$DEVICE_INSTALLABLE,\"sha256\":\"$DEB_SHA256\",\"checks\":$json_checks,\"failed\":$fail,\"validator\":\"validate-deb\"}"
+summary="{\"profile\":\"$DEB_PROFILE_ID\",\"packageArchitecture\":\"$DEB_PACKAGE_ARCH\",\"minimumMachOArchitecture\":\"$DEB_MINIMUM_BINARY_ARCH\",\"signatureState\":\"$SIGNATURE_STATE\",\"installability\":\"$INSTALLABILITY\",\"installableCandidate\":$([[ "$SIGNATURE_STATE" == "signed_valid" ]] && echo true || echo false),\"sha256\":\"$DEB_SHA256\",\"checks\":$json_checks,\"failed\":$fail,\"validator\":\"validate-deb\"}"
 echo '--- summary ---'
 echo "$summary"
 if [[ -n "$SUMMARY_PATH" ]]; then

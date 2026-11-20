@@ -1,6 +1,6 @@
 # FilterKit RootHide DEB Profile
 
-> This is the default **RootHide rootfs-layout packaging profile**. It describes the DEB package-manager metadata and payload layout. The CI now emits an `ldid-signed-candidate` after static signature checks, but this does not mean the binary is RootHide-native, accepted by amfid, installable, or verified on a RootHide device.
+> This is the default **RootHide rootfs-layout packaging profile**. It describes the DEB package-manager metadata and payload layout only. It does not mean the app binary is RootHide-native, signed, entitled, installable, accepted by amfid, or verified on a RootHide device.
 
 ## Profile
 
@@ -41,22 +41,17 @@ FilterKit.deb
 
 ```bash
 APP_PATH=/path/to/Release-iphoneos/FilterKit.app \
-  bash scripts/sign-app-ldid.sh
-
-APP_PATH=/path/to/Release-iphoneos/FilterKit.app \
 DEB_PROFILE_ID=roothide-rootfs \
-REQUIRE_LDID_SIGNATURE=1 \
-OUT_DEB=build/deb/filterkit_0.1.0-1_iphoneos-arm64e.ldid-signed-candidate.deb \
+OUT_DEB=build/deb/filterkit_0.1.0-1_iphoneos-arm64e.deb \
   bash scripts/package-deb.sh
 
 SOURCE_APP_PATH=/path/to/Release-iphoneos/FilterKit.app \
-DEB_PATH=build/deb/filterkit_0.1.0-1_iphoneos-arm64e.ldid-signed-candidate.deb \
-REQUIRE_DEB_VALIDATION_TOOLS=1 \
+DEB_PATH=build/deb/filterkit_0.1.0-1_iphoneos-arm64e.deb \
 PACKAGE_VALIDATION_SUMMARY_PATH=build/deb/deb-summary.json \
   bash scripts/validate-deb.sh
 ```
 
-`validate-deb.sh` checks archive extraction, control/profile identity, postinst policy, rootfs-relative layout, root:root ownership, declared executable, complete source-vs-packaged bundle parity, Mach-O arm64 slice (when `lipo` is available), and ldid signature state, including `LC_CODE_SIGNATURE` and exact embedded-entitlement parity. CI sets `REQUIRE_DEB_VALIDATION_TOOLS=1`, so required tool checks cannot silently remain unavailable.
+`validate-deb.sh` checks archive extraction, control/profile identity, postinst policy, rootfs-relative layout, root:root ownership, declared executable, complete source-vs-packaged bundle parity, Mach-O arm64 slice (when `lipo` is available), and signature state. CI sets `REQUIRE_DEB_VALIDATION_TOOLS=1`, so required tool checks cannot silently remain unavailable.
 
 ## Status vocabulary
 
@@ -64,7 +59,8 @@ PACKAGE_VALIDATION_SUMMARY_PATH=build/deb/deb-summary.json \
 |---|---|
 | RootHide package layout passed | Static package metadata and layout checks passed |
 | Unsigned | Structure package has no device signing; not an installability claim |
-| ldid signed candidate passed (static) | Mach-O signature structures and embedded entitlements passed static checks; still not proof RootHide/amfid acceptance or installability |
+| Signed valid | Apple codesign verification passed; still not proof RootHide/amfid acceptance |
+| ldid signed embedded | `LC_CODE_SIGNATURE` and embedded entitlement payload statically verified; RootHide acceptance remains pending |
 | Device install pending | Bootstrap install, uicache registration, GUI launch and permission evidence not yet obtained |
 | Device verified | Reserved for separately authorized RootHide real-device evidence |
 
@@ -77,9 +73,3 @@ PACKAGE_VALIDATION_SUMMARY_PATH=build/deb/deb-summary.json \
 - RootHide GUI-process JBROOT/TweakInject access or actual ElleKit plugin loading.
 
 These remain separate R4-G / R3 real-device gates. A package-validation pass must never be reported as `RootHide-Ready` or `Device-Verified`.
-
-## ldid signed candidate 状态
-
-当前 CI 的 DEB 不再以普通 `.deb` 文件名输出，而是 `*.ldid-signed-candidate.deb`。打包前要求 `scripts/validate-ldid-signature.sh` 通过；DEB 解包后再次检查所有 Mach-O 的 `LC_CODE_SIGNATURE`、`ldid -h` 和主程序实际嵌入的 entitlements，并验证与源 App 的 bundle parity。
-
-该候选状态仅证明 Runner 静态检查通过，不证明 RootHide / amfid 接受签名，也不证明 dpkg 安装、uicache 注册或 App 启动成功。验证摘要明确写入 `artifactClass=ldid-signed-candidate`、`deviceInstallStatus=not-tested`、`deviceInstallable=false`。在目标设备安装/启动门禁完成前，不得把候选包标记为可安装或发布包。

@@ -4,7 +4,7 @@
 #
 # 汇总口径（与 R4 规格 §3.5 / 授权稿 §五一致）：
 #   - Build Passed      = 成功生成 iPhoneOS 设备构建产物（静态校验 failed=0）；
-#   - IPA Package Passed / DEB ldid-signed-candidate Passed (Static) = 对应静态摘要 failed=0；
+#   - IPA Package Passed / DEB RootHide Package Layout Passed (Static) = 对应静态摘要 failed=0；
 #   - Device Install Pending = 真机安装/注册/启动成功，属 R4-G 真机门禁，R4-A～E 不取证。
 #
 # 本脚本只做静态元数据归集与哈希复算，不证明 RootHide 真机权限、真实加载或 jbroot() 可调用。
@@ -117,7 +117,7 @@ package_status() {
 
 IPA_STATUS="$(package_status "$IPA_PATH" "$IPA_SUMMARY")"
 DEB_STATUS="$(package_status "$DEB_PATH" "$DEB_SUMMARY")"
-if [ "$DEB_STATUS" = "Package Passed" ]; then DEB_STATUS="RootHide DEB Signed Candidate Passed (Static)"; fi
+if [ "$DEB_STATUS" = "Package Passed" ]; then DEB_STATUS="RootHide Package Layout Passed (Static)"; fi
 IPA_SHA="$(sha256_of "$IPA_PATH")"; IPA_SHA="${IPA_SHA:-unavailable}"
 DEB_SHA="$(sha256_of "$DEB_PATH")"; DEB_SHA="${DEB_SHA:-unavailable}"
 
@@ -141,10 +141,7 @@ DEB_PROFILE="$(summary_field "$DEB_SUMMARY" profile)"
 DEB_PACKAGE_ARCH="$(summary_field "$DEB_SUMMARY" packageArchitecture)"
 DEB_MIN_MACHO_ARCH="$(summary_field "$DEB_SUMMARY" minimumMachOArchitecture)"
 DEB_SIGNATURE_STATE="$(summary_field "$DEB_SUMMARY" signatureState)"
-DEB_ARTIFACT_CLASS="$(summary_field "$DEB_SUMMARY" artifactClass)"
-DEB_DEVICE_INSTALL_STATUS="$(summary_field "$DEB_SUMMARY" deviceInstallStatus)"
-DEB_DEVICE_INSTALLABLE="$(summary_field "$DEB_SUMMARY" deviceInstallable)"
-case "$DEB_DEVICE_INSTALLABLE" in true|false) ;; *) DEB_DEVICE_INSTALLABLE="false" ;; esac
+DEB_INSTALLABILITY="$(summary_field "$DEB_SUMMARY" installability)"
 
 ENT_STATUS="Entitlements Pending"
 ent_failed="$(summary_failed "$ENT_SUMMARY")"
@@ -193,9 +190,7 @@ META_JSON="$(cat <<EOF
       "packageArchitecture": "${DEB_PACKAGE_ARCH}",
       "minimumMachOArchitecture": "${DEB_MIN_MACHO_ARCH}",
       "signatureState": "${DEB_SIGNATURE_STATE}",
-      "artifactClass": "${DEB_ARTIFACT_CLASS}",
-      "deviceInstallStatus": "${DEB_DEVICE_INSTALL_STATUS}",
-      "deviceInstallable": ${DEB_DEVICE_INSTALLABLE},
+      "installability": "${DEB_INSTALLABILITY}",
       "status": "${DEB_STATUS}"
     }
   },

@@ -1,66 +1,74 @@
-# FilterKit 0.1-E Preflight
+# FilterKit 0.1-E 发布验收设计前置准备（Preflight）
 
-> 当前状态：**Preflight 准备中 / 不构成 0.1-E 发布验收**。本文件记录从 0.1-D-R4 签名候选进入 0.1-E 前必须具备的证据与门禁。`ldid-signed-candidate.deb` 不是已证明可安装的正式包。
+> 状态：PRE-E 资料准备稿；不是 0.1-E 正式验收规格冻结，不代表发布通过。
+> 基线：`FilterKit-0.1-D-R4-Audit-Repair.zip`，R4-B2 修复包。
 
-## 1. 本轮签名修复范围
+## 1. 目标与边界
 
-本轮只修复并增强 R4 的离线签名与 DEB 候选产物链：
+0.1-E 的目标是在 0.1-D 的设备构建、签名候选、DEB 静态校验、真机部署/权限证据完整后，建立正式发布验收门禁。本文件只整理进入 0.1-E 设计前必须具备的输入、证据和阻塞项；不实施发布、不签署验收、不改变版本、不触发设备安装。
 
-1. 对设备构建产物副本执行 `ldid` 签名，不修改 Xcode 原始 unsigned build artifact。
-2. App 内所有 Mach-O（主程序、Framework / PlugIns / 其他嵌套 Mach-O）必须具备 `LC_CODE_SIGNATURE`；嵌套 Mach-O 先签，主程序最后签。
-3. 主程序签名时注入 `Config/Signing/FilterKit.entitlements`；签名后通过 `ldid -e` 提取实际嵌入内容，并与源 plist 结构化比较，必须完全相同。
-4. `ldid -h` 对所有 Mach-O 提取 CodeDirectory hash，作为签名结构可读性证据。
-5. DEB 产物必须命名为 `*.ldid-signed-candidate.deb`；不再产出看似正式可安装的普通 `.deb` 文件名。
-6. CI 归档签名日志、签名摘要、DEB 验证日志、摘要与候选 DEB。
+0.1.0 定义仍为 RootHide 只读插件管理器。插件启停、修改 plist、添加 Bundle ID、删除 dylib、dpkg 写入、自动修复、常驻 daemon、自研注入引擎均不属于本轮发布范围。
 
-## 2. 工具链与脚本
+## 2. 必需输入资料
 
-| 项目 | 责任 |
-|---|---|
-| `scripts/sign-app-ldid.sh` | 对 App bundle 内 Mach-O 执行 ldid 签名，主程序注入候选 entitlements |
-| `scripts/validate-ldid-signature.sh` | 检查每个 Mach-O 的 `LC_CODE_SIGNATURE`、`ldid -h` 结果，并比较主程序实际嵌入 entitlement |
-| `scripts/package-deb.sh` | 仅接受已通过签名校验的 App，输出签名候选 DEB |
-| `scripts/validate-deb.sh` | 解包后重新验证签名、entitlements、DEB 布局及文件 parity |
-| `.github/workflows/filterkit-build.yml` | 安装 ldid / dpkg，执行签名、验证、打包与日志归档 |
+| ID | 输入 | 进入 0.1-E 前要求 | 当前状态 |
+|---|---|---|---|
+| PRE-01 | 当前源码基线 | 固定 commit SHA；源码、Workflow、归档 SHA256 一致 | 本修复包提供快照；GitHub HEAD 未连接复核 |
+| PRE-02 | R4-B2 Runner | macOS Runner 实际 ldid 签名、Mach-O 检查、DEB 打包和摘要 | pending |
+| PRE-03 | 签名证据 | ldid 版本、签名日志、LC_CODE_SIGNATURE、嵌入 entitlement 比对 | 仅 mock 测试通过；真实 Runner pending |
+| PRE-04 | DEB 证据 | e1-e9 原始日志、摘要、DEB SHA256、control、payload tree | 旧 unsigned 产物仅历史证据；新 Runner pending |
+| PRE-05 | RootHide 真机部署 | Bootstrap 安装、dpkg 状态、uicache 注册、App 启动结果 | pending，需单独授权 |
+| PRE-06 | 崩溃诊断 | `.ips`、amfid、dyld、runningboardd 日志及安装包哈希对应关系 | 未提供；根因未定 |
+| PRE-07 | GUI 权限探针 | FilterKit.GUI 进程上下文 G10-G15 完整证据 | pending |
+| PRE-08 | 0.1-C G10 | 回到 C-F4 原始定义，独立补证并保留原门禁 | 未豁免、未签署 |
+| PRE-09 | 0.1-D 最终验收 | R4-G、R3-B～R3-E、0.1-C G10 按原规格分别判定 | 未完成 |
+| PRE-10 | 风险与范围 | 未决问题、限制、已知不支持功能和回滚策略 | 本文件初步汇总，待正式规格确认 |
 
-CI 必需工具：`ldid`、`otool`、`file`、`python3`、`dpkg-deb`、`lipo`。缺少签名验证工具时不得将 DEB 标为静态签名通过。
+## 3. 0.1-E 设计必须采用的证据层级
 
-## 3. 验收状态必须分层
+1. **Source Verified**：源码 SHA、工作区状态、构建输入和版本元数据可追溯。
+2. **Build Verified**：真实 macOS Runner 的设备构建成功；Simulator 结果不得替代。
+3. **Signature Payload Verified**：签名数据区和 entitlement 嵌入内容经过工具核验。`ldid_signed_embedded` 不是 RootHide 接受或可安装结论。
+4. **Package Verified**：DEB 结构、控制字段、root:root、可执行权限、源/包完整性、架构、签名状态通过。
+5. **Device Install Verified**：目标 RootHide Bootstrap 接受安装，dpkg/uicache 结果有设备证据。
+6. **Device Launch Verified**：App 在目标设备冷启动成功，进程存活且无崩溃；启动失败必须判 failed。
+7. **Permission Verified**：G10-G15 的探针在 `FilterKit.GUI` 进程中执行，记录实际操作、结果、errno/errorDomain/errorCode 和环境信息。
+8. **Product Acceptance**：功能、只读边界、数据语义、限制、风险与发布文档全部符合冻结规格。
 
-| 状态 | 可证明内容 | 不可推导内容 |
-|---|---|---|
-| `ldid_signed_static_valid` | 所有扫描到的 Mach-O 有 `LC_CODE_SIGNATURE`；`ldid -h` 可提取 CodeDirectory hash；主程序嵌入 entitlement 与源文件完全一致 | RootHide / amfid 接受签名、sandbox 权限已放行 |
-| `ldid-signed-candidate` | DEB 包含已静态验证的签名 App，且包结构校验通过 | dpkg 安装成功、uicache 注册成功、App 可启动 |
-| `Device Install Passed` | 目标设备上实际安装、注册、冷启动与复测均通过且证据完整 | 不得仅凭 CI 结果、静态签名或模拟器结果得出 |
+任一层级不得由前一层推断。`installed`、`configured`、`loaded` 不互推；没有独立运行时证据时 `loaded=unknown`。
 
-`deviceInstallable` 在候选阶段固定为 `false`，`deviceInstallStatus` 固定为 `not-tested`。只有独立授权并取得目标设备证据后，才可重新评估该状态。
+## 4. 0.1-E 设计前阻塞项
 
-## 4. 真机 DEB 闪退问题的剩余证据
+- R4-B2 的真实 ldid/otool Runner 结果尚未取得；mock 不能替代。
+- ldid 签名和四枚候选 entitlement 是否被目标 RootHide Bootstrap/amfid 接受未知。
+- FilterKit GUI 进程是否能访问 `.jbroot-*`、TweakInject、插件 dylib/plist 和 dpkg 数据库未知。
+- 当前 SwiftUI App 尚未实际调用 RootHide `jbroot()`；不因参考 0.1.18 自动添加未经核实的弱链接、rpath 或 C 声明。
+- 用户报告的 DEB 闪退没有 `.ips` 或系统日志，不能断言唯一根因。
+- 0.1-C G10 缺口仍然存在，不得以其他 Simulator/Runner 结果替代或豁免。
+- Rootless 无真机，Rootless 真机兼容不纳入本轮 0.1.0 发布承诺。
 
-本次签名链补齐主要针对“未签名 Mach-O / 缺失代码签名封印 / entitlement 未嵌入”这一类 C1 假设。即使静态签名通过，也不能单独证明 DEB 闪退已修复。真机验证仍需采集：
+## 5. 建议的 0.1-E 设计分组（待正式冻结）
 
-- 安装前后 DEB SHA-256、解包 App 与签名候选 App 的文件树/权限/符号链接对比；
-- 设备型号、iOS 版本、RootHide / Bootstrap / ElleKit 版本及部署形态；
-- dpkg 安装退出码、安装路径、`uicache` 结果；
-- App 冷启动结果、进程退出状态、`.ips` / `JetsamEvent` / amfid 相关日志；
-- 终止原因、崩溃线程、缺失动态库、dyld 错误与 `LC_LOAD_DYLIB` / rpath 证据；
-- 同一 commit / build / bundle ID 下 IPA 与 DEB 的对照结果。
+- E1：源码与构建可追溯性。
+- E2：设备构建与签名证据。
+- E3：DEB/IPA 产物完整性和包元数据。
+- E4：RootHide 安装、注册、冷启动与崩溃日志。
+- E5：GUI 权限探针及只读访问边界。
+- E6：UI/导出/分享/Diagnostics 验收，包括 0.1-C G10 独立补证。
+- E7：产品语义、架构隔离、状态未知值和来源权限策略。
+- E8：风险、限制、版本说明、安装/卸载/恢复文档。
+- E9：最终发布判定、证据索引、SHA256 和归档。
 
-C2（Mach-O 切片、弱链接、rpath）、C3（RootHide 布局、权限、uicache / JBROOT 映射）、C4（App bundle 完整性）和 C5（应用自身异常）仍须按设备日志独立判断，不能以签名成功排除。
+## 6. 不可豁免的发布阻断规则
 
-## 5. 进入 0.1-E 的门禁
+- 未签名或签名验证失败：阻断设备候选包。
+- `ldid_signed_embedded` 但未取得 RootHide 设备接受证据：只允许称签名候选，不允许称可安装/可发布。
+- App 真机启动失败：R4-G failed，后续权限探针结果无效。
+- 关键权限探针缺失/unknown：不得宣称已获得对应目录访问能力。
+- 0.1-C G10 缺证：不得签署完整 0.1-E 验收。
+- loaded 无运行时证据：保持 unknown，不得作为发布成功指标。
+- 任何结构检查、Simulator、离线 fixture 或 mock 均不得替代 RootHide 真机证据。
 
-- [ ] Source commit SHA 与构建 Runner 记录一致；
-- [ ] 设备构建平台、架构、Deployment Target、Bundle ID、版本与 build number 证据完整；
-- [ ] ldid 工具版本已归档；
-- [ ] App 内所有 Mach-O 的 `LC_CODE_SIGNATURE` 与 `ldid -h` 均能提取 CodeDirectory hash；
-- [ ] 主程序实际嵌入 entitlements 与源 plist 完全一致；
-- [ ] DEB 解包后签名复验通过，source/package bundle parity 通过；
-- [ ] 候选产物 SHA-256 与 CI 日志、metadata JSON 一致；
-- [ ] 真机安装、注册、冷启动与复测有独立证据；
-- [ ] 闪退 `.ips` / 系统日志已归档并完成 C1～C5 根因判断；
-- [ ] 未完成门禁均保留 `pending` / `unknown`，不签署、不发布。
+## 7. 进入正式 0.1-E 设计的准入条件
 
-## 6. 安全边界
-
-本批不执行真机安装，不调用 `uicache`，不写入越狱配置，不启停插件，不修改 dpkg 数据库，不移动或删除 dylib，不启动 Helper / daemon，不执行注入。`ldid` 仅修改 CI 工作目录中的 App 构建副本。Developer 证书签名路线与 ldid 路线仍然独立，不互相替代。
+只有在 R4-B2 Runner 已产生可追溯结果、R4-G 与 R3 真机门禁完成或明确记录失败、0.1-C G10 独立补证完成后，才冻结 0.1-E 正式验收规格。若某项设备证据无法取得，应在正式规格中明确标为 blocker，不得降低门槛换取全绿。

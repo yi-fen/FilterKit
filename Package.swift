@@ -64,6 +64,9 @@ let package = Package(
             ],
             sources: [
                 "CoreServices.swift",
+                "Diagnostics/ReadOnlyDiagnosticsEngine.swift",
+                "Diagnostics/ReadOnlyFileHasher.swift",
+                "Diagnostics/AssociationSnapshotStore.swift",
                 "PermissionProbe/Protocols/PermissionProbing.swift",
                 "PermissionProbe/Protocols/PermissionProbeServiceProtocol.swift",
                 "PermissionProbe/FileAccess/FileAccessChecking.swift",

@@ -28,6 +28,19 @@ struct DiagnosticsView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 16) {
+                    Button {
+                        viewModel.runReadOnlyDiagnostics()
+                    } label: {
+                        HStack {
+                            if viewModel.isScanning { ProgressView().padding(.trailing, 6) }
+                            Text(viewModel.isScanning ? "Scanning read-only diagnostics…" : "Run 0.1.18 Read-only Diagnostics")
+                        }
+                        .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(viewModel.isScanning)
+                    .accessibilityIdentifier("diagnostics.runReadOnly")
+
                     ForEach(viewModel.sections) { section in
                         SectionCardView(title: section.title, identifier: "diagnostics.section.\(section.id)") {
                             if section.isEmpty {

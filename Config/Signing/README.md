@@ -1,8 +1,8 @@
 # FilterKit 签名与 Entitlement 配置（R4-B，静态准备，未验证放行）
 
-> 边界：本目录承载签名声明配置；R4 设备构建阶段仍保持 `CODE_SIGNING_ALLOWED=NO`，随后在 CI 工作副本上通过 ldid 形成签名候选。此流程不使用虚构 Apple Developer 证书、不假定权限已放行、不执行真机安装验证。
-> entitlement 出现在签名中 ≠ 系统授予对应权限；runtime entitlement 读取沿用 R1-B 结论
-> （iOS GUI 进程无公开稳定枚举 API，runtime 证据保持 unavailable/unknown）。
+> R4-B2 更新：设备构建仍先以 `CODE_SIGNING_ALLOWED=NO` 生成可复现 App，再由独立
+> `scripts/sign-app-ldid.sh` 对 RootHide DEB 路线执行 ldid 签名。签名 blob 与嵌入 entitlement
+> 可在 Runner 静态核对；这不证明 Bootstrap/amfid 接受、安装成功或运行时资源访问放行。
 
 ## 1. 文件
 
@@ -17,9 +17,10 @@
 | 路线 | 工具/材料 | 适用 | 本轮状态 |
 |---|---|---|---|
 | **普通 Apple Developer 签名** | 开发证书 + 描述文件（Provisioning Profile）+ `CODE_SIGN_STYLE` | 普通沙盒 App 对照安装 | 未配置；`DEVELOPMENT_TEAM` / `PROVISIONING_PROFILE_SPECIFIER` 留空，待 Runner/真机前核实 |
-| **越狱环境签名（ldid）** | ldid 签名 + 候选 entitlement 注入 | RootHide/Rootless 越狱文件访问 App | CI 签名链已接入；Runner 实跑与 bootstrap 接受度待验证 |
+| **越狱环境签名（ldid）** | ldid 签名 + 候选 entitlement 注入 | RootHide/Rootless 越狱文件访问 App | 未配置；ldid 写入参数、二进制包含性、bootstrap 接受度均待实测 |
 
-两条路线的证书/描述文件/授权参数互不通用；当前 DEB 仅使用 ldid 候选路线，不能把 Developer 路线的签名结论套到 ldid 路线，反之亦然。
+两条路线的证书/描述文件/授权参数互不通用；候选 entitlement 与路线的绑定关系须在
+R4-B 核实后逐条记录，不能把 Developer 路线的签名结论套到 ldid 路线，反之亦然。
 
 ## 3. 候选 entitlement（参考清单，非已确认可用方案）
 
@@ -39,23 +40,37 @@
 4. iOS 是否**实际放行**对应资源访问。
 
 任一条未取证，对应权限结论保持 unknown；静态格式校验（`validate-entitlements.sh`）
-覆盖源文件解析/候选清单/reference parity；签名后另由 `validate-ldid-signature.sh` 检查实际嵌入内容。
+只覆盖第 1 条之前的文件可解析性与清单一致性。
 
-## 5. 禁止事项（本轮 CI 候选签名范围）
+## 5. 禁止事项（R4-A～E 范围）
 
 - 不写入虚构证书、描述文件或团队标识；
 - 不把"entitlement 已写入文件"记为"权限已获得"；
-- 不执行真机安装、不宣称签名已被 bootstrap 接受；
+- 不执行真机签名安装、不验证签名被 bootstrap 接受；
 - 不修改系统 sandbox 例外、不自动授予权限。
 
-## 6. R4 ldid 签名候选链（本轮实现）
+## 6. R4-B2 ldid 签名候选流程
 
-`sign-app-ldid.sh` 在 CI 工作目录中对设备构建 App 副本执行签名：先签 App 内嵌套 Mach-O，再签主程序；主程序使用 `FilterKit.entitlements`。签名后 `validate-ldid-signature.sh` 对每个 Mach-O 检查 `LC_CODE_SIGNATURE` 与 `ldid -h`，并用 `ldid -e` 提取主程序实际嵌入的 entitlement，和源 plist 结构化比较，要求完全一致。
+```bash
+APP_PATH=build/device/FilterKit.app \
+ENTITLEMENTS_PATH=Config/Signing/FilterKit.entitlements \
+  bash scripts/sign-app-ldid.sh sign build/device/FilterKit.app
 
-- `ldid_signed_static_valid` 只代表静态签名/嵌入内容校验通过。
-- 不代表 RootHide / amfid 接受签名，也不代表 sandbox 访问已放行。
-- IPA 路线仍为 unsigned structure 对照，不与 ldid DEB 路线混用。
-- DEB 文件名固定带 `.ldid-signed-candidate.deb`，不得简称正式安装包。
-- 候选包 `deviceInstallable=false`、`deviceInstallStatus=not-tested`，真机安装/启动仍须独立授权和取证。
+APP_PATH=build/device/FilterKit.app \
+ENTITLEMENTS_PATH=Config/Signing/FilterKit.entitlements \
+  bash scripts/sign-app-ldid.sh verify build/device/FilterKit.app
+```
 
-脚本：`scripts/sign-app-ldid.sh`、`scripts/validate-ldid-signature.sh`。CI 日志及摘要随 `filterkit-deb` artifact 归档。完整门禁见 `Spec/FilterKit-0.1-E-Preflight.md`。
+脚本流程（0.1-D Diagnostics-Port 对齐 LDID-Signing-Fix 基线）：
+
+1. App 内嵌套 Mach-O 一律 `ldid -S` 临时签名，**不携带主 App entitlement**；
+2. 仅主 `CFBundleExecutable` 使用 `Config/Signing/FilterKit.entitlements` 签名；
+3. 签完立即调用独立校验脚本 `scripts/validate-ldid-signature.sh`：逐个 Mach-O 检查
+   `LC_CODE_SIGNATURE` 与 `ldid -h` CodeDirectory hash 可提取；主程序 `ldid -e` 提取嵌入
+   entitlement 与候选 plist **精确比较**；输出静态摘要（`ldid_signed_static_valid` /
+   `deviceAcceptance=unknown` / `deviceInstallable=false`）。
+
+`verify` 模式委托同一独立校验脚本。静态签名/entitlement 一致不等于 amfid/Bootstrap 接受、
+安装或启动；安装性仍是 `unknown`，不将此状态称为 `signed_valid` 或 `installable`。
+
+普通 Apple Developer 签名仍是独立对照路线，不与 ldid 混用。候选私有 entitlement 的系统接受度、Bootstrap 安装路径、uicache 注册及 GUI 进程权限仍须 RootHide 真机证据。

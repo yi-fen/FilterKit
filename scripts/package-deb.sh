@@ -12,12 +12,12 @@ CONTROL_SOURCE="Config/DEB/control"
 POSTINST_SOURCE="Config/DEB/postinst"
 APP_PATH="${APP_PATH:-${1:-}}"
 CONTROL_VERSION="$(awk -F': *' '$1 == "Version" {print $2; exit}' "$CONTROL_SOURCE" | tr -d '\r')"
-OUT_DEB="${OUT_DEB:-build/deb/filterkit_${CONTROL_VERSION}_iphoneos-arm64e.ldid-signed-candidate.deb}"
+# Device CI currently builds with CODE_SIGNING_ALLOWED=NO. An unsigned package
+# is permitted only as an explicitly named static-structure artifact; it must
+# never be mistaken for an installable RootHide package.
+ALLOW_UNSIGNED_STRUCTURE_PACKAGE="${ALLOW_UNSIGNED_STRUCTURE_PACKAGE:-0}"
+OUT_DEB="${OUT_DEB:-}"
 
-if [[ "$OUT_DEB" != *.ldid-signed-candidate.deb ]]; then
-  echo "::error::DEB output must be explicitly named *.ldid-signed-candidate.deb; refusing ambiguous installable-looking filename."
-  exit 1
-fi
 if [[ "$PROFILE_ID" != "roothide-rootfs" ]]; then
   echo "::error::Unsupported DEB_PROFILE_ID=$PROFILE_ID; only roothide-rootfs is configured."
   exit 1
@@ -32,16 +32,16 @@ if [[ "$DEB_PROFILE_ID" != "$PROFILE_ID" ]]; then
   echo "::error::Profile ID mismatch: requested=$PROFILE_ID configured=$DEB_PROFILE_ID"
   exit 1
 fi
-# Remove any previous artifact before validating inputs so a failed build cannot
-# leave a stale DEB that downstream jobs mistake for the current output.
-mkdir -p "$(dirname "$OUT_DEB")"
-rm -f "$OUT_DEB"
 if [[ -z "$APP_PATH" || ! -d "$APP_PATH" ]]; then
   echo "::error::APP_PATH missing or not a directory: ${APP_PATH:-<empty>}"
   exit 1
 fi
 if [[ ! -f "$APP_PATH/Info.plist" ]]; then
   echo "::error::App bundle is missing Info.plist: $APP_PATH"
+  exit 1
+fi
+if [[ "$ALLOW_UNSIGNED_STRUCTURE_PACKAGE" != "0" && "$ALLOW_UNSIGNED_STRUCTURE_PACKAGE" != "1" ]]; then
+  echo "::error::ALLOW_UNSIGNED_STRUCTURE_PACKAGE must be 0 or 1"
   exit 1
 fi
 if ! command -v python3 >/dev/null 2>&1; then
@@ -94,17 +94,6 @@ if [[ -z "$APP_SHORT_VERSION" || "$APP_SHORT_VERSION" != "$CONTROL_VERSION_BASE"
   echo "::error::App version=${APP_SHORT_VERSION:-<empty>} (build=${APP_VERSION:-<empty>}) does not match control Version base=$CONTROL_VERSION_BASE (control Version=$CONTROL_VERSION)"
   exit 1
 fi
-# A DEB from this pipeline is only a signed candidate. Signature validation
-# cannot be disabled: an unsigned App must never receive this artifact label.
-if [[ "${REQUIRE_LDID_SIGNATURE:-1}" != "1" ]]; then
-  echo "::error::REQUIRE_LDID_SIGNATURE cannot be disabled for signed-candidate DEBs."
-  exit 1
-fi
-if ! command -v ldid >/dev/null 2>&1 || ! command -v otool >/dev/null 2>&1; then
-  echo "::error::ldid and otool are required to package the signed-candidate DEB."
-  exit 1
-fi
-bash scripts/validate-ldid-signature.sh "$APP_PATH"
 if ! command -v dpkg-deb >/dev/null 2>&1; then
   echo "::error::dpkg-deb is required; no partial/staging-only success is allowed."
   exit 1
@@ -113,6 +102,46 @@ if ! dpkg-deb --help 2>&1 | grep -q -- '--root-owner-group'; then
   echo "::error::dpkg-deb lacks --root-owner-group; refusing non-deterministic ownership."
   exit 1
 fi
+
+SIGNATURE_STATE="unsigned"
+# Detect the explicit RootHide ldid route first; do not relabel it as an Apple-signed app.
+if command -v ldid >/dev/null 2>&1 \
+    && APP_PATH="$APP_PATH" ENTITLEMENTS_PATH="${ENTITLEMENTS_PATH:-Config/Signing/FilterKit.entitlements}" \
+       bash scripts/sign-app-ldid.sh verify "$APP_PATH" >/dev/null 2>&1; then
+  SIGNATURE_STATE="ldid_signed_embedded"
+elif command -v codesign >/dev/null 2>&1; then
+  if codesign --verify --deep --strict "$APP_PATH" >/dev/null 2>&1; then
+    SIGNATURE_STATE="signed_valid"
+  elif codesign -dv "$APP_PATH" >/dev/null 2>&1; then
+    echo "::error::App signature exists but codesign verification failed."
+    exit 1
+  fi
+fi
+if [[ "$SIGNATURE_STATE" == "unsigned" && "$ALLOW_UNSIGNED_STRUCTURE_PACKAGE" != "1" ]]; then
+  echo "::error::Refusing to produce a signed-candidate-looking DEB from an unsigned App."
+  echo "::error::Run scripts/sign-app-ldid.sh sign <FilterKit.app> with the approved RootHide ldid route, or explicitly allow an unsigned structure artifact for static CI only."
+  exit 1
+fi
+if [[ -z "$OUT_DEB" ]]; then
+  if [[ "$SIGNATURE_STATE" == "unsigned" ]]; then
+    OUT_DEB="build/deb/filterkit_${CONTROL_VERSION}_iphoneos-arm64e.unsigned-structure.deb"
+  elif [[ "$SIGNATURE_STATE" == "ldid_signed_embedded" ]]; then
+    OUT_DEB="build/deb/filterkit_${CONTROL_VERSION}_iphoneos-arm64e.ldid-signed-candidate.deb"
+  else
+    OUT_DEB="build/deb/filterkit_${CONTROL_VERSION}_iphoneos-arm64e.apple-signed-candidate.deb"
+  fi
+fi
+if [[ "$SIGNATURE_STATE" == "unsigned" && "$OUT_DEB" != *".unsigned-structure.deb" ]]; then
+  echo "::error::Unsigned structure package filename must end with .unsigned-structure.deb"
+  exit 1
+fi
+if [[ "$SIGNATURE_STATE" == "ldid_signed_embedded" && "$OUT_DEB" != *".ldid-signed-candidate.deb" ]]; then
+  echo "::error::ldid signed candidate filename must end with .ldid-signed-candidate.deb"
+  exit 1
+fi
+# Remove any previous artifact only after the final signature-aware path is known.
+mkdir -p "$(dirname "$OUT_DEB")"
+rm -f "$OUT_DEB"
 
 WORKDIR="$(mktemp -d)"
 cleanup() { rm -rf "$WORKDIR"; }
@@ -156,7 +185,12 @@ if command -v shasum >/dev/null 2>&1; then shasum -a 256 "$OUT_DEB" | awk '{prin
 elif command -v sha256sum >/dev/null 2>&1; then sha256sum "$OUT_DEB" | awk '{print $1}'
 else echo unavailable
 fi
+printf 'DEB_SIGNATURE_STATE=%s\n' "$SIGNATURE_STATE"
+case "$SIGNATURE_STATE" in
+  signed_valid) INSTALLABILITY="signed-candidate-not-device-verified" ;;
+  ldid_signed_embedded) INSTALLABILITY="device-acceptance-pending" ;;
+  *) INSTALLABILITY="not-installable-unsigned-structure" ;;
+esac
+printf 'DEB_INSTALLABILITY=%s\n' "$INSTALLABILITY"
 printf 'DEB_CREATED=%s\n' "$OUT_DEB"
-printf '%s\n' 'ARTIFACT_CLASS=ldid-signed-candidate'
-printf '%s\n' 'DEVICE_INSTALLABLE=false'
-printf '%s\n' 'NOTE: ldid signature and embedded entitlements are statically verified; RootHide/amfid acceptance, installation and launch remain unverified.'
+printf '%s\n' 'NOTE: RootHide package layout only; signature verification does not prove amfid acceptance, required entitlements, Bootstrap mapping, installation or launch.'

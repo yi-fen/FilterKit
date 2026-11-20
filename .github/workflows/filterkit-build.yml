@@ -227,8 +227,8 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
-  # ── 0.1-D-R4-B：Signing & Entitlements 静态准备 ──
-  # 此 job 只校验声明文件；真正 ldid 签名在 package-deb job 对 device App 副本执行。
+  # ── 0.1-D-R4-B：Signing & Entitlements 静态准备（独立于实际 ldid 签名 job）──
+  # 只校验 entitlement 文件可解析与候选清单一致性；Developer 证书 / ldid 两路线分开记录。
   signing-prep:
     runs-on: macos-latest
     needs: [build]
@@ -325,25 +325,19 @@ jobs:
             build/ipa/FilterKit.ipa
           retention-days: 14
 
-  # ── 0.1-D-R4-D：DEB 测试包打包（RootHide 结构对照；不真机部署）──
+  # ── 0.1-D-R4-D：ldid 签名候选 DEB（签名/entitlement 静态验证；设备接受度仍待真机）──
   package-deb:
     runs-on: macos-latest
-    needs: [device-build, signing-prep]
+    needs: [device-build]
     steps:
       - name: Checkout
         uses: actions/checkout@v6
-      - name: Install ldid and dpkg tooling
+      - name: Ensure dpkg-deb available
         run: |
-          set -euo pipefail
-          mkdir -p build/deb
-          if ! command -v ldid >/dev/null 2>&1; then brew install ldid; fi
-          if ! command -v dpkg-deb >/dev/null 2>&1; then brew install dpkg; fi
-          command -v ldid | tee build/deb/ldid-toolchain.log
-          brew list --versions ldid | tee -a build/deb/ldid-toolchain.log
-          dpkg-deb --version | head -1 | tee -a build/deb/ldid-toolchain.log
-          command -v otool | tee -a build/deb/ldid-toolchain.log
-          command -v file | tee -a build/deb/ldid-toolchain.log
-          python3 --version | tee -a build/deb/ldid-toolchain.log
+          if ! command -v dpkg-deb >/dev/null 2>&1; then
+            brew install dpkg
+          fi
+          dpkg-deb --version | head -1
       - name: Download device app artifact
         uses: actions/download-artifact@v7
         with:
@@ -384,15 +378,22 @@ jobs:
           stat -f '%Sp %Lp %N' "$APP_PATH/$EXECUTABLE"
           echo "app_path=$APP_PATH" >> "$GITHUB_OUTPUT"
           echo "Restored App Bundle: $APP_PATH"
-      - name: Sign App Mach-O images with ldid and verify embedded entitlements
+      - name: Install ldid signing tool
+        run: |
+          set -euo pipefail
+          if ! command -v ldid >/dev/null 2>&1; then brew install ldid; fi
+          command -v ldid
+          ldid 2>&1 | head -20 || true
+      - name: Sign RootHide App with candidate entitlements
         env:
-          LDID_SIGNATURE_SUMMARY_PATH: build/deb/app-signature-summary.json
+          APP_PATH: ${{ steps.app.outputs.app_path }}
+          ENTITLEMENTS_PATH: Config/Signing/FilterKit.entitlements
+          SIGNING_SUMMARY_PATH: build/deb/ldid-signing-summary.json
         run: |
           set -euo pipefail
           mkdir -p build/deb
-          APP_PATH="${{ steps.app.outputs.app_path }}" \
-            bash scripts/sign-app-ldid.sh 2>&1 | tee build/deb/ldid-signing.log
-      - name: Package default RootHide signed-candidate DEB
+          bash scripts/sign-app-ldid.sh sign "$APP_PATH" 2>&1 | tee build/deb/ldid-signing.log
+      - name: Package RootHide signed candidate DEB
         id: deb
         run: |
           set -euo pipefail
@@ -403,7 +404,7 @@ jobs:
           DEB_PATH="build/deb/filterkit_${VERSION}_iphoneos-arm64e.ldid-signed-candidate.deb"
           APP_PATH="${{ steps.app.outputs.app_path }}" \
           DEB_PROFILE_ID=roothide-rootfs \
-          REQUIRE_LDID_SIGNATURE=1 \
+          ENTITLEMENTS_PATH=Config/Signing/FilterKit.entitlements \
           OUT_DEB="$DEB_PATH" \
             bash scripts/package-deb.sh 2>&1 | tee build/deb/package-deb.log
           echo "deb_path=$DEB_PATH" >> "$GITHUB_OUTPUT"
@@ -413,7 +414,8 @@ jobs:
           DEB_PATH: ${{ steps.deb.outputs.deb_path }}
           DEB_PROFILE_ID: roothide-rootfs
           REQUIRE_DEB_VALIDATION_TOOLS: '1'
-          REQUIRE_LDID_SIGNATURE: '1'
+          REQUIRE_INSTALLABLE_DEB: '0'
+          ENTITLEMENTS_PATH: Config/Signing/FilterKit.entitlements
           PACKAGE_VALIDATION_SUMMARY_PATH: build/deb/deb-summary.json
         run: |
           set -euo pipefail
@@ -425,17 +427,16 @@ jobs:
         with:
           name: filterkit-deb
           path: |
-            build/deb/ldid-toolchain.log
-            build/deb/package-deb.log
             build/deb/ldid-signing.log
-            build/deb/app-signature-summary.json
+            build/deb/ldid-signing-summary.json
+            build/deb/package-deb.log
             build/deb/deb-validation.log
             build/deb/deb-summary.json
-            build/deb/*.ldid-signed-candidate.deb
+            build/deb/*.deb
           retention-days: 14
 
   # ── 0.1-D-R4-E：静态校验汇总、SHA256 与构建元数据归档 ──
-  # 状态口径：Build Passed / RootHide DEB Signed Candidate Passed (Static) / Device Install Pending（R4-G 未授权）。
+  # 状态口径：Build Passed / RootHide Package Layout Passed (Static) / Device Install Pending（R4-G 未授权）。
   package-validation:
     runs-on: macos-latest
     needs: [device-build, signing-prep, package-ipa, package-deb]
@@ -462,7 +463,7 @@ jobs:
           }
           APP_PATH="$(find_first build/r4-artifacts/filterkit-device-build 'FilterKit.app')"
           IPA_PATH="$(find_first build/r4-artifacts/filterkit-ipa '*.ipa')"
-          DEB_PATH="$(find_first build/r4-artifacts/filterkit-deb '*.ldid-signed-candidate.deb')"
+          DEB_PATH="$(find_first build/r4-artifacts/filterkit-deb '*.deb')"
           DEVICE_SUMMARY="$(find_first build/r4-artifacts/filterkit-device-build 'device-build-summary.json')"
           IPA_SUMMARY="$(find_first build/r4-artifacts/filterkit-ipa 'ipa-summary.json')"
           DEB_SUMMARY="$(find_first build/r4-artifacts/filterkit-deb 'deb-summary.json')"

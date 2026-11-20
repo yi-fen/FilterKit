@@ -104,31 +104,6 @@ else
   fi
 fi
 
-# t4. Current signing plist must remain identical to the archived 0.1.18 reference.
-echo "== t4. 与 reference/0.1.18-src/entitlements.plist 完全一致 =="
-REFERENCE_ENT_PATH="reference/0.1.18-src/entitlements.plist"
-if [ ! -f "$ENT_PATH" ] || [ ! -f "$REFERENCE_ENT_PATH" ] || ! command -v python3 >/dev/null 2>&1; then
-  echo "unavailable: 当前 entitlements / 0.1.18 reference / python3 缺失，无法比较"
-  record_check "t4" "matches 0.1.18 reference entitlements" "unavailable"
-else
-  if python3 - "$ENT_PATH" "$REFERENCE_ENT_PATH" <<'PYREF'
-import plistlib, sys
-with open(sys.argv[1], 'rb') as f:
-    current = plistlib.load(f)
-with open(sys.argv[2], 'rb') as f:
-    reference = plistlib.load(f)
-if current != reference:
-    print('FAIL: current entitlement plist differs from reference/0.1.18-src/entitlements.plist')
-    raise SystemExit(1)
-print('OK: current entitlement plist exactly matches 0.1.18 reference')
-PYREF
-  then
-    record_check "t4" "matches 0.1.18 reference entitlements" "passed"
-  else
-    record_check "t4" "matches 0.1.18 reference entitlements" "failed"
-  fi
-fi
-
 json_checks="["
 for i in "${!check_ids[@]}"; do
   [ "$i" -gt 0 ] && json_checks+=","

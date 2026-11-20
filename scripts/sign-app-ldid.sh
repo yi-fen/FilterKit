@@ -1,67 +1,82 @@
 #!/usr/bin/env bash
-# Sign a device-built FilterKit.app for the jailbreak candidate route using ldid.
-# Nested Mach-O images are signed first; the main app executable receives the
-# reviewed entitlement plist. This never installs or launches the app.
+# Sign/inspect a RootHide test App with ldid. This creates a signed candidate only;
+# it cannot prove Bootstrap/amfid acceptance, runtime sandbox permissions, or launch.
+#
+# Sign flow (aligned to the FilterKit-DevDocs-0.1-LDID-Signing-Fix baseline):
+#   * every nested Mach-O image is signed ad-hoc WITHOUT the main App entitlements;
+#   * only the main CFBundleExecutable receives the reviewed entitlement plist;
+#   * signing is immediately followed by scripts/validate-ldid-signature.sh, which
+#     checks LC_CODE_SIGNATURE and CDHash extraction on every Mach-O and verifies
+#     the main executable's embedded entitlements match the source plist exactly.
+#
+# Verify flow delegates to the same standalone validator. This script never
+# installs, launches, or communicates with a helper/daemon.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-APP_PATH="${1:-${APP_PATH:-}}"
+MODE="${1:-sign}"
+APP_PATH="${APP_PATH:-${2:-}}"
 ENTITLEMENTS_PATH="${ENTITLEMENTS_PATH:-Config/Signing/FilterKit.entitlements}"
-LOG_PREFIX="${LDID_LOG_PREFIX:-[FilterKit ldid]}"
+LDID_BIN="${LDID_BIN:-$(command -v ldid || true)}"
+SUMMARY_PATH="${SIGNING_SUMMARY_PATH:-}"
 
 fail() { echo "::error::$*" >&2; exit 1; }
-[[ -n "$APP_PATH" && -d "$APP_PATH" ]] || fail "APP_PATH is missing or not a directory: ${APP_PATH:-<empty>}"
-[[ -f "$APP_PATH/Info.plist" ]] || fail "App Info.plist is missing: $APP_PATH/Info.plist"
-[[ -f "$ENTITLEMENTS_PATH" ]] || fail "Entitlements file is missing: $ENTITLEMENTS_PATH"
-for tool in ldid otool file python3; do
-  command -v "$tool" >/dev/null 2>&1 || fail "Required tool is unavailable: $tool"
+[[ "$MODE" == sign || "$MODE" == verify ]] || fail "Usage: $0 [sign|verify] <FilterKit.app>"
+[[ -n "$APP_PATH" && -d "$APP_PATH" ]] || fail "APP_PATH must point to FilterKit.app"
+[[ -f "$APP_PATH/Info.plist" ]] || fail "Info.plist missing"
+[[ -f "$ENTITLEMENTS_PATH" ]] || fail "Entitlements file missing: $ENTITLEMENTS_PATH"
+[[ -n "$LDID_BIN" && -x "$LDID_BIN" ]] || fail "ldid executable not found; refusing unsigned fallback"
+for tool in python3 file otool; do
+  command -v "$tool" >/dev/null 2>&1 || fail "Required tool unavailable: $tool"
 done
 
-MAIN_EXECUTABLE_NAME="$(python3 - "$APP_PATH/Info.plist" <<'PY'
+EXECUTABLE="$(python3 - "$APP_PATH/Info.plist" <<'PYINFO'
 import plistlib, sys
 with open(sys.argv[1], 'rb') as f:
-    value = plistlib.load(f).get('CFBundleExecutable', '')
-if not isinstance(value, str) or not value or '/' in value or value in ('.', '..'):
-    raise SystemExit('Invalid CFBundleExecutable')
-print(value)
-PY
+    v = plistlib.load(f).get('CFBundleExecutable', '')
+if not isinstance(v, str) or not v or '/' in v or v in ('.', '..'):
+    raise SystemExit('invalid CFBundleExecutable')
+print(v)
+PYINFO
 )"
-MAIN_EXECUTABLE="$APP_PATH/$MAIN_EXECUTABLE_NAME"
-[[ -f "$MAIN_EXECUTABLE" && -x "$MAIN_EXECUTABLE" ]] || fail "Main executable is missing or not executable: $MAIN_EXECUTABLE"
+MAIN_BIN="$APP_PATH/$EXECUTABLE"
+[[ -f "$MAIN_BIN" ]] || fail "CFBundleExecutable missing: $MAIN_BIN"
 
-WORKDIR="$(mktemp -d)"
-trap 'rm -rf "$WORKDIR"' EXIT
-MACHO_LIST="$WORKDIR/macho-files.nul"
-: > "$MACHO_LIST"
-while IFS= read -r -d '' candidate; do
-  if file -b "$candidate" 2>/dev/null | grep -q 'Mach-O'; then
-    printf '%s\0' "$candidate" >> "$MACHO_LIST"
-  fi
-done < <(find "$APP_PATH" -type f -print0)
+MACHOS=()
+while IFS= read -r f; do
+  [[ -n "$f" ]] && MACHOS+=("$f")
+done < <(find "$APP_PATH" -type f -print0 | while IFS= read -r -d '' f; do
+  if file -b "$f" 2>/dev/null | grep -q 'Mach-O'; then printf '%s\n' "$f"; fi
+done)
+[[ ${#MACHOS[@]} -gt 0 ]] || fail "No Mach-O payload found in App bundle"
 
-MACHO_COUNT=0
-MAIN_FOUND=0
-while IFS= read -r -d '' binary; do
-  MACHO_COUNT=$((MACHO_COUNT + 1))
-  [[ "$binary" == "$MAIN_EXECUTABLE" ]] && MAIN_FOUND=1
-done < "$MACHO_LIST"
-[[ "$MACHO_COUNT" -gt 0 ]] || fail "No Mach-O files found under $APP_PATH"
-[[ "$MAIN_FOUND" -eq 1 ]] || fail "CFBundleExecutable is not Mach-O: $MAIN_EXECUTABLE"
+run_validator() {
+  # Standalone static validator: LC_CODE_SIGNATURE + CDHash on every Mach-O,
+  # exact embedded-entitlement match on the main executable only.
+  local validator="scripts/validate-ldid-signature.sh"
+  [[ -f "$validator" ]] || fail "Validator script missing: $validator"
+  LDID_SIGNATURE_SUMMARY_PATH="${SUMMARY_PATH}" \
+    bash "$validator" "$APP_PATH"
+}
 
-echo "$LOG_PREFIX Signing $((MACHO_COUNT - 1)) nested Mach-O image(s) without app entitlements"
-while IFS= read -r -d '' binary; do
-  [[ "$binary" == "$MAIN_EXECUTABLE" ]] && continue
-  echo "$LOG_PREFIX ldid -S ${binary#$APP_PATH/}"
-  ldid -S "$binary"
-done < "$MACHO_LIST"
+if [[ "$MODE" == sign ]]; then
+  [[ -x "$MAIN_BIN" ]] || fail "CFBundleExecutable missing or not executable: $MAIN_BIN"
 
-echo "$LOG_PREFIX Signing main executable with $ENTITLEMENTS_PATH"
-ldid -S"$ENTITLEMENTS_PATH" "$MAIN_EXECUTABLE"
+  echo "Signing $(( ${#MACHOS[@]} - 1 )) nested Mach-O image(s) ad-hoc (no App entitlements)"
+  for binary in "${MACHOS[@]}"; do
+    [[ "$binary" == "$MAIN_BIN" ]] && continue
+    echo "ldid -S ${binary#$APP_PATH/}"
+    "$LDID_BIN" -S "$binary"
+  done
 
-# Validate immediately after signing. The validator checks every LC_CODE_SIGNATURE,
-# LC_CODE_SIGNATURE, CodeDirectory hash readability, and exact embedded-entitlement equality.
-LDID_SIGNATURE_SUMMARY_PATH="${LDID_SIGNATURE_SUMMARY_PATH:-}" \
-  bash scripts/validate-ldid-signature.sh "$APP_PATH"
+  echo "Signing main executable with $ENTITLEMENTS_PATH"
+  "$LDID_BIN" "-S$ENTITLEMENTS_PATH" "$MAIN_BIN"
 
-echo "$LOG_PREFIX SIGNING_RESULT=ldid_signed_static_valid"
-echo "$LOG_PREFIX DEVICE_ACCEPTANCE=unknown DEVICE_INSTALLABLE=false"
+  run_validator
+
+  echo "SIGNING_RESULT=ldid_signed_static_valid"
+  echo "DEVICE_ACCEPTANCE=unknown DEVICE_INSTALLABLE=false"
+else
+  # verify: static signature/entitlement state only; device acceptance stays unknown.
+  run_validator
+fi

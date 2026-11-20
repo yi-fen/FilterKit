@@ -1,19 +1,27 @@
 # FilterKit DevDocs 0.1 — 打包说明
 
 - 打包时间：2026-11-21（Asia/Shanghai）
-- 本轮基线：用户指定回退到当前上传的 `FilterKit-DevDocs-0.1.zip`；保留其 `Source`、CI、DEB 结构及 `reference/0.1.18-src`，不混入此前诊断移植分支。
-- 本轮签名修复：新增 `scripts/sign-app-ldid.sh` 与 `scripts/validate-ldid-signature.sh`；对 App 副本内所有 Mach-O 签名，主程序注入 `Config/Signing/FilterKit.entitlements`；逐个校验 `LC_CODE_SIGNATURE` 与 `ldid -h`；使用 `ldid -e` 提取实际嵌入 entitlements 并与源 plist 精确比较。
-- DEB 命名与验收：`package-deb.sh` 只接受静态签名验证通过的 App，并输出 `*.ldid-signed-candidate.deb`；`validate-deb.sh` 解包后重验签名/entitlements，新增候选包分类字段。候选包不等于可安装包，`deviceInstallable=false`、`deviceInstallStatus=not-tested`。
-- CI：package-deb job 安装 ldid 与 dpkg 工具，执行签名、签名验证、DEB 打包、解包复验，并归档签名日志/摘要、DEB 验证日志/摘要和候选包。
-- 新增 `Spec/FilterKit-0.1-E-Preflight.md`：明确 0.1-E 门禁、真机闪退 C1～C5 证据要求和只读边界。
-- 验证边界：本地环境不是 macOS/Xcode，无法运行真实 `ldid`、`otool`、`dpkg-deb` 的 Apple Mach-O 签名链，也无法真机安装。因此本次只报告脚本/YAML/plist/文档静态检查；Runner 成功和闪退修复均待 CI/设备实测，不在此宣称完成。
-
----
-
-- 打包时间：2026-11-21（Asia/Shanghai）
-- 本地基线提交：`a868804`（0.1-D-R4 Runner 第五轮 App/DEB 版本不一致中止诊断与版本单一源修复，未推送；Runner 结论以在线日志为准，本机 Linux 无 Swift/Xcode、无 RootHide 真机）
+- 本地基线提交：`5940dc8`（0.1-D Diagnostics-Port：18 项只读诊断证据字段增补 + LDID 签名基线对齐，未推送；Runner 结论以在线日志为准，本机 Linux 无 Swift/Xcode、无 RootHide 真机）
 - 范围：规格文档（Spec/）、App/Core/Models/Adapters/Tools 源码、CI 工作流、Stage1~Stage2 测试与历史 Runner 证据归档、隔离/校验/打包/元数据脚本。
 - 边界：0.1-C 维持未闭环（G10 搁置、不豁免不签署，缺口作为已知限制带入）；0.1-D Runner/Simulator 切片 G1～G9 通过（R2-A/B 复验 run `121082423820`）；R3-A/A2/F 与 R4 规格已冻结；R4-A～E 第五轮 TAR 权限保真链路生效、DEB 在打包前置版本校验中止（App `1.0` vs control 基线 `0.0.1`），已本地统一版本源至 App `0.1.0`/build `1` ↔ control `0.1.0-1`，待下一轮 Runner 复验出包；真机侧 IPA 可启动、DEB 打开闪退，无 `.ips`/系统日志，C1 签名封印 / C2 切片链接 / C3 布局注册 / C4 完整性 / C5 自身异常五类假设待设备取证；H4 切片/签名/弱链接、H5 uicache/JBROOT 映射未闭环，R3-B～F 真机取证待设备/GUI 上下文，真机门禁 G10～G15、R4-G 挂起 pending/unknown，里程碑未闭环、不进入 0.1-E。
+
+## 0.1-D Diagnostics-Port（2026-11-21，待 Runner 复验）
+
+对照附件 `FilterKit-0.1.19-source.zip` 18 项只读诊断接口与两份 MD 口径，以 LDID-Signing-Fix 快照为签名基线做增量移植，未删除既有文件。
+
+- **引擎增补**：`Core/Diagnostics/ReadOnlyDiagnosticsEngine.swift` 在既有扁平化报告形态内补证据字段——JBROOT 置信度/标记/软链、目录软链、plist 顶层数据长度/类型/键/嵌套 `Filter` 字典、`*` 全局与命中/未命中 Bundles·Executables、注入器静态包证据 + 固定指纹库、包元数据与 dpkg 状态机拆解、文件存在/不可读/未校验分桶、MD5 三级类型分类与无校验记录桶、来源精确包记录、Helper 文件/注册明细、关联类别与汇总计数。顶层报告结构与公共类型不变；P1 六项同轮落地但缺证据项保持 unknown/unverified。
+- **签名基线对齐**：新增独立校验脚本 `scripts/validate-ldid-signature.sh`（逐 Mach-O `LC_CODE_SIGNATURE`/CDHash + 主程序嵌入 entitlement 精确比对）；`sign-app-ldid.sh` 改为嵌套 Mach-O 临时签名不带主 entitlement、仅主程序注入候选 plist、签后委托独立校验；`verify` 同路径委托校验。`package-deb.sh`/`validate-deb.sh` 三态门禁与既有调用点不变。
+- **记录**：`Spec/Stage-2/Stage-2.5-0.1-D-Diagnostics-Port-Plan.md`（18 项缺口矩阵、P0/P1 处置、保守口径、Acceptance 延迟项）。
+- **本地静态核对**：十枚脚本 `bash -n`、workflow YAML 解析、Python 编译通过；引擎括号配平、残留现代 API/`RTLD_`/强制解包扫描通过；本机无 Swift 工具链，Core emit-module 与 `swift test` 全套待 Runner 复验。
+- **边界不变**：全程只读，不启停插件、不写 plist/规则、不动 dylib/dpkg/软链、不注入、不启 Helper/IPC/daemon、不放行 entitlement/沙盒；签名/DEB 闪退仍是独立阻塞项，本轮不视为 amfid/Bootstrap 接受或启动验证；H4/H5、真机闪退 C1～C5、G10～G15、R4-G 沿用 pending/unknown；0.1-D 未闭环不签署、不进 0.1-E-B。
+
+## 0.1-D-R4-B2 非界面层 `swift build` 编译失败修复（run `44820826563`，待 Runner 复验）
+
+诊断归档：`Tests/Stage2/evidence/run-44820826563-non-ui-build/run-44820826563-b2-non-ui-swift-build-compile-diagnosis.md`。
+
+- **Runner 事实**：`build` job（macos-26-arm64 / macOS 26.7.2 / Xcode 26.6 / MacOSX26.5.sdk）检出 `origin/main` `f13989a0846aa82c4dda6f813b16a9a08bdab93c`；Models / Adapters / AppPresentation emit-module 通过，Core emit-module exit 1，`Process completed with exit code 1`；artifact `filterkit-non-ui-build.zip`（4106B，ID `14671841990`，SHA256 `e30629f8…cc4cd8`）。报错仅集中在 `Core/Diagnostics/ReadOnlyDiagnosticsEngine.swift`，四类诊断：L275/L288 `RTLD_DEFAULT` 宏在 Swift 作用域不可见（dlfcn.h:97 指针转换宏不被导入）；L554 `close()` 需 macOS 10.15+；L555 `read(upToCount:)` 需 macOS 10.15.4+。
+- **修复（唯一源码文件 `Core/Diagnostics/ReadOnlyDiagnosticsEngine.swift`，+16/-6）**：新增私有静态 `rtldDefaultHandle = UnsafeMutableRawPointer(bitPattern: -2)`，两处 `dlsym` 句柄由 `RTLD_DEFAULT` 改走该位模式常量（与 `((void *) -2)` 宏值一致，不依赖宏导入）；FileHandle 读取/关闭改旧式兼容接口 `closeFile()` / `readData(ofLength:)`，`sample` 去可选包装；未抬高 Deployment Target、未在 `Package.swift` 声明 `platforms:`、未加 `@available`/`if #available`，符号名与 `@convention(c)` 类型别名不变。
+- **边界与待复验**：未改 Models/Adapters/AppPresentation/Core 其余子目录/Tests/Tools/CI 脚本；未弱链接、未伪造 C 声明、未放行 entitlement、未触真机写操作。本机 Linux 无 Swift/Xcode，仅做括号配平、残留现代 API 全树扫描与 `dlsym`/`RTLD_` 引用复核；待下一轮 Runner `swift build` 复验 Core emit-module 通过、`test` job 到达并跑全套 `swift test`。H4/H5、真机闪退 C1～C5、G10～G15、R4-G 沿用 pending/unknown；0.1-D 未闭环不签署、不进 0.1-E-B。
 
 ## 0.1-D-R4 第五轮（run `44797390321`）App/DEB 版本不一致中止诊断与版本单一源修复（待 Runner 复验）
 
