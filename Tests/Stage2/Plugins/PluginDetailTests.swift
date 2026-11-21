@@ -469,24 +469,25 @@ final class PluginDetailTests: XCTestCase {
         // 扫描次数断言走真实 Repository：Runner 无越狱环境时快照可为空，不假设
         // 扫描到插件；投影/Resolver 调用不得触发二次 refresh。
         let repository = DiagnosticPluginRepository(engine: ReadOnlyDiagnosticsEngine())
-        let snapshot = repository.refresh()
+        let repoSnapshot = repository.refresh()
         let before = repository.refreshCount
 
-        let entries = ApplicationDetailProjection.allAssociationEntries(from: snapshot)
-        for plugin in snapshot.plugins {
+        let entries = ApplicationDetailProjection.allAssociationEntries(from: repoSnapshot)
+        for plugin in repoSnapshot.plugins {
             _ = PluginDetailProjection.entry(from: plugin)
         }
-        for app in snapshot.applications {
-            _ = ApplicationDetailProjection.entry(from: app, associations: snapshot.associations)
+        for app in repoSnapshot.applications {
+            _ = ApplicationDetailProjection.entry(from: app, associations: repoSnapshot.associations)
         }
-        _ = resolver.associations(forPluginID: snapshot.plugins.first?.id ?? "", from: entries)
-        _ = resolver.associations(forApplicationID: snapshot.applications.first?.bundleID ?? "", from: entries)
+        _ = resolver.associations(forPluginID: repoSnapshot.plugins.first?.id ?? "", from: entries)
+        _ = resolver.associations(forApplicationID: repoSnapshot.applications.first?.bundleID ?? "", from: entries)
 
         XCTAssertEqual(repository.refreshCount, before)
 
         // 纯函数一致性：同一输入两次投影结果一致；使用离线合成快照，不依赖 Runner
-        // 真机/越狱环境是否扫描到插件。
-        let synthetic = snapshot()
+        // 真机/越狱环境是否扫描到插件。注意局部快照不得命名为 `snapshot`，以免遮蔽
+        // 本类合成快照助手方法 `snapshot()`。
+        let synthetic = self.snapshot()
         guard let plugin = synthetic.plugins.first else { return XCTFail("合成快照缺插件") }
         XCTAssertEqual(PluginDetailProjection.entry(from: plugin), PluginDetailProjection.entry(from: plugin))
     }
