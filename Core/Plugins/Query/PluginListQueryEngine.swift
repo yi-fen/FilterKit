@@ -43,34 +43,34 @@ public struct PluginListQueryEngine {
 
     private func configurationMatches(_ entry: PluginListEntry, _ filter: PluginConfigurationFilter) -> Bool {
         switch filter {
-        case .all: true
-        case .configured: entry.configured == .confirmed
-        case .notConfigured: entry.configured == .absent
-        case .unverified: entry.configured == .unverified
-        case .unknown: entry.configured == .unknown
+        case .all: return true
+        case .configured: return entry.configured == .confirmed
+        case .notConfigured: return entry.configured == .absent
+        case .unverified: return entry.configured == .unverified
+        case .unknown: return entry.configured == .unknown
         }
     }
 
     private func associationMatches(_ entry: PluginListEntry, _ filter: PluginAssociationFilter) -> Bool {
         let categories = entry.associationCategories
         switch filter {
-        case .all: true
-        case .associated: categories.contains(.exactMatch)
-        case .unassociated: categories.isEmpty
-        case .globalRule: categories.contains(.globalRule)
-        case .unmatched: categories.contains(.unmatchedTarget)
-        case .invalid: categories.contains(.invalidConfiguration)
-        case .unresolved: categories.contains(.unresolved)
+        case .all: return true
+        case .associated: return categories.contains(.exactMatch)
+        case .unassociated: return categories.isEmpty
+        case .globalRule: return categories.contains(.globalRule)
+        case .unmatched: return categories.contains(.unmatchedTarget)
+        case .invalid: return categories.contains(.invalidConfiguration)
+        case .unresolved: return categories.contains(.unresolved)
         }
     }
 
     private func evidenceMatches(_ entry: PluginListEntry, _ filter: PluginEvidenceFilter) -> Bool {
         switch filter {
-        case .all: true
-        case .confirmed: entry.installed == .confirmed
-        case .absent: entry.installed == .absent
-        case .unverified: entry.installed == .unverified
-        case .unknown: entry.installed == .unknown
+        case .all: return true
+        case .confirmed: return entry.installed == .confirmed
+        case .absent: return entry.installed == .absent
+        case .unverified: return entry.installed == .unverified
+        case .unknown: return entry.installed == .unknown
         }
     }
 
