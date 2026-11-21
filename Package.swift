@@ -73,6 +73,8 @@ let package = Package(
                 "Diagnostics/Evidence/DiagnosticEvidenceLevel.swift",
                 "Diagnostics/Evidence/DiagnosticEvidence.swift",
                 "Diagnostics/Evidence/DiagnosticEvidenceValidator.swift",
+                "Diagnostics/Export/DiagnosticsExportModels.swift",
+                "Diagnostics/Export/DiagnosticsReportMapper.swift",
                 "PermissionProbe/Protocols/PermissionProbing.swift",
                 "PermissionProbe/Protocols/PermissionProbeServiceProtocol.swift",
                 "PermissionProbe/FileAccess/FileAccessChecking.swift",
@@ -168,6 +170,7 @@ let package = Package(
                 "Reporting/ReportBuilder.swift",
                 "Reporting/ReportValidator.swift",
                 "Reporting/ReportService.swift",
+                "Reporting/CombinedReportEncoder.swift",
                 "ReportExporter/ReportExporter.swift",
                 "ReportExporter/ReportSerialization.swift"
             ]
@@ -260,7 +263,8 @@ let package = Package(
                 "Diagnostics/PluginAssociationTests.swift",
                 "Diagnostics/DiagnosticSummaryTests.swift",
                 "Diagnostics/DiagnosticFileSystemTests.swift",
-                "Diagnostics/DiagnosticEvidenceValidatorTests.swift"
+                "Diagnostics/DiagnosticEvidenceValidatorTests.swift",
+                "Diagnostics/DiagnosticsExportBridgeTests.swift"
             ]
         ),
         // C-F5 P2：导出样本往返解析校验可执行入口；只依赖 Models 与 AppPresentation

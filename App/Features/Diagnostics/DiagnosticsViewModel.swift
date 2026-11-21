@@ -11,12 +11,16 @@ import Core
 final class DiagnosticsViewModel {
     private let provider: ReportProviding
     private let probeReport: PermissionProbeReport?
+    private let diagnosticsStore: DiagnosticsReportStore
     private(set) var sections: [DiagnosticsSection]
     private(set) var isScanning = false
 
-    init(provider: ReportProviding, probeReport: PermissionProbeReport? = nil) {
+    init(provider: ReportProviding,
+         probeReport: PermissionProbeReport? = nil,
+         diagnosticsStore: DiagnosticsReportStore = DiagnosticsReportStore()) {
         self.provider = provider
         self.probeReport = probeReport
+        self.diagnosticsStore = diagnosticsStore
         let envelopeSections = DiagnosticsMapper.sections(provider.envelope)
         let probeSections = ProbeDiagnosticsMapper.sections(probeReport)
         self.sections = envelopeSections + probeSections
@@ -26,8 +30,12 @@ final class DiagnosticsViewModel {
     func runReadOnlyDiagnostics() {
         guard !isScanning else { return }
         isScanning = true
+        diagnosticsStore.beginScan()
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            // 引擎当前为非抛出接口；内部失败按冻结语义记入 findings / 未知状态。
+            // 扫描完成即写入共享 Store；空结果记 completed（空条目），与失败态区分。
             let report = ReadOnlyDiagnosticsEngine().scan()
+            let section = DiagnosticsReportMapper.section(from: report)
             let rows: [DiagnosticsSection] = [
                 DiagnosticsSection(id: "legacy-summary", title: "0.1.18 Diagnostic Summary", rows: [
                     DetailRow(label: "JBROOT candidates", value: "\(report.roots.count)"),
@@ -79,6 +87,7 @@ final class DiagnosticsViewModel {
             ]
             DispatchQueue.main.async { [weak self] in
                 guard let self else { return }
+                self.diagnosticsStore.complete(section)
                 self.sections = DiagnosticsMapper.sections(self.provider.envelope)
                     + ProbeDiagnosticsMapper.sections(self.probeReport) + rows
                 self.isScanning = false

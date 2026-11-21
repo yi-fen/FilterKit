@@ -32,13 +32,17 @@ public struct AppDependencies {
     public let exporter: ReportExporting
     /// 探针报告（只读投影）；真机探针服务接入前为 `nil`，界面走空态。
     public let probeReport: PermissionProbeReport?
+    /// R3-C：诊断扫描内存快照；Diagnostics 写入、Settings 导出共享同一实例。
+    public let diagnosticsStore: DiagnosticsReportStore
 
     public init(reportProvider: ReportProviding,
                 exporter: ReportExporting,
-                probeReport: PermissionProbeReport? = nil) {
+                probeReport: PermissionProbeReport? = nil,
+                diagnosticsStore: DiagnosticsReportStore = DiagnosticsReportStore()) {
         self.reportProvider = reportProvider
         self.exporter = exporter
         self.probeReport = probeReport
+        self.diagnosticsStore = diagnosticsStore
     }
 
     /// 当前信封（只读投影，供 ViewModel 读取）。

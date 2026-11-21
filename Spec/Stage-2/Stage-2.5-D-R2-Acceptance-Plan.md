@@ -114,8 +114,8 @@
 
 ### 6.3 DevDocs 打包
 
-- 打包基线提交：`005c16d`（R3 规格冻结：线 A `Stage-2.6-D-R2-03-04` 计划 + 线 B `DEB-Install-Crash-Investigation.md` + 授权移交指针；前序链 `7428441` → `472f130` → `0a24e1e` → `624ca8b`；未推送；打包 HEAD 以包内 git 清单为准）。
-- 包内 2158 文件；压缩包大小/SHA256 以交付附件复算为准，包内不内嵌自身哈希。
+- 打包基线提交：`b750802`（R3-A/B 实现 + `310a083` 反馈切片归档与夹具修复 + 真机截图批次 `1795227596` 三方核对归档；未推送；打包 HEAD 以包内 git 清单为准）。
+- 包内 2175 文件，15,813,483 B，SHA256 `d226efafbbf5516d650980488c60d1080e2931a320950ce736fd4d2b720bfd63`；包内不内嵌自身哈希。
 - `unzip -tq` 无错误；zip 清单与暂存目录逐一一致；`validate-ldid-signature.sh` 条目模式 100755；排除规则沿用既有口径（`.git/`、小写 `research/`、`node_modules/`、`build/`、`.theos/`、`DerivedData/`、`.build/`、`.swiftpm/`、`*.xcodeproj/`、`*.xcworkspace/`、`.tmp/`、`.DS_Store`、`*.zip`、`App/Info.plist`、`*.xcresult/`、`__pycache__/`、`*.pyc`；剔除 `Research/Validation/evidence/0.1.18-device-report.json`）。
 
 ## 7. R3 授权移交指针（2026-11-21）

@@ -19,7 +19,8 @@ struct DiagnosticsView: View {
         self._viewModel = State(
             initialValue: DiagnosticsViewModel(
                 provider: dependencies.reportProvider,
-                probeReport: dependencies.probeReport
+                probeReport: dependencies.probeReport,
+                diagnosticsStore: dependencies.diagnosticsStore
             )
         )
     }

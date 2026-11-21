@@ -25,9 +25,11 @@ struct FilterKitApp: App {
                 envelope: SyntheticReportFactory.previewEnvelope()
             )
         }
+        let diagnosticsStore = DiagnosticsReportStore()
         self.dependencies = AppDependencies(
             reportProvider: provider,
-            exporter: ReportExporter()
+            exporter: ReportExporter(),
+            diagnosticsStore: diagnosticsStore
         )
     }
 

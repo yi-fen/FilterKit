@@ -1,8 +1,8 @@
 # FilterKit DevDocs 0.1 — 打包说明
 
 - 打包时间：2026-11-21（Asia/Shanghai）
-- 本地基线提交：`005c16d`（R3 规格冻结：线 A D-R2-03/04 计划 + 线 B D-R2-05 调查记录；前序链 `7428441` → `472f130` → `0a24e1e` R2 反馈轮 sqlite 夹具/恒真 is 守卫修复与 `751d5ff` 证据 → `624ca8b`，未推送；Runner 结论以在线日志为准，本机 Linux 无 Swift/Xcode、无 RootHide 真机）
-- 当前 DevDocs 包：`FilterKit-DevDocs-0.1.zip`，包内 2158 文件；`unzip -tq` 无错误，清单与暂存目录一致；大小/SHA256 以交付附件复算为准，包内不内嵌自身哈希。
+- 本地基线提交：`b750802`（R3-A/B 实现 + `310a083` 反馈切片归档与夹具修复 + 真机截图批次 `1795227596` 三方核对归档；未推送；Runner 结论以在线日志为准，本机 Linux 无 Swift/Xcode、无 RootHide 真机）
+- 当前 DevDocs 包：`FilterKit-DevDocs-0.1.zip`，包内 2175 文件，15,813,483 B，SHA256 `d226efafbbf5516d650980488c60d1080e2931a320950ce736fd4d2b720bfd63`；`unzip -tq` 无错误，清单与暂存目录一致；包内不内嵌自身哈希。
 - 范围：规格文档（Spec/）、App/Core/Models/Adapters/Tools 源码、CI 工作流、Stage1~Stage2 测试与历史 Runner 证据归档、隔离/校验/打包/元数据脚本。
 - 边界：0.1-C 维持未闭环（G10 搁置、不豁免不签署，缺口作为已知限制带入）；0.1-D Runner/Simulator 切片 G1～G9 通过（R2-A/B 复验 run `121082423820`）；R3-A/A2/F 与 R4 规格已冻结；R4-A～E 第五轮 TAR 权限保真链路生效、DEB 在打包前置版本校验中止（App `1.0` vs control 基线 `0.0.1`），已本地统一版本源至 App `0.1.0`/build `1` ↔ control `0.1.0-1`，待下一轮 Runner 复验出包；真机侧 IPA 可启动、DEB 打开闪退，无 `.ips`/系统日志，C1 签名封印 / C2 切片链接 / C3 布局注册 / C4 完整性 / C5 自身异常五类假设待设备取证；H4 切片/签名/弱链接、H5 uicache/JBROOT 映射未闭环，R3-B～F 真机取证待设备/GUI 上下文，真机门禁 G10～G15、R4-G 挂起 pending/unknown，里程碑未闭环、不进入 0.1-E。
 
@@ -36,6 +36,8 @@
 - **测试**：新增 `DiagnosticFileSystemTests`（内存替身，8 例）与 `DiagnosticEvidenceValidatorTests`（13 例）；Diagnostics 套件累计 132 个 `test` 方法。本地静态核对：括号/`#if` 配平零残差、无 `try!`/`as!`/强制解包/写入型 FS 接口、Package 接线与磁盘一一对应；Swift 编译与 `swift test` 全套以 Runner 复测为准。
 - **R3-B D-R2-05**：仅验收准备记录 `Tests/Stage2/evidence/r3-b-deb-signing-prep/PREP-METADATA.md`；既有签名/打包脚本 `bash -n` 通过、CI job 在位；真机安装/首次启动/重启启动三项无设备证据，记 pending/unknown；未重写签名模块、未放宽校验。
 - **本地提交（未推送）**：`951899c`（A1/A2 协议层）→ `133e12e`（A3/A4/A5 迁移）→ `adb9d32`（A6 FS 测试）→ `b422510`（A7/A8/A9 证据层与用例）→ `9fbe709`（B1 准备记录）；R3 实现基线 SHA 以包内 git 清单为准。
+- **首轮 Runner 反馈切片**（`310a083`，macOS Debug）：测试目标编译中止，唯一错误为 FS 夹具 `Set<String>.keys` 误用（夹具缺陷，Core R3 文件编译无报错）；本地修复 `8edb06a`，全套用例与 iOS 两侧编译待下一轮 Runner 复测；证据 `Tests/Stage2/evidence/r3-run-310a083-swift-test/`。
+- **真机截图批次 `1795227596`**：JSON 与合成信封 UI 逐项一致；底部 0.1.18 汇总 13 项计数与旧快照 `1795218890` 逐项相同，非新扫描；设备运行 0.1-C GUI 桩，未接入 R3 live 快照；证据 `Tests/Stage2/evidence/r2-device-screenshots-1795227596/`。
 
 ## 0.1-D Diagnostics-Port（2026-11-21，待 Runner 复验）
 

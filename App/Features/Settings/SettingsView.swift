@@ -19,7 +19,8 @@ struct SettingsView: View {
         self._viewModel = State(
             initialValue: SettingsViewModel(
                 provider: dependencies.reportProvider,
-                exporter: dependencies.exporter
+                exporter: dependencies.exporter,
+                diagnosticsStore: dependencies.diagnosticsStore
             )
         )
     }

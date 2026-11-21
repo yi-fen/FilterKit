@@ -2,8 +2,9 @@
 //  SettingsViewModel.swift
 //  FilterKit Features — Settings（Stage 2.3 GUI Foundation）
 //
-//  版本信息展示与只读 JSON 导出。导出经 Core `ReportExporting` 接缝产出 Data；
-//  本层只负责写入 App 临时目录与触发分享，不重新编码、不重排键序、不写越狱目录。
+//  版本信息展示与只读 JSON 导出。R3-C 起经 `CombinedReportEncoder` 单文件归并
+//  信封与诊断段；本层只负责写入 App 临时目录与触发分享，不重新编码、不重排键序、
+//  不写越狱目录。
 //
 
 import Foundation
@@ -13,14 +14,19 @@ import Core
 @Observable
 final class SettingsViewModel {
     private let provider: ReportProviding
-    private let exporter: ReportExporting
+    private let diagnosticsStore: DiagnosticsReportStore
+    private let combinedEncoder: CombinedReportEncoder
 
     var exportedFileURL: URL?
     var errorMessage: String?
 
-    init(provider: ReportProviding, exporter: ReportExporting) {
+    init(provider: ReportProviding,
+         exporter: ReportExporting,
+         diagnosticsStore: DiagnosticsReportStore = DiagnosticsReportStore(),
+         combinedEncoder: CombinedReportEncoder = CombinedReportEncoder()) {
         self.provider = provider
-        self.exporter = exporter
+        self.diagnosticsStore = diagnosticsStore
+        self.combinedEncoder = combinedEncoder
     }
 
     var envelope: ReportEnvelope? { provider.envelope }
@@ -42,7 +48,10 @@ final class SettingsViewModel {
         }
 
         do {
-            let data = try exporter.export(envelope)
+            // 单文件兼容导出：信封既有字段原样保留，追加 diagnostics 扩展段。
+            // 未扫描 / 失败段为空条目，不带入合成插件数据。
+            let diagnostics = diagnosticsStore.exportSection()
+            let data = try combinedEncoder.encode(envelope: envelope, diagnostics: diagnostics)
             let dir = FileManager.default.temporaryDirectory
             let safeVersion = Self.sanitize(envelope.generatorVersion)
             let fileName = "FilterKit-Report-\(safeVersion).json"

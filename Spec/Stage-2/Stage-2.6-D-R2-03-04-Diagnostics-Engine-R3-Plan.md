@@ -230,3 +230,10 @@ struct DiagnosticEvidence {
 - macOS Debug `swift test`：132 例诊断套件 + 既有基线无回归；新增 21 例通过；无恒真 `is` 类新警告。
 - iphoneos26.5 arm64 Release / iphonesimulator26.5 arm64·x86_64 Debug 编译结论。
 - R2 残留：`751d5ff` 切片 1 失败 + 17 警告的修复仍待本轮 Runner 一并复测。
+
+### 8.5 首轮 Runner 反馈切片（`310a083`，2026-11-21，编译中止）
+
+- 基线：`origin/main` `310a08358378e4f6f7c2ac7fd025a55582438b42`；macos-26-arm64 / macOS 26.7.2 / `arm64-apple-macosx/debug`；命令 `swift test`；日志归档 `Tests/Stage2/evidence/r3-run-310a083-swift-test/`（53,200 B，SHA256 `e63530e7…059493`）。
+- 结论：**测试目标编译失败，用例未执行**，exit 1；本切片警告 0；Core 侧 R3 七枚文件（Evidence/Level/Validator/FileSystem/Error/Local/Engine）编译清单内无 Core 报错。
+- 唯一错误：`DiagnosticFileSystemTests.swift:62:45` `Set<String>` 无成员 `keys`——内存替身 `directories` 为集合，误用字典 `.keys`；夹具缺陷，非引擎语义。
+- 本地修复：`Set(files.keys + directories.keys)` → `Set(files.keys + Array(directories))`（提交 `8edb06a`）；待下一轮 Runner 复测编译与全套用例。
