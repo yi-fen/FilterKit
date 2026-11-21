@@ -1,0 +1,12 @@
+{
+  "checks": [
+    {"id": "1a", "name": "RootHide adapter isolation", "status": "passed"},
+    {"id": "1b", "name": "RootHide parser isolation", "status": "passed"},
+    {"id": "2a", "name": "Rootless adapter isolation", "status": "passed"},
+    {"id": "2b", "name": "Rootless parser isolation", "status": "passed"},
+    {"id": "3", "name": "Core concrete adapter instantiation", "status": "passed"},
+    {"id": "4", "name": "App core implementation isolation", "status": "passed"},
+    {"id": "4b", "name": "App adapter import prohibition", "status": "passed"}
+  ],
+  "failed": 0
+}

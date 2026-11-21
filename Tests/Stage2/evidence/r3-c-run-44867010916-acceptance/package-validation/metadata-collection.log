@@ -1,0 +1,56 @@
+{
+  "stage": "0.1-D-R4",
+  "generatedAt": "2026-11-21T04:41:22Z",
+  "commitSha": "9e61348380752d4286c4487f3a2867bcd1d00652",
+  "runner": {
+    "os": "macOS",
+    "name": "GitHub Actions 1000001344",
+    "runId": "44867010916"
+  },
+  "deviceBuild": {
+    "appPath": "build/r4-artifacts/filterkit-device-build/FilterKit.app",
+    "platform": "iphoneos",
+    "architecture": "Non-fat file: build/r4-artifacts/filterkit-device-build/FilterKit.app/FilterKit is architecture: arm64",
+    "bundleId": "com.filterkit.manager",
+    "minimumOsVersion": "17.0",
+    "status": "Build Passed"
+  },
+  "packages": {
+    "ipa": {
+      "path": "build/r4-artifacts/filterkit-ipa/FilterKit.ipa",
+      "sha256": "525f190337136e2ae3d37e4eb7140daf1e270ab911e44b2ac79653bc53b87b7a",
+      "status": "Package Passed"
+    },
+    "deb": {
+      "path": "build/r4-artifacts/filterkit-deb/filterkit_0.1.0-1_iphoneos-arm64e.ldid-signed-candidate.deb",
+      "sha256": "4525b3c18072e9114244f69f48eba53beed6f81a37229fc76513dc2ccc335bc7",
+      "profile": "roothide-rootfs",
+      "packageArchitecture": "iphoneos-arm64e",
+      "minimumMachOArchitecture": "arm64",
+      "signatureState": "ldid_signed_embedded",
+      "installability": "device_acceptance_pending",
+      "status": "RootHide Package Layout Passed (Static)"
+    }
+  },
+  "entitlements": {
+    "path": "Config/Signing/FilterKit.entitlements",
+    "status": "Entitlements Static Passed"
+  },
+  "deviceInstall": {
+    "status": "Device Install Pending",
+    "note": "真机安装/注册/启动属 R4-G 门禁，本轮 R4-A～E 未授权、不取证；模拟器产物不得作为设备构建证据。"
+  },
+  "validation": {
+    "deviceBuild": {"checks":[{"id":"d1","name":"device app bundle exists","status":"passed"},{"id":"d2","name":"main binary Mach-O","status":"passed"},{"id":"d3","name":"platform iPhoneOS","status":"passed"},{"id":"d4","name":"architecture includes arm64","status":"passed"},{"id":"d5","name":"bundle identifier matches draft","status":"passed"},{"id":"d6","name":"minimum OS version recorded","status":"passed"}],"failed":0,"validator":"validate-device-build"},
+    "ipa": {"checks":[{"id":"p1","name":"ipa archive exists","status":"passed"},{"id":"p2","name":"payload app structure","status":"passed"},{"id":"p3","name":"device app static validation","status":"passed"}],"failed":0,"validator":"validate-ipa"},
+    "deb": {"profile":"roothide-rootfs","packageArchitecture":"iphoneos-arm64e","minimumMachOArchitecture":"arm64","signatureState":"ldid_signed_embedded","installability":"device_acceptance_pending","installableCandidate":false,"sha256":"4525b3c18072e9114244f69f48eba53beed6f81a37229fc76513dc2ccc335bc7","checks":[{"id":"e1","name":"deb archive readable and extractable","status":"passed"},{"id":"e2","name":"control fields and RootHide profile","status":"passed"},{"id":"e3","name":"postinst registration-only policy","status":"passed"},{"id":"e4","name":"RootHide rootfs-relative payload path","status":"passed"},{"id":"e5","name":"payload ownership root:root","status":"passed"},{"id":"e6","name":"bundle executable present and executable","status":"passed"},{"id":"e7","name":"source and packaged App bundle parity","status":"passed"},{"id":"e8","name":"Mach-O includes minimum device architecture","status":"passed"},{"id":"e9","name":"ldid signature blob and embedded entitlements","status":"passed"}],"failed":0,"validator":"validate-deb"},
+    "entitlements": {"checks":[{"id":"t1","name":"entitlements plist parseable","status":"passed"},{"id":"t2","name":"candidate entitlements present","status":"passed"},{"id":"t3","name":"no unapproved entitlement keys","status":"passed"}],"failed":0,"validator":"validate-entitlements"}
+  },
+  "limitations": [
+    "本机/离线 CI 未执行真实设备签名放行验证",
+    "未调用 RootHide jbroot() 真机 API",
+    "DEB RootHide profile 仅证明 rootfs 相对包布局；RootHide 专用链接/弱链接/rpath、签名放行、JBROOT 映射与 uicache 行为仍待目标环境实测",
+    "16.5 SDK 对 iOS 17.0.2 向下兼容待实测",
+    "R4-E 通过仅证明包符合部署要求，不代表 RootHide 真机权限通过"
+  ]
+}

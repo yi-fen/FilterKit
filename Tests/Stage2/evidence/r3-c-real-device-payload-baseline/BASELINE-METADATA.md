@@ -8,8 +8,9 @@
 | 项 | 记录值 |
 |---|---|
 | Artifact | Real Device Diagnostics Payload（单文件 JSON，打包于同名 zip） |
-| 载荷 SHA256（JSON 本体） | `d3d2408a1404f1bbb246744923b72f40ffb649261c1afb5c0dcfcfe68cfff484` |
-| JSON 大小 | 7,460,339 B |
+| 首份载荷 SHA256（JSON 本体） | `d3d2408a1404f1bbb246744923b72f40ffb649261c1afb5c0dcfcfe68cfff484` |
+| 第二份载荷 SHA256（JSON 本体，run `44867010916` 伴随上传） | `77e97befa3bbf1d12d10ec2afd9144ef2522d7ae5b0d47862b0423ccbdc9ce2f` |
+| JSON 大小（两份相同） | 7,460,339 B |
 | Schema | R3-C v1 compatible（静态结构核对，非 Codable 实跑） |
 | 诊断段 scanState | `completed` |
 | evidenceScope | `read-only` |
@@ -64,6 +65,11 @@
 - integrity：mismatch 146 / no_checksum_record 3,312 / checksum_unavailable 8；hard failure 1、warning 139。
 - 归属冲突：185 条冲突路径、16 个未归属插件文件。
 - associations：8 条，global 0、unmatched 0、missing dylib 0、missing plist 0。
+
+### 3.3 第二次扫描复现（run `44867010916` 伴随载荷）
+
+- 第二份载荷 14,029 条 / 13 类计数、integrity 分桶（146 / 3,312 / 8）与 10 条 finding 状态与首份逐项一致；基线计数在第二次扫描复现，可作回归对照。
+- 两份载荷 jbrand 容器标识不同（两次安装容器）；`diagnostics.generatedAt` 不同。信封仍为合成 preview；provenance 口径不变（unknown/unverified，A6 not passed）。
 
 ## 4. 往返解码验收（R3-C-A6-Codable Round-Trip Verification，Runner 执行）
 

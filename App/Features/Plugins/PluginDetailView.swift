@@ -9,7 +9,9 @@
 import SwiftUI
 import Models
 
-struct PluginDetailView: View {
+// 0.1-E4：信封版旧详情视图改名 Legacy，避免与 E3 `PluginDetailView(detail:)`
+// 同模块重名；文件保留不删，不再被 Plugins Tab 引用，导出 / 信封链路零改动。
+struct LegacyPluginDetailView: View {
     private let plugin: Plugin
     private let model: PluginDetailModel
 
@@ -53,6 +55,6 @@ struct PluginDetailView: View {
 
 #Preview {
     NavigationStack {
-        PluginDetailView(plugin: SyntheticReportFactory.previewEnvelope().plugins[0])
+        LegacyPluginDetailView(plugin: SyntheticReportFactory.previewEnvelope().plugins[0])
     }
 }

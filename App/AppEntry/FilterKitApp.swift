@@ -26,10 +26,15 @@ struct FilterKitApp: App {
             )
         }
         let diagnosticsStore = DiagnosticsReportStore()
+        // 0.1-E4：Repository 与插件功能 Store 在组合根创建唯一实例，向下注入；
+        // View / ViewModel / Tab 内不重复创建，不各自持有快照。
+        let pluginRepository = DiagnosticPluginRepository(engine: ReadOnlyDiagnosticsEngine())
+        let pluginFeatureStore = PluginFeatureStore(repository: pluginRepository)
         self.dependencies = AppDependencies(
             reportProvider: provider,
             exporter: ReportExporter(),
-            diagnosticsStore: diagnosticsStore
+            diagnosticsStore: diagnosticsStore,
+            pluginFeatureStore: pluginFeatureStore
         )
     }
 

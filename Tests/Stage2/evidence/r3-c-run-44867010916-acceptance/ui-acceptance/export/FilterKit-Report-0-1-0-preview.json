@@ -1,0 +1,215 @@
+{
+  "diagnostics" : {
+    "environment" : {
+
+    },
+    "evidenceScope" : "read-only",
+    "items" : [
+
+    ],
+    "scanState" : "neverRun",
+    "schemaVersion" : 1
+  },
+  "environment" : {
+    "architecture" : "arm64e",
+    "ellekitImplementation" : "ellekit",
+    "ellekitVersion" : "1.0.0",
+    "evidenceLevel" : "partial",
+    "iosVersion" : "17.0.2",
+    "jailbreakType" : "roothide",
+    "jbrand" : "preview",
+    "jbroot" : "\/private\/var\/jb",
+    "pathEvidence" : {
+      "dynamicLibraries" : "\/private\/var\/jb\/Library\/Frameworks",
+      "jbrootCandidateDetails" : [
+        {
+          "path" : "\/private\/var\/jb",
+          "route" : "roothide",
+          "source" : "scan",
+          "status" : "valid",
+          "validation" : {
+
+          },
+          "warnings" : [
+
+          ]
+        }
+      ],
+      "jbrootCandidates" : [
+        "\/private\/var\/jb"
+      ],
+      "tweakInject" : "\/private\/var\/jb\/Library\/TweakInject"
+    },
+    "profileId" : "roothide-preview"
+  },
+  "generatorVersion" : "0.1.0-preview",
+  "plugins" : [
+    {
+      "configured" : false,
+      "dylibPath" : "\/private\/var\/jb\/Library\/MobileSubstrate\/DynamicLibraries\/Broken.dylib",
+      "evidence" : {
+        "evidenceLevel" : "unverified",
+        "evidenceType" : "synthetic",
+        "sourceStages" : [
+          "enumeration",
+          "pairing"
+        ]
+      },
+      "installed" : true,
+      "isTweakManager" : false,
+      "loadCategory" : "tweak",
+      "loaded" : "unknown",
+      "name" : "Broken Plist",
+      "ownership" : {
+        "confidence" : "heuristic",
+        "sourceType" : "manual",
+        "writablePolicy" : "read_only"
+      },
+      "pairing" : "paired",
+      "permission" : {
+        "decision" : "undetermined",
+        "reason" : "authorization_gate_not_evaluated"
+      },
+      "plistPath" : "\/private\/var\/jb\/Library\/MobileSubstrate\/DynamicLibraries\/Broken.plist",
+      "pluginID" : "com.example.broken-plist",
+      "profileId" : "roothide-preview",
+      "source" : "manual",
+      "validation" : {
+        "skippedFields" : [
+
+        ],
+        "status" : "parse_failed",
+        "warnings" : [
+          "plist root is not a dictionary"
+        ]
+      }
+    },
+    {
+      "configured" : false,
+      "evidence" : {
+        "evidenceLevel" : "unverified",
+        "evidenceType" : "synthetic",
+        "sourceStages" : [
+          "enumeration"
+        ]
+      },
+      "installed" : null,
+      "isTweakManager" : false,
+      "loadCategory" : "unknown",
+      "loaded" : "unknown",
+      "name" : "Orphan Plist",
+      "ownership" : {
+        "confidence" : "unknown",
+        "sourceType" : "unknown",
+        "writablePolicy" : "read_only"
+      },
+      "pairing" : "orphan_plist",
+      "permission" : {
+        "decision" : "undetermined",
+        "reason" : "authorization_gate_not_evaluated"
+      },
+      "plistPath" : "\/private\/var\/jb\/Library\/MobileSubstrate\/DynamicLibraries\/Orphan.plist",
+      "pluginID" : "com.example.orphan-plist",
+      "profileId" : "roothide-preview",
+      "source" : "unknown",
+      "validation" : {
+        "skippedFields" : [
+
+        ],
+        "status" : "not_parsed",
+        "warnings" : [
+
+        ]
+      },
+      "version" : "0.9.0"
+    },
+    {
+      "configured" : true,
+      "dylibPath" : "\/private\/var\/jb\/Library\/MobileSubstrate\/DynamicLibraries\/PreviewTweak.dylib",
+      "evidence" : {
+        "evidenceLevel" : "partial",
+        "evidenceType" : "synthetic",
+        "sourceStages" : [
+          "enumeration",
+          "pairing",
+          "parsing"
+        ]
+      },
+      "filter" : {
+        "bundles" : [
+          "com.example.app"
+        ],
+        "classes" : [
+          "ExampleHook"
+        ],
+        "executables" : [
+          "ExampleApp"
+        ],
+        "otherKeys" : [
+
+        ]
+      },
+      "installed" : true,
+      "isTweakManager" : false,
+      "loadCategory" : "tweak",
+      "loaded" : "unknown",
+      "name" : "Preview Tweak",
+      "ownership" : {
+        "confidence" : "exact_record",
+        "packageID" : "com.example.preview-tweak",
+        "sourceType" : "dpkg_sileo",
+        "writablePolicy" : "read_only"
+      },
+      "ownershipDetails" : {
+        "conflicts" : [
+
+        ],
+        "notes" : [
+          "synthetic preview entry"
+        ]
+      },
+      "pairing" : "paired",
+      "permission" : {
+        "decision" : "undetermined",
+        "reason" : "authorization_gate_not_evaluated"
+      },
+      "plistPath" : "\/private\/var\/jb\/Library\/MobileSubstrate\/DynamicLibraries\/PreviewTweak.plist",
+      "pluginID" : "com.example.preview-tweak",
+      "profileId" : "roothide-preview",
+      "source" : "dpkg_sileo",
+      "validation" : {
+        "skippedFields" : [
+
+        ],
+        "status" : "valid",
+        "warnings" : [
+
+        ]
+      },
+      "version" : "1.2.0"
+    }
+  ],
+  "profile" : {
+    "id" : "roothide-preview",
+    "route" : "roothide"
+  },
+  "schemaVersion" : "0.1.0",
+  "unknownItems" : [
+    {
+      "base" : "Stray.plist",
+      "detail" : {
+        "category" : "plist"
+      },
+      "path" : "\/private\/var\/jb\/Library\/MobileSubstrate\/DynamicLibraries\/Stray.plist",
+      "reason" : "orphan entry without paired dylib",
+      "sourceStage" : "enumeration"
+    }
+  ],
+  "warnings" : [
+    {
+      "code" : "PREVIEW-001",
+      "message" : "Synthetic preview report; not a device scan.",
+      "sourceStage" : "gui-preview"
+    }
+  ]
+}

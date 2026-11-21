@@ -1,10 +1,59 @@
 # FilterKit DevDocs 0.1 — 打包说明
 
 - 打包时间：2026-11-21（Asia/Shanghai）
-- 本地基线提交：`5a611b7`（R3-C Live Diagnostics Export Bridge 路线 A：Core 导出模型/映射/合并编码器 + 8 例离线用例 + App 共享 Store 接线 + 前置基线 CI 切片 `d70c131` 证据归档 + 首轮 ui-acceptance 反馈切片 `44861183809`；未推送；Runner 结论以在线日志为准，本机 Linux 无 Swift/Xcode、无 RootHide 真机）
-- 当前 DevDocs 包：`FilterKit-DevDocs-0.1.zip`，包内 2195 文件，15,766,815 B，SHA256 `502a9d9ef11cf2ffa2cc723906b076517c8d49215a038442dbd04d735feb875c`；`unzip -tq` 无错误，清单与暂存目录一致；包内不内嵌自身哈希。
+- 本地基线提交：`367b4e8`（0.1-E4 Plugin Feature Integration & Dependency：Core 统一五态/共享 Store + Repository 单实例 DI + 统一路由与 E2/E3 页面双向接线 + 39 例集成测试，待 Runner 复验；E1/E2/E3 同批待 Runner 复验；0.1-D 真机验收仍 pending，E1～E4 均不标注真机验收；未推送；Runner 结论以在线日志为准，本机 Linux 无 Swift/Xcode、无 RootHide 真机）
+- 当前 DevDocs 包（E4 回填前基线）：`FilterKit-DevDocs-0.1.zip`，包内 2275 文件，16,938,222 B，SHA256 `70b06851497ee1213f72569c461553db7c0ecae250c7d5ac4b95058d427b835f`；`unzip -tq` 无错误，清单与暂存目录一致；包内不内嵌自身哈希。
 - 范围：规格文档（Spec/）、App/Core/Models/Adapters/Tools 源码、CI 工作流、Stage1~Stage2 测试与历史 Runner 证据归档、隔离/校验/打包/元数据脚本。
 - 边界：0.1-C 维持未闭环（G10 搁置、不豁免不签署，缺口作为已知限制带入）；0.1-D Runner/Simulator 切片 G1～G9 通过（R2-A/B 复验 run `121082423820`）；R3-A/A2/F 与 R4 规格已冻结；R4-A～E 第五轮 TAR 权限保真链路生效、DEB 在打包前置版本校验中止（App `1.0` vs control 基线 `0.0.1`），已本地统一版本源至 App `0.1.0`/build `1` ↔ control `0.1.0-1`，待下一轮 Runner 复验出包；真机侧 IPA 可启动、DEB 打开闪退，无 `.ips`/系统日志，C1 签名封印 / C2 切片链接 / C3 布局注册 / C4 完整性 / C5 自身异常五类假设待设备取证；H4 切片/签名/弱链接、H5 uicache/JBROOT 映射未闭环，R3-B～F 真机取证待设备/GUI 上下文，真机门禁 G10～G15、R4-G 挂起 pending/unknown，里程碑未闭环、不进入 0.1-E。
+
+## 0.1-E1 Plugin Data Foundation（2026-11-21，待 Runner 复验）
+
+规格：`Spec/Stage-2/Stage-2.8-0.1-E1-Plugin-Data-Foundation.md`。授权八项：审计报告与插件 Models、核查现有 Mapper 提取完整性、统一 Plugin Repository、共享 Diagnostic Snapshot、列表领域模型、installed/configured/loaded 三态模型、离线测试、保留报告与导出兼容性。0.1-D 真机验收 pending 与 0.1-E 并行，验收状态独立；E1 不把未真机验证数据标为真机验收。
+
+- **Core 新增 `Core/Plugins/`**：Models 七枚（`FKPlugin` / `FKPluginSource` / `FKPluginConfiguration` / `FKPluginAssociation` / `FKApplication` / `PluginSnapshot` / `FKPluginStatus`）；`Mapping/PluginDataMapper`（`FKDiagnosticReport` 扁平行纯函数映射为快照，`raw` 原始证据保留不裁剪）；`Repository/PluginRepository` 协议 + `DiagnosticPluginRepository`（`refresh()` 一次扫描缓存，读取接口不二次扫描，`refreshCount` 测试接缝）。
+- **三态独立**：`FKPluginState` confirmed / absent / unknown / unverified；installed / configured / loaded 互不反推；`loaded` 无独立运行时证据恒 unknown；unknown / unverified 不等于失败，展示层不得统一降级为错误配色。
+- **关联五类**：exactMatch / globalRule / unmatchedTarget / invalidConfiguration / unresolved 沿用引擎 `category` 词表；exactMatch 才计入精确关联数量；globalRule 单独展示；unmatchedTarget 不冒充已关联；invalidConfiguration 不当有效注入规则；静态匹配 ≠ 实际注入成功。
+- **离线测试**：`Tests/Stage2/Plugins/PluginDataFoundationTests.swift` 9 例（有效配对 exactMatch + App 反向索引、孤立 plist installed unknown、损坏 plist configured unverified、仅 dylib configured absent、五类关联映射、loaded 恒 unknown、空报告无合成条目、快照一次扫描缓存、raw 证据保留）；`Package.swift` Core 与 Stage2Tests 显式 sources 同步登记。
+- **兼容**：`Models.Plugin` / `ReportEnvelope` / `CombinedReportEncoder` / `DiagnosticsExportModels` / `DiagnosticsReportMapper` 零改动；E1 模型不进入合并导出；本轮不接 App DI（留 E4）；不以 `SyntheticReportFactory` 合成桩冒充真实插件列表（E4 真实快照接线）。
+- **本地静态核对**：10 枚 Core 源 + 1 枚测试与 Package 清单一一对应；括号配平；仅 `import Foundation`；无 FileManager 写接口、无 `dlsym`/`jbroot()`/注入/dpkg 写调用。本机 Linux 无 Swift/Xcode，Core emit-module、598 既有 + 9 新增测试与 iOS 两侧编译结论以 Runner 下一轮日志为准；无 Runner 日志前不认定编译通过。
+- **边界不变**：全程只读；不启停插件、不写 plist/规则、不动 dylib/dpkg/软链、不注入、不启 Helper/IPC/daemon、不放行 entitlement/沙盒；E5 操作框架仅留架构边界，不实现、不注入生产 App；不推送远端。E2 列表/搜索/筛选、E3 详情与 App 关联、E4 DI 接线/真实快照/空错态不在本轮。
+
+## 0.1-E2 Plugin List & Discovery（2026-11-21，待 Runner 复验）
+
+规格：`Spec/Stage-2/Stage-2.8-0.1-E2-Plugin-List-Discovery.md`。批次口径：E1～E4 连续开发批次，E1～E3 只做本地静态检查与局部测试，E4 统一完整 Runner 验收；本轮不推送 GitHub、不做设备侧写操作。E2 定位为纯内存、无副作用、可测试的插件查询层 + App 浏览器视图骨架。
+
+- **Core 查询层 `Core/Plugins/Query/`（6 枚，仅 `import Foundation`）**：`PluginListFilter`（配置/关联/证据三维 AND）、`PluginListSort`（名称升/降序 + 内部 `.evidence` 不开放 UI）、`PluginListQuery`（搜索词/筛选/排序快照）、`PluginListEntry`（列表投影模型，三态原样透传）、`PluginListProjection`（FKPlugin → Entry 纯映射，fileName 回退链 dylib 基名→plist 基名→名称）、`PluginListQueryEngine`（搜索→筛选→排序，大小写与变音符号不敏感，纯结构体无状态）。
+- **状态映射**：配置筛选作用于 `status.configured`，证据筛选作用于 `status.installed`，关联筛选作用于 `associationCategories`（exactMatch/globalRule/unmatchedTarget/invalidConfiguration/unresolved）；`loaded` 是运行时状态，不进入筛选维度，恒 unknown；关联数量只统计 `.exactMatch`。
+- **App 浏览器层 `App/Features/Plugins/Browser/`（6 枚）**：`PluginBrowserViewModel`（`@Observable`，neverLoaded/loading/loaded/empty/failed 五态，empty 与 failed 严格区分；`setEntries(_:)` 注入投影并重放查询，不持有 Repository、不触发 `refresh()`）、`BrowserLabels`（E1 状态→文案/分级唯一落点，loaded unknown 不显示「Not Loaded」）、`PluginBrowserRow`（三态分行标签 + 关联摘要）、`PluginSearchBar`、`PluginFilterView`（三段 Picker，loaded 不出现）、`PluginBrowserView`（按 loadState 分流，搜索无结果空态，详情为 E3 占位）。既有信封版 `PluginListView` / `PluginListViewModel` 本轮不改，E4 统一切换。
+- **离线测试**：`Tests/Stage2/Plugins/PluginListQueryTests.swift` 16 例（E2-01～16：空搜索/名称/大小写/dylib 名/路径/Bundle ID 搜索、配置/关联/证据筛选、三维 AND 组合、名称升降序、无结果空态、空快照无合成条目、loaded 恒 unknown、查询前后 Repository `refreshCount` 不变）；夹具经 E1 `PluginDataMapper.mapSnapshot` 构造快照再投影；`Package.swift` Core 与 Stage2Tests 显式 sources 同步登记。
+- **兼容与偏差**：`Models.Plugin` / `ReportEnvelope` / `CombinedReportEncoder` / 既有信封 ViewModel 与视图零改动；查询层不反向依赖 App/Presentation；搜索框为独立封装 `PluginSearchBar`（非 `.searchable` modifier）；`.evidence` 排序内部保留原序；备忘录 `evidence.inferred` 因 E1 无来源置信度字段未开放。
+- **本地静态核对**：6 Core + 1 测试 + 6 App 文件与 Package 清单一一对应；括号配平；无 FileManager 写接口、无注入/dpkg 写/软链改动；本机 Linux 无 Swift/Xcode，emit-module、598 既有 + E1 9 + E2 16 例测试与 iOS 两侧编译结论以 Runner 下一轮日志为准；无 Runner 日志前不认定编译通过。
+- **边界不变**：全程只读；不启停/删除/编辑插件、不写 plist/规则、不注入、不启 Helper/IPC/daemon；Repository 真实快照接线、浏览器视图挂入 Tab、E3 详情与 App 关联浏览留 E3/E4；E5 操作框架不实现；不推送远端。
+
+## 0.1-E3 Plugin Detail & App Association Explorer（2026-11-21，待 Runner 复验）
+
+规格：`Spec/Stage-2/Stage-2.8-0.1-E3-Plugin-Detail-Association.md`。E3 在 E1 快照之上做只读投影与双向关联浏览，不重新构造插件数据、不接 Repository；E4 负责单实例接线与页面挂接。
+
+- **Core Detail 层 `Core/Plugins/Detail/`（6 枚，仅 `import Foundation`）**：`PluginAssociationEntry`（关联投影，分类复用 E1 `FKAssociationType`，不另造枚举）、`PluginDetailEntry`（插件详情投影，三态原样透传，exactMatchCount 仅统计 exactMatch）、`ApplicationDetailEntry`（App 详情投影）、`PluginDetailProjection`（FKPlugin → 详情纯映射，缺失 ID 返回 nil）、`ApplicationDetailProjection`（FKApplication → App 详情，关联按 Bundle ID 回挂，`allAssociationEntries` 供双向共用）、`PluginAssociationResolver`（插件↔App 双向过滤 + exact 过滤，按 id 去重保序，纯结构体无状态）。
+- **字段口径**：Hash 取插件行 raw `hash`（无键为 nil，不虚构）；完整性状态本轮恒 `.unknown`（E1 快照未链接插件级完整性记录，待 E4 回填）；归属取 `FKPluginSource.packageIdentifier/packageOwners`；loaded 恒 unknown；App 可执行文件取 `FKApplication.executable`（E1 无全量应用路径）。
+- **App 详情层 `App/Features/Plugins/Detail/`（11 枚）**：ViewModels 两枚（`@Observable`，detail/isLoading/errorMessage，不持 Repository）；Views 六枚（`PluginDetailView`/`ApplicationListView`/`ApplicationDetailView`/`PluginAssociationSection` 五类分组计数/`PluginEvidenceSection`/`PluginFileInformationSection`）；Components 三枚（`PluginStatusCard` 三态分行、`AssociationRow` 分类标题唯一落点、`ApplicationRow`）。无关联记录显示「No association evidence found」诊断事实空态；双向导航目的地由 E4 接线，本轮关联行不挂插件导航。
+- **离线测试**：`Tests/Stage2/Plugins/PluginDetailTests.swift` 22 例（E3-01～22：插件/App 映射、文件信息透传、归属不虚构、三态透传、五类关联语义、双向 Resolver、空态与缺失 ID、重复关联去重、多对多完整、快照同源、纯函数只读隔离）；夹具经 E1 Mapper 构造快照再投影；`Package.swift` Core 与 Stage2Tests 显式 sources 同步登记。
+- **兼容与偏差**：`Models.Plugin` / `ReportEnvelope` / 导出 Mapper / 既有信封视图 / E2 浏览器层零改动；Detail 层不反向依赖 App/Presentation；`evidence.inferred` 因无来源置信度字段未开放；E3 模型不进入合并导出。
+- **本地静态核对**：6 Core + 1 测试 + 11 App 文件与 Package 清单一一对应；括号配平；无 FileManager 写接口、无注入/dpkg 写/软链改动；E3-22 验证投影/Resolver 前后 Repository `refreshCount` 不变。本机 Linux 无 Swift/Xcode，emit-module、598 既有 + E1 9 + E2 16 + E3 22 例测试与 iOS 两侧编译结论以 Runner 下一轮日志为准；无 Runner 日志前不认定编译通过。
+- **边界不变**：全程只读；不启停/删除/编辑插件、不写 plist/规则、不注入、不启 Helper/IPC/daemon；Repository 单实例、详情/列表挂入导航、插件级 Hash/完整性与来源置信度接入留 E4；E5 操作框架不实现；不推送远端。
+
+## 0.1-E4 Plugin Feature Integration & Dependency（2026-11-21，待 Runner 复验）
+
+规格：`Spec/Stage-2/Stage-2.8-0.1-E4-Plugin-Feature-Integration.md`。E4 把 E1/E2/E3 接成同一只读插件浏览系统：一个 Repository、一次诊断扫描、一份 PluginSnapshot、多个页面共享、统一导航；不重写 E1 Repository / E2 查询引擎 / E3 Resolver，不改 E1 公共模型与信封导出。
+
+- **Core Integration 层 `Core/Plugins/Integration/`（2 枚）**：`PluginFeatureState`（neverLoaded/loading/loaded/empty/failed 五态，`isLoading/errorMessage/hasLoaded` 计算属性）；`PluginFeatureStore`（`@Observable`，持有唯一 Repository 快照与列表/插件详情/App 详情/关联条目四类投影，`loadIfNeeded` 初次守卫、`refresh` 并发守卫、统一 `rebuildProjections(from:)` 同源重建、详情与双向关联读缓存不二次扫描）；同文件 `PluginRefreshOutcome` 接缝枚举。
+- **DI 扩展**：既有 `AppDependencies` 增补 `pluginFeatureStore`；`FilterKitApp.init()` 创建唯一 `DiagnosticPluginRepository` 与唯一 Store 向下注入；View/ViewModel/Tab 内不重复创建 Repository，不建第二套 DI 容器。
+- **App 接线层 `App/Features/Plugins/Integration/`（2 枚）**：`PluginNavigationRoute`（`plugin(String)` / `application(String)` / `applicationList`，ID 取稳定模型标识）；`PluginFeatureRootView`（单一 NavigationStack + 统一目的地解析，缺失 ID 走缺失态；初次 `onAppear` 调 `loadIfNeeded`，子页面不自动 refresh）。
+- **页面接线**：`PluginBrowserView` 移除自有导航栈，按 Store 五态分流，条目/搜索/筛选/排序消费 Store 投影，行与 App 库存入口挂统一路由；E3 `PluginDetailView`/`ApplicationDetailView`/`PluginAssociationSection` 追加关联路由闭包，插件→App、App→插件双向导航同源；`ApplicationListView` 行挂 App 详情路由。旧信封 `PluginListView`/`PluginDetailView` 改名 `LegacyPluginListView`/`LegacyPluginDetailView`，文件保留不删、不再被 Tab 引用，信封数据链路零改动。
+- **离线测试**：`Tests/Stage2/Plugins/PluginFeatureIntegrationTests.swift` 39 例（E4-01～39：A Repository/快照同源 10、B 状态处理 8、C 页面导航 7（E4-19 为 Runner G7/G8 UI 门禁，离线 XCTSkip）、D 数据语义 8、E 只读隔离 6）；Fake Repository 遵循 E1 协议并暴露 `refreshCount`，失败/旧数据保留经 provider 接缝注入；`Package.swift` Core 2 枚与测试 1 枚显式登记。
+- **偏差记录**：E1 Repository 同步非 throwing，失败分支经 `refreshProvider` 接缝落地，真机错误信号待引擎开放错误通道；Store/状态枚举落 Core 供离线集成测试，路由/根视图落 App；并发守卫为同步布尔位，async `refreshTask` 复用待 Repository 异步迁移；路由追加 `.applicationList` 第三例；Dashboard 计数仍走既有信封投影，Store 快照向 Dashboard 共享留后续。
+- **本地静态核对**：Core Integration 仅 Foundation/Observation，无 SwiftUI/文件系统访问；接线层无 FileManager 写、无 plist/dylib/dpkg/软链写入、无 dlsym/jbroot/dlopen/注入/Helper/IPC/daemon；括号配平逐文件复核；清单与 Package 登记一致。计划测试基线 598 既有 + E1 9 + E2 16 + E3 22 + E4 39 = 684（计划数，不代表已通过）。本机 Linux 无 Swift/Xcode，emit-module、684 例计划测试与 iOS 两侧编译结论以 Runner 下一轮日志为准；无 Runner 日志前不认定编译通过。
+- **边界不变**：全程只读；不启停/删除/安装插件、不改 Filter plist、不改 dpkg 状态、不注入 dylib、不启 Helper/IPC/daemon、不放行 entitlement/沙盒；loaded 恒 unknown，Hash 无证据 nil，Integrity 恒 unknown，归属无证据不虚构；E5 操作框架仅留边界不实现；不推送远端。
 
 ## R3-C Live Diagnostics Export Bridge（路线 A，2026-11-21，待 Runner 复测）
 
@@ -15,6 +64,8 @@
 - **离线用例**：`Tests/Stage2/Diagnostics/DiagnosticsExportBridgeTests.swift` 8 例（全类别映射与 payload 保留、空完成态、未扫描无合成数据、失败追溯不冒充、重复覆盖、JSON 往返、信封兼容、`loaded=unknown` 保留）。本地仅括号配平 / 符号引用 / 残留 API / Package 接线静态核对；编译与用例通过以下一轮 Runner `swift test` 为准。
 - **前置基线**：CI 切片 `d70c131c6ebc0daf0a26ac920f2db5c050960ead`，590 tests / 0 failures，非界面构建 0 warning/error，隔离/设备/IPA/DEB 静态校验全 passed；DEB 仍 `device_acceptance_pending` / `installableCandidate=false`，UI 往返样本为合成 preview。证据 `Tests/Stage2/evidence/r3-c-pre-d70c131-ci-slice/`。
 - **待闭环**：Runner 复测新增 8 例 + 既有 590 例无回归、iOS 两侧编译；A6 真机验收需新构建包安装后现场扫描，导出首份含真实 `diagnostics` 段的 JSON；当前设备所装仍是 0.1-C 旧 GUI 桩。
+- **真机诊断载荷基线（中间证据，非 A6 验收，记录 `Tests/Stage2/evidence/r3-c-real-device-payload-baseline/BASELINE-METADATA.md`）**：一份真机形态单文件导出 JSON（14,029 条 / 13 类齐全）接受为 Real Device Diagnostics Payload Baseline；Build provenance 与 Export bridge provenance 记 unknown/unverified，A6 not passed。信封仍为合成 preview，诊断段独立来源；两段环境不一致属路线 A 边界，本轮不改。往返解码验收留 Runner（全量解码、13 类保留、nil status 不补默认、payload 键值一致、`loaded=unknown` 不变、语义比较非字符串比较；补空/失败扫描 fixture）。设备报告本体含真机标识与已装 App/包清单，按隐私边界不入库、不进包、不作 fixture。R3-C2 真实信封闭环 C2-01～C2-07 仅记录方向，未授权编码；D-R2-06、#331 继续冻结。
+- **全链路 Runner 验收（run `44867010916` / `9e61348`，证据 `Tests/Stage2/evidence/r3-c-run-44867010916-acceptance/`）**：非 UI Build 0 warning/0 error；Swift **598 tests 0 失败**（基线 590 + 桥接 8，8 例全 passed），S1-05 15 例 0 失败，隔离七项 passed；模拟器 App `BUILD SUCCEEDED`（唯一 warning 为 AppIntents 元数据噪声），pid 存活；XCUITest **8 例 0 失败**（153.992s），上轮失败的 EmptyState 复跑通过；G9 模拟器合成 preview 导出 5,463B，往返 `decodable=true` / `equalIgnoringGeneratedAt=true` / messages 空，诊断段 neverRun 空段。设备构建 d1～d6、IPA p1～p3、DEB e1～e9、entitlements t1～t3 静态全 passed；DEB 仍 `installableCandidate=false` / `device_acceptance_pending`，Device Install Pending。A6 真机验收未发生；两份真机载荷为中间基线证据，provenance unknown，私密 JSON 不入库。
 - **首轮 ui-acceptance 反馈（run `44861183809`，cf741b，证据 `Tests/Stage2/evidence/r3-c-run-44861183809-ui-acceptance/`）**：iphonesimulator 侧 R3-C 四枚新文件编译进 App 并启动成功，除 AppIntents 元数据提示外无 Swift warning/error；XCUITest 8 例 7 过 1 失败，唯一失败为空信封冷首跑 `EmptyStateTests` 5s 内未找到导出按钮；非空态 ExportFlow/SettingsVisible/ShareSheet 均在位通过。对照基线五轮同用例通过；代码 diff 未移除按钮（无条件渲染，禁用只置 `.disabled`）。假设 H1 冷启动时序临界 / H2 空态渲染未切换，未定论——层级快照封在 xcresult 产物内本会话取不到；本轮不改代码、不推送。后置 G9 未从容器 tmp 拉到导出样本，校验器 exit 1，原因待查。本 job 不含 `swift test`，8 例桥接用例与 590 回归、iphoneos 编译结论仍待对应 job 日志。
 - **边界不变**：只读；不改冻结 Models / 信封既有字段 / 签名与打包链路；不启停插件、不写 plist/规则、不动 dylib/dpkg/软链、不注入、不启 Helper/IPC/daemon、不放行 entitlement；不推送远端。
 

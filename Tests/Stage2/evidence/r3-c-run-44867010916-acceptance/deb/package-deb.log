@@ -1,0 +1,10 @@
+App bundle: com.filterkit.manager; App version=0.1.0 build=1; control Package=com.filterkit.manager Version=0.1.0-1 (base=0.1.0)
+dpkg-deb: building package 'com.filterkit.manager' in 'build/deb/filterkit_0.1.0-1_iphoneos-arm64e.ldid-signed-candidate.deb'.
+DEB_PROFILE_ID=roothide-rootfs
+DEB_PACKAGE_ARCH=iphoneos-arm64e
+DEB_PAYLOAD=Applications/FilterKit.app
+DEB_SHA256=4525b3c18072e9114244f69f48eba53beed6f81a37229fc76513dc2ccc335bc7
+DEB_SIGNATURE_STATE=ldid_signed_embedded
+DEB_INSTALLABILITY=device-acceptance-pending
+DEB_CREATED=build/deb/filterkit_0.1.0-1_iphoneos-arm64e.ldid-signed-candidate.deb
+NOTE: RootHide package layout only; signature verification does not prove amfid acceptance, required entitlements, Bootstrap mapping, installation or launch.

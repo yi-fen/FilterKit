@@ -1,0 +1,1 @@
+{"checks":[{"id":"t1","name":"entitlements plist parseable","status":"passed"},{"id":"t2","name":"candidate entitlements present","status":"passed"},{"id":"t3","name":"no unapproved entitlement keys","status":"passed"}],"failed":0,"validator":"validate-entitlements"}

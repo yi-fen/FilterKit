@@ -1,0 +1,11 @@
+== t1. entitlements plist 可解析 ==
+OK: plutil -lint 通过
+== t2. 候选 entitlement 齐全 ==
+OK: platform-application
+OK: com.apple.private.security.no-sandbox
+OK: com.apple.private.security.storage.AppBundles
+OK: com.apple.private.security.storage.AppDataContainers
+== t3. 无未批准私有键 ==
+OK: 全部键均在批准候选清单内
+--- summary ---
+{"checks":[{"id":"t1","name":"entitlements plist parseable","status":"passed"},{"id":"t2","name":"candidate entitlements present","status":"passed"},{"id":"t3","name":"no unapproved entitlement keys","status":"passed"}],"failed":0,"validator":"validate-entitlements"}

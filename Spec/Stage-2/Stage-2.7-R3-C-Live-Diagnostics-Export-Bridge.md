@@ -154,3 +154,15 @@ CombinedReportEncoder.encode(envelope:diagnostics:)
 - 往返验收（R3-C-A6-Codable Round-Trip）留待 Runner：全量解码、13 类保留、nil status 不补默认、payload 键值一致、`loaded=unknown` 不变、无兜底伪数据；按模型字段语义比较而非 JSON 字符串比较；另补空扫描/失败扫描 fixture。
 - `environmentSource` 建议字段当前模型不存在；后续若加须为可选且单独授权，本轮不动冻结模型。
 - R3-C2 真实信封闭环（C2-01～C2-07）仅记录方向，未授权编码；D-R2-06、#331 继续冻结。
+
+## 10. Runner 全链路验收切片（run `44867010916` / commit `9e61348`）
+
+> 完整事实与逐用例记录：`Tests/Stage2/evidence/r3-c-run-44867010916-acceptance/RUN-METADATA.md`。
+
+- **非 UI Build**：`Build complete! (13.58s)`，0 warning / 0 error；R3-C 模型与编码器进入编译清单。
+- **Swift 测试**：**598 tests / 0 failures（0 unexpected）**（基线 590 + 桥接 8）；`DiagnosticsExportBridgeTests` 8 例全 passed；S1-05 15 例 0 failure；隔离七项 passed。
+- **模拟器 App Build**：`BUILD SUCCEEDED`，唯一 warning 为 AppIntents 元数据系统噪声；pid 12216 存活；dashboard 1206×2622。
+- **XCUITest**：**8 例 0 failure（153.992s）**；上一轮失败的 EmptyState 复跑通过（28.674s），H1/H2 无失败快照仍未在代码层定论。
+- **G9 导出往返**：模拟器合成 preview 导出 5,463B（`f0c9feb3…7bfc`），`decodable=true`、`equalIgnoringGeneratedAt=true`、messages 空；信封与旧基线逐字段一致，新增 `diagnostics` neverRun 空段；上一轮 G9 样本未落盘问题本轮未复现。
+- **设备/打包静态链路**：device-build d1～d6 passed（iphoneos26.5 / arm64 / minOS 17.0）；IPA p1～p3 passed；DEB e1～e9 静态 passed（arm64e `0.1.0-1`，parity equal），仍 `installableCandidate=false` / `device_acceptance_pending`；entitlements t1～t3 passed；ldid 静态 valid、嵌入 entitlement exact_match；Device Install Pending。
+- **边界不变**：以上仅 Runner/Simulator/合成桩口径；A6 真机验收未发生；两份真机载荷为中间基线证据（provenance unknown）；H4/H5、C1～C5、G10～G15、R4-G 沿用 pending/unknown；0.1-D 未闭环不签署。

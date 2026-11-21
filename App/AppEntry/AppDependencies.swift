@@ -34,15 +34,23 @@ public struct AppDependencies {
     public let probeReport: PermissionProbeReport?
     /// R3-C：诊断扫描内存快照；Diagnostics 写入、Settings 导出共享同一实例。
     public let diagnosticsStore: DiagnosticsReportStore
+    /// 0.1-E4：插件功能共享 Store；组合根创建唯一 Repository 与 Store 实例，
+    /// 列表 / 详情 / App 页消费同一份快照。Preview 构造缺省时自建预览实例。
+    public let pluginFeatureStore: PluginFeatureStore
 
     public init(reportProvider: ReportProviding,
                 exporter: ReportExporting,
                 probeReport: PermissionProbeReport? = nil,
-                diagnosticsStore: DiagnosticsReportStore = DiagnosticsReportStore()) {
+                diagnosticsStore: DiagnosticsReportStore = DiagnosticsReportStore(),
+                pluginFeatureStore: PluginFeatureStore? = nil) {
         self.reportProvider = reportProvider
         self.exporter = exporter
         self.probeReport = probeReport
         self.diagnosticsStore = diagnosticsStore
+        self.pluginFeatureStore = pluginFeatureStore
+            ?? PluginFeatureStore(
+                repository: DiagnosticPluginRepository(engine: ReadOnlyDiagnosticsEngine())
+            )
     }
 
     /// 当前信封（只读投影，供 ViewModel 读取）。

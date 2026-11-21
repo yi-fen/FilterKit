@@ -1,0 +1,15 @@
+Signing 0 nested Mach-O image(s) ad-hoc (no App entitlements)
+Signing main executable with Config/Signing/FilterKit.entitlements
+OK: LC_CODE_SIGNATURE + ldid CDHash extraction: FilterKit
+  CDHash: CodeDirectory v=20400 size=31586 flags=0x0(none) hashes=977+7 location=embedded
+  CDHash: Hash type=sha256 size=32
+  CDHash: CandidateCDHash sha1=314bb6973d92b0375ff46d446fcb1080616ba9bb
+  CDHash: CandidateCDHash sha256=48ac489bac06fde7bfcd1758fff4335d3948b439
+  CDHash: Hash choices=sha1,sha256
+  CDHash: CDHash=48ac489bac06fde7bfcd1758fff4335d3948b439
+OK: embedded entitlements exactly match source plist
+ENTITLEMENT_KEYS=com.apple.private.security.no-sandbox,com.apple.private.security.storage.AppBundles,com.apple.private.security.storage.AppDataContainers,platform-application
+--- ldid signature summary ---
+{"bundleIdentifier": "com.filterkit.manager", "codeDirectoryHash": "extractable_all_macho", "deviceAcceptance": "unknown", "deviceInstallable": false, "embeddedEntitlements": "exact_match", "lcCodeSignature": "present_all_macho", "machoCount": 1, "signatureState": "ldid_signed_static_valid", "validator": "validate-ldid-signature"}
+SIGNING_RESULT=ldid_signed_static_valid
+DEVICE_ACCEPTANCE=unknown DEVICE_INSTALLABLE=false

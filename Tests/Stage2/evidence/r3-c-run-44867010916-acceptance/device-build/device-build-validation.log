@@ -1,0 +1,15 @@
+== d1. FilterKit.app 目录存在 ==
+OK: build/DerivedData-device/Build/Products/Release-iphoneos/FilterKit.app
+== d2. 主二进制存在且为 Mach-O ==
+OK: Mach-O 64-bit executable arm64
+== d3. 平台为 iPhoneOS ==
+OK: DTPlatformName=iphoneos
+== d4. 架构包含 arm64 ==
+Non-fat file: build/DerivedData-device/Build/Products/Release-iphoneos/FilterKit.app/FilterKit is architecture: arm64
+Non-fat file: build/DerivedData-device/Build/Products/Release-iphoneos/FilterKit.app/FilterKit is architecture: arm64
+== d5. Bundle ID 一致 ==
+OK: CFBundleIdentifier=com.filterkit.manager
+== d6. MinimumOSVersion 已记录 ==
+OK: MinimumOSVersion=17.0（16.5 SDK 对 iOS 17.0.2 兼容待实测）
+--- summary ---
+{"checks":[{"id":"d1","name":"device app bundle exists","status":"passed"},{"id":"d2","name":"main binary Mach-O","status":"passed"},{"id":"d3","name":"platform iPhoneOS","status":"passed"},{"id":"d4","name":"architecture includes arm64","status":"passed"},{"id":"d5","name":"bundle identifier matches draft","status":"passed"},{"id":"d6","name":"minimum OS version recorded","status":"passed"}],"failed":0,"validator":"validate-device-build"}

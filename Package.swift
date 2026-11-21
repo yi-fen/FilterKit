@@ -172,7 +172,35 @@ let package = Package(
                 "Reporting/ReportService.swift",
                 "Reporting/CombinedReportEncoder.swift",
                 "ReportExporter/ReportExporter.swift",
-                "ReportExporter/ReportSerialization.swift"
+                "ReportExporter/ReportSerialization.swift",
+                // 0.1-E1 Plugin Data Foundation：只读领域模型 / 映射 / 仓库 / 快照
+                "Plugins/Models/FKPluginStatus.swift",
+                "Plugins/Models/FKPluginSource.swift",
+                "Plugins/Models/FKPluginConfiguration.swift",
+                "Plugins/Models/FKPluginAssociation.swift",
+                "Plugins/Models/FKApplication.swift",
+                "Plugins/Models/FKPlugin.swift",
+                "Plugins/Models/PluginSnapshot.swift",
+                "Plugins/Mapping/PluginDataMapper.swift",
+                "Plugins/Repository/PluginRepository.swift",
+                "Plugins/Repository/DiagnosticPluginRepository.swift",
+                // 0.1-E2 Plugin List & Discovery：纯内存查询层
+                "Plugins/Query/PluginListFilter.swift",
+                "Plugins/Query/PluginListSort.swift",
+                "Plugins/Query/PluginListQuery.swift",
+                "Plugins/Query/PluginListEntry.swift",
+                "Plugins/Query/PluginListProjection.swift",
+                "Plugins/Query/PluginListQueryEngine.swift",
+                // 0.1-E3 Plugin Detail & App Association Explorer：详情投影与双向 Resolver
+                "Plugins/Detail/PluginAssociationEntry.swift",
+                "Plugins/Detail/PluginDetailEntry.swift",
+                "Plugins/Detail/ApplicationDetailEntry.swift",
+                "Plugins/Detail/PluginDetailProjection.swift",
+                "Plugins/Detail/ApplicationDetailProjection.swift",
+                "Plugins/Detail/PluginAssociationResolver.swift",
+                // 0.1-E4 Plugin Feature Integration & Dependency：统一状态 / 共享 Store
+                "Plugins/Integration/PluginFeatureState.swift",
+                "Plugins/Integration/PluginFeatureStore.swift"
             ]
         ),
         // 骨架阶段模型单测（Codable 往返 / 枚举口径）；2.2 接入 Stage 1 夹具回归
@@ -264,7 +292,15 @@ let package = Package(
                 "Diagnostics/DiagnosticSummaryTests.swift",
                 "Diagnostics/DiagnosticFileSystemTests.swift",
                 "Diagnostics/DiagnosticEvidenceValidatorTests.swift",
-                "Diagnostics/DiagnosticsExportBridgeTests.swift"
+                "Diagnostics/DiagnosticsExportBridgeTests.swift",
+                // 0.1-E1 Plugin Data Foundation 离线测试
+                "Plugins/PluginDataFoundationTests.swift",
+                // 0.1-E2 Plugin List & Discovery 查询层离线测试
+                "Plugins/PluginListQueryTests.swift",
+                // 0.1-E3 Plugin Detail & App Association Explorer 离线测试
+                "Plugins/PluginDetailTests.swift",
+                // 0.1-E4 Plugin Feature Integration & Dependency 集成测试
+                "Plugins/PluginFeatureIntegrationTests.swift"
             ]
         ),
         // C-F5 P2：导出样本往返解析校验可执行入口；只依赖 Models 与 AppPresentation

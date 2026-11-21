@@ -1,0 +1,1 @@
+{"checks":[{"id":"p1","name":"ipa archive exists","status":"passed"},{"id":"p2","name":"payload app structure","status":"passed"},{"id":"p3","name":"device app static validation","status":"passed"}],"failed":0,"validator":"validate-ipa"}

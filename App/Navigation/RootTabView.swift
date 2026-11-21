@@ -16,7 +16,7 @@ struct RootTabView: View {
                     Label(AppTab.dashboard.title, systemImage: AppTab.dashboard.systemImage)
                 }
 
-            PluginListView(dependencies: dependencies)
+            PluginFeatureRootView(store: dependencies.pluginFeatureStore)
                 .accessibilityIdentifier("tab.plugins")
                 .tabItem {
                     Label(AppTab.plugins.title, systemImage: AppTab.plugins.systemImage)

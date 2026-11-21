@@ -1,0 +1,20 @@
+== e1. DEB archive readable and extractable ==
+OK: dpkg-deb info/control/data extraction passed
+== e2. control fields match RootHide package profile ==
+OK: Package=com.filterkit.manager BundleID=com.filterkit.manager AppVersion=0.1.0 ControlVersion=0.1.0-1 PackageArchitecture=iphoneos-arm64e Depends=firmware (>= 15.0)
+== e3. postinst is the approved registration-only script ==
+OK: postinst syntax valid and byte-identical to reviewed source
+== e4. RootHide payload path and no var/jb prefix ==
+OK: Applications/FilterKit.app present; no var/jb prefix
+== e5. payload ownership root:root ==
+OK: archive entries are root:root
+== e6. CFBundleExecutable exists and is executable ==
+OK: CFBundleExecutable=FilterKit
+== e7. source App and DEB payload parity ==
+{"bundleIdentifier": "com.filterkit.manager", "equal": true, "executable": "FilterKit", "mismatches": [], "packaged": "/var/folders/h5/t85nd63d71x27_8gl5gw3l_w0000gn/T/tmp.5lf4ENHZsK/data/Applications/FilterKit.app", "source": "build/device-restored/FilterKit.app"}
+== e8. Mach-O device architecture includes arm64 ==
+OK: Mach-O slices=arm64 (package Architecture=iphoneos-arm64e is a separate field)
+== e9. code signature state ==
+PENDING: ldid signature blob and entitlement payload verified; RootHide Bootstrap/amfid acceptance and launch remain device gates.
+--- summary ---
+{"profile":"roothide-rootfs","packageArchitecture":"iphoneos-arm64e","minimumMachOArchitecture":"arm64","signatureState":"ldid_signed_embedded","installability":"device_acceptance_pending","installableCandidate":false,"sha256":"4525b3c18072e9114244f69f48eba53beed6f81a37229fc76513dc2ccc335bc7","checks":[{"id":"e1","name":"deb archive readable and extractable","status":"passed"},{"id":"e2","name":"control fields and RootHide profile","status":"passed"},{"id":"e3","name":"postinst registration-only policy","status":"passed"},{"id":"e4","name":"RootHide rootfs-relative payload path","status":"passed"},{"id":"e5","name":"payload ownership root:root","status":"passed"},{"id":"e6","name":"bundle executable present and executable","status":"passed"},{"id":"e7","name":"source and packaged App bundle parity","status":"passed"},{"id":"e8","name":"Mach-O includes minimum device architecture","status":"passed"},{"id":"e9","name":"ldid signature blob and embedded entitlements","status":"passed"}],"failed":0,"validator":"validate-deb"}

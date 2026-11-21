@@ -1,0 +1,1 @@
+{"bundleIdentifier": "com.filterkit.manager", "codeDirectoryHash": "extractable_all_macho", "deviceAcceptance": "unknown", "deviceInstallable": false, "embeddedEntitlements": "exact_match", "lcCodeSignature": "present_all_macho", "machoCount": 1, "signatureState": "ldid_signed_static_valid", "validator": "validate-ldid-signature"}

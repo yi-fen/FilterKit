@@ -9,7 +9,9 @@ import SwiftUI
 import Models
 import Core
 
-struct PluginListView: View {
+// 0.1-E4：信封版旧列表改名 Legacy，避免与 E2 浏览器 / E4 根视图入口混淆；
+// 文件保留不删，不再被 Plugins Tab 引用，信封数据链路零改动。
+struct LegacyPluginListView: View {
     private let dependencies: AppDependencies
     @State private var viewModel: PluginListViewModel
 
@@ -43,7 +45,7 @@ struct PluginListView: View {
                     ForEach(viewModel.summaries) { summary in
                         NavigationLink {
                             if let plugin = viewModel.plugin(id: summary.pluginID) {
-                                PluginDetailView(plugin: plugin)
+                                LegacyPluginDetailView(plugin: plugin)
                             }
                         } label: {
                             row(summary)
@@ -92,7 +94,7 @@ struct PluginListView: View {
 }
 
 #Preview {
-    PluginListView(dependencies: AppDependencies(
+    LegacyPluginListView(dependencies: AppDependencies(
         reportProvider: StaticReportProvider(envelope: SyntheticReportFactory.previewEnvelope()),
         exporter: ReportExporter()
     ))
