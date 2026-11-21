@@ -191,7 +191,13 @@ final class PluginDataFoundationTests: XCTestCase {
     }
 
     private func plugin(namedBase base: String, in snapshot: PluginSnapshot) -> FKPlugin? {
-        snapshot.plugins.first { $0.id.lowercased().hasSuffix(":\(base)") || $0.id == "filter:\(base)" }
+        // ID 口径（E1 规格 §模型）：优先 `packageIdentifier:base`；无包标识回退 dylib
+        // 基名；孤立 plist 为 `filter:base`。三种形态均需可被查找助手命中。
+        snapshot.plugins.first {
+            $0.id.lowercased().hasSuffix(":\(base)")
+                || $0.id == "filter:\(base)"
+                || $0.id == base
+        }
     }
 
     // MARK: - 用例

@@ -466,6 +466,8 @@ final class PluginDetailTests: XCTestCase {
     }
 
     func testE322ProjectionIsPureAndDoesNotTriggerRepositoryScan() {
+        // 扫描次数断言走真实 Repository：Runner 无越狱环境时快照可为空，不假设
+        // 扫描到插件；投影/Resolver 调用不得触发二次 refresh。
         let repository = DiagnosticPluginRepository(engine: ReadOnlyDiagnosticsEngine())
         let snapshot = repository.refresh()
         let before = repository.refreshCount
@@ -482,8 +484,10 @@ final class PluginDetailTests: XCTestCase {
 
         XCTAssertEqual(repository.refreshCount, before)
 
-        // 纯函数：同一输入两次投影结果一致
-        guard let plugin = snapshot.plugins.first else { return XCTFail("空快照") }
+        // 纯函数一致性：同一输入两次投影结果一致；使用离线合成快照，不依赖 Runner
+        // 真机/越狱环境是否扫描到插件。
+        let synthetic = snapshot()
+        guard let plugin = synthetic.plugins.first else { return XCTFail("合成快照缺插件") }
         XCTAssertEqual(PluginDetailProjection.entry(from: plugin), PluginDetailProjection.entry(from: plugin))
     }
 }
