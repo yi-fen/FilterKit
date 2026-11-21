@@ -15,11 +15,14 @@ import PackageDescription
 
 let package = Package(
     name: "FilterKit",
-    // SPM 仅作为 macOS runner 上的非界面层离线编译/测试入口；Core 插件功能
-    // Store 使用 Observation 框架（@Observable，macOS 14 / iOS 17 起可用），
-    // 故 SPM 平台下限声明 macOS 14。Xcode App target 的 iOS 17.0 部署目标
-    // 由 project.yml 独立控制，不受本声明影响。
-    platforms: [.macOS(.v14)],
+    // SPM 同时承担 macOS runner 非界面层离线编译/测试入口，以及被 Xcode App
+    // target 以本地包产品链接的 Core/Models/Adapters 来源。Core 插件功能 Store
+    // 使用 Observation 框架（@Observable，macOS 14 / iOS 17 起可用），故平台下限
+    // 双声明 macOS 14 / iOS 17：仅声明 macOS 时，Xcode 链接本地包会按 SPM 默认
+    // iOS 12.0 目标编译 Core，Observation 可用性检查失败（第三轮 Runner
+    // app-build/device-build 实测 `-target ...-ios12.0`）。Xcode App target 的
+    // iOS 17.0 部署目标仍由 project.yml 独立控制，本声明与之对齐、不抬高 App 下限。
+    platforms: [.macOS(.v14), .iOS(.v17)],
     products: [
         // 供 Xcode App target 链接的本地库产品；非界面层编译路径不变。
         .library(name: "Models", targets: ["Models"]),
