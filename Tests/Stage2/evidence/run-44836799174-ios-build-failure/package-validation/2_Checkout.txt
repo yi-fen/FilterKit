@@ -1,0 +1,87 @@
+﻿2026-11-20T23:28:55.3897880Z ##[group]Run actions/checkout@v6
+2026-11-20T23:28:55.3898780Z with:
+2026-11-20T23:28:55.3899530Z   repository: yi-fen/FilterKit
+2026-11-20T23:28:55.3904290Z   token: ***
+2026-11-20T23:28:55.3904730Z   ssh-strict: true
+2026-11-20T23:28:55.3905180Z   ssh-user: git
+2026-11-20T23:28:55.3905580Z   persist-credentials: true
+2026-11-20T23:28:55.3906070Z   clean: true
+2026-11-20T23:28:55.3906540Z   sparse-checkout-cone-mode: true
+2026-11-20T23:28:55.3907050Z   fetch-depth: 1
+2026-11-20T23:28:55.3907420Z   fetch-tags: false
+2026-11-20T23:28:55.3907790Z   show-progress: true
+2026-11-20T23:28:55.3908200Z   lfs: false
+2026-11-20T23:28:55.3908620Z   submodules: false
+2026-11-20T23:28:55.3909080Z   set-safe-directory: true
+2026-11-20T23:28:55.3909590Z   allow-unsafe-pr-checkout: false
+2026-11-20T23:28:55.3910400Z ##[endgroup]
+2026-11-20T23:28:55.8275040Z Syncing repository: yi-fen/FilterKit
+2026-11-20T23:28:55.8277130Z ##[group]Getting Git version info
+2026-11-20T23:28:55.8277810Z Working directory is '/Users/runner/work/FilterKit/FilterKit'
+2026-11-20T23:28:55.8279550Z [command]/opt/homebrew/bin/git version
+2026-11-20T23:28:55.8850970Z git version 2.56.1
+2026-11-20T23:28:55.8869380Z ##[endgroup]
+2026-11-20T23:28:55.8879490Z Copying '/Users/runner/.gitconfig' to '/Users/runner/work/_temp/f33e875a-8639-401a-a5d0-1b8f5b37b269/.gitconfig'
+2026-11-20T23:28:55.8896270Z Temporarily overriding HOME='/Users/runner/work/_temp/f33e875a-8639-401a-a5d0-1b8f5b37b269' before making global git config changes
+2026-11-20T23:28:55.8898420Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-20T23:28:55.8900970Z [command]/opt/homebrew/bin/git config --global --add safe.directory /Users/runner/work/FilterKit/FilterKit
+2026-11-20T23:28:55.9044260Z Deleting the contents of '/Users/runner/work/FilterKit/FilterKit'
+2026-11-20T23:28:55.9050060Z ##[group]Determining repository object format
+2026-11-20T23:28:55.9053850Z ##[endgroup]
+2026-11-20T23:28:55.9058130Z ##[group]Initializing the repository
+2026-11-20T23:28:55.9062600Z [command]/opt/homebrew/bin/git init /Users/runner/work/FilterKit/FilterKit
+2026-11-20T23:28:55.9298340Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-11-20T23:28:55.9299580Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-11-20T23:28:55.9300450Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-11-20T23:28:55.9301050Z hint: call:
+2026-11-20T23:28:55.9301410Z hint:
+2026-11-20T23:28:55.9301860Z hint: 	git config --global init.defaultBranch <name>
+2026-11-20T23:28:55.9302380Z hint:
+2026-11-20T23:28:55.9302920Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-11-20T23:28:55.9303830Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-11-20T23:28:55.9304450Z hint:
+2026-11-20T23:28:55.9304820Z hint: 	git branch -m <name>
+2026-11-20T23:28:55.9305250Z hint:
+2026-11-20T23:28:55.9305870Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-11-20T23:28:55.9309640Z Initialized empty Git repository in /Users/runner/work/FilterKit/FilterKit/.git/
+2026-11-20T23:28:55.9321110Z [command]/opt/homebrew/bin/git remote add origin https://github.com/yi-fen/FilterKit
+2026-11-20T23:28:55.9428450Z ##[endgroup]
+2026-11-20T23:28:55.9429880Z ##[group]Disabling automatic garbage collection
+2026-11-20T23:28:55.9432380Z [command]/opt/homebrew/bin/git config --local gc.auto 0
+2026-11-20T23:28:55.9511350Z ##[endgroup]
+2026-11-20T23:28:55.9512570Z ##[group]Setting up auth
+2026-11-20T23:28:55.9513210Z Removing SSH command configuration
+2026-11-20T23:28:55.9515070Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-20T23:28:55.9607920Z [command]/opt/homebrew/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-20T23:28:56.1114450Z Removing HTTP extra header
+2026-11-20T23:28:56.1116780Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-20T23:28:56.1170810Z [command]/opt/homebrew/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-20T23:28:56.2593590Z Removing includeIf entries pointing to credentials config files
+2026-11-20T23:28:56.2695860Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-20T23:28:56.3008360Z [command]/opt/homebrew/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-20T23:28:56.4147450Z [command]/opt/homebrew/bin/git config --file /Users/runner/work/_temp/git-credentials-170508d8-edbf-4c14-aec7-1942934e8047.config http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-11-20T23:28:56.4236900Z [command]/opt/homebrew/bin/git config --local includeIf.gitdir:/Users/runner/work/FilterKit/FilterKit/.git.path /Users/runner/work/_temp/git-credentials-170508d8-edbf-4c14-aec7-1942934e8047.config
+2026-11-20T23:28:56.4308220Z [command]/opt/homebrew/bin/git config --local includeIf.gitdir:/Users/runner/work/FilterKit/FilterKit/.git/worktrees/*.path /Users/runner/work/_temp/git-credentials-170508d8-edbf-4c14-aec7-1942934e8047.config
+2026-11-20T23:28:56.4469760Z [command]/opt/homebrew/bin/git config --local includeIf.gitdir:/github/workspace/.git.path /github/runner_temp/git-credentials-170508d8-edbf-4c14-aec7-1942934e8047.config
+2026-11-20T23:28:56.4584780Z [command]/opt/homebrew/bin/git config --local includeIf.gitdir:/github/workspace/.git/worktrees/*.path /github/runner_temp/git-credentials-170508d8-edbf-4c14-aec7-1942934e8047.config
+2026-11-20T23:28:56.4698280Z ##[endgroup]
+2026-11-20T23:28:56.4701260Z ##[group]Fetching the repository
+2026-11-20T23:28:56.4705910Z [command]/opt/homebrew/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +fb8a6932bfe7d9f1f21bfe8b9cf68f167dd08790:refs/remotes/origin/main
+2026-11-20T23:28:57.3475090Z From https://github.com/yi-fen/FilterKit
+2026-11-20T23:28:57.3683110Z  * [new ref]         fb8a6932bfe7d9f1f21bfe8b9cf68f167dd08790 -> origin/main
+2026-11-20T23:28:57.4015990Z [command]/opt/homebrew/bin/git branch --list --remote origin/main
+2026-11-20T23:28:57.4129460Z   origin/main
+2026-11-20T23:28:57.4415560Z [command]/opt/homebrew/bin/git rev-parse refs/remotes/origin/main
+2026-11-20T23:28:57.4449310Z fb8a6932bfe7d9f1f21bfe8b9cf68f167dd08790
+2026-11-20T23:28:57.4532350Z ##[endgroup]
+2026-11-20T23:28:57.4533800Z ##[group]Determining the checkout info
+2026-11-20T23:28:57.4536520Z ##[endgroup]
+2026-11-20T23:28:57.4539350Z [command]/opt/homebrew/bin/git sparse-checkout disable
+2026-11-20T23:28:57.4546820Z [command]/opt/homebrew/bin/git config --local --unset-all extensions.worktreeConfig
+2026-11-20T23:28:57.4553920Z ##[group]Checking out the ref
+2026-11-20T23:28:57.4557390Z [command]/opt/homebrew/bin/git checkout --progress --force -B main refs/remotes/origin/main
+2026-11-20T23:28:57.8611440Z Switched to a new branch 'main'
+2026-11-20T23:28:57.8623790Z branch 'main' set up to track 'origin/main'.
+2026-11-20T23:28:57.8631480Z ##[endgroup]
+2026-11-20T23:28:57.8816560Z [command]/opt/homebrew/bin/git log -1 --format=%H
+2026-11-20T23:28:57.8933790Z fb8a6932bfe7d9f1f21bfe8b9cf68f167dd08790

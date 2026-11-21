@@ -1,0 +1,5 @@
+﻿2026-11-20T23:28:58.9880680Z ##[group]Run python3 -c "import json; json.load(open('build/validation/package-metadata.json')); print('metadata JSON decodable')"
+2026-11-20T23:28:58.9883120Z [36;1mpython3 -c "import json; json.load(open('build/validation/package-metadata.json')); print('metadata JSON decodable')"[0m
+2026-11-20T23:28:58.9925160Z shell: /bin/bash -e {0}
+2026-11-20T23:28:58.9926620Z ##[endgroup]
+2026-11-20T23:28:59.2509020Z metadata JSON decodable

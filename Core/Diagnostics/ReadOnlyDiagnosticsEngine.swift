@@ -15,6 +15,10 @@ import Foundation
 
 #if canImport(Darwin)
 import Darwin
+// `_dyld_image_count` / `_dyld_get_image_name` live in the MachO.dyld submodule;
+// the iOS SDK does not re-export them through the Darwin umbrella, so import the
+// submodule explicitly on Darwin platforms (absent on Linux/non-Darwin).
+import MachO.dyld
 #endif
 #if canImport(CommonCrypto)
 import CommonCrypto
@@ -89,6 +93,10 @@ public struct FKDiagnosticReport: Codable, Equatable {
 /// Performs the 18 legacy diagnostics without modifying the jailbreak filesystem.
 /// A caller may supply an app-bundle path for deterministic JBROOT discovery tests.
 public final class ReadOnlyDiagnosticsEngine {
+    /// R3-A 接缝：已迁移模块（JBROOT / Filter plist / dpkg）经此只读协议访问文件。
+    private let fileSystem: DiagnosticFileSystem
+    /// 既有 deferred 模块（动态库目录枚举、指纹、Helper、私有 Workspace、流式哈希等）
+    /// 暂保留原 FileManager 直连，待后续批次分批迁移。
     private let fileManager: FileManager
     private let appBundlePath: String
     private var findings: [FKDiagnosticFinding] = []
@@ -102,6 +110,15 @@ public final class ReadOnlyDiagnosticsEngine {
     public init(fileManager: FileManager = .default,
                 appBundlePath: String = Bundle.main.bundlePath) {
         self.fileManager = fileManager
+        self.fileSystem = LocalDiagnosticFileSystem(fileManager: fileManager)
+        self.appBundlePath = appBundlePath
+    }
+
+    /// 测试注入构造器：接收可注入的只读文件系统替身；`fileManager` 保留给未迁移的 deferred 表面。
+    init(fileSystem: DiagnosticFileSystem,
+         appBundlePath: String = Bundle.main.bundlePath) {
+        self.fileManager = .default
+        self.fileSystem = fileSystem
         self.appBundlePath = appBundlePath
     }
 
@@ -159,14 +176,14 @@ public final class ReadOnlyDiagnosticsEngine {
         var filters: [[String: String]] = []
         var plistPaths: [String] = []
         for directory in directories where directory["enumerable"] == "true" {
-            guard let path = directory["path"], let names = try? fileManager.contentsOfDirectory(atPath: path) else { continue }
+            guard let path = directory["path"], let names = try? fileSystem.listDirectory(atPath: path) else { continue }
             plistPaths += names.filter { $0.lowercased().hasSuffix(".plist") }.map { (path as NSString).appendingPathComponent($0) }
         }
         for plistPath in Set(plistPaths).sorted() {
             let base = (plistPath as NSString).deletingPathExtension
             let matchingPlugin = plugins.first(where: { (($0["path"] ?? "") as NSString).deletingPathExtension == base })
             do {
-                let data = try Data(contentsOf: URL(fileURLWithPath: plistPath), options: [.mappedIfSafe])
+                let data = try fileSystem.readData(atPath: plistPath)
                 let object = try PropertyListSerialization.propertyList(from: data, options: [], format: nil)
                 let dictionary = object as? [String: Any]
                 // Theos filter plists may nest the rules under a `Filter` dictionary;
@@ -211,10 +228,10 @@ public final class ReadOnlyDiagnosticsEngine {
         // 6. Injector identification: package metadata + current-process dyld images +
         // fixed filesystem fingerprints. Static and runtime evidence are reported separately.
         let dpkgStatus = locateDpkgStatus(root: selectedRoot)
-        let parsedPackages = dpkgStatus.map(Self.parseDpkgStatus(at:)) ?? ([], ["dpkg_status_not_found"])
+        let parsedPackages = dpkgStatus.map { self.parseDpkgStatus(at: $0) } ?? ([], ["dpkg_status_not_found"])
         let packages = parsedPackages.0
         let runtimeImages = Self.runtimeInjectorImages()
-        var injectorEvidence = identifyInjectors(packages: packages, runtimeImages: runtimeImages)
+        var injectorEvidence = Self.identifyInjectors(packages: packages, runtimeImages: runtimeImages)
         injectorEvidence += fingerprintInjectors(root: selectedRoot)
         environment["injector"] = injectorEvidence.first?["type"] ?? "unknown"
         environment["injector_runtime_scope"] = "current_process_only"
@@ -230,11 +247,12 @@ public final class ReadOnlyDiagnosticsEngine {
             let logical = Self.canonicalDpkgPath(path, root: selectedRoot)
             let owners = ownershipByPath[logical]?.first?["packages"] ?? ""
             let ownerList = owners.isEmpty ? [] : owners.split(separator: ",").map(String.init)
-            item["source"] = owners.isEmpty ? (dpkgStatus == nil ? "unknown" : "manual_inferred") : "dpkg"
+            let source = Self.classifyPluginSource(owners: ownerList, dpkgStatusPresent: dpkgStatus != nil)
+            item["source"] = source.source
             item["package_owners"] = owners
             item["package_candidates"] = owners
-            item["exact_package_record"] = String(!ownerList.isEmpty)
-            item["source_evidence"] = owners.isEmpty ? (dpkgStatus == nil ? "insufficient" : "no_exact_dpkg_list_owner") : "dpkg_list_exact_path"
+            item["exact_package_record"] = source.exactRecord
+            item["source_evidence"] = source.sourceEvidence
             return item
         }
 
@@ -242,7 +260,7 @@ public final class ReadOnlyDiagnosticsEngine {
         let helpers = inspectHelpers(root: selectedRoot, ownership: dpkgResult.ownership)
 
         // 17. Static plugin↔App matching only; never label this as successful injection.
-        let associations = buildAssociations(applications: applications, filters: filters)
+        let associations = Self.buildAssociations(applications: applications, filters: filters)
         let associationSummary = Self.associationSummary(filters: filters, plugins: classifiedPlugins)
 
         add("jbroot", "JBROOT path validation", roots.isEmpty ? "unconfirmed" : (selectedRoot == nil ? "warning" : "passed"),
@@ -268,6 +286,17 @@ public final class ReadOnlyDiagnosticsEngine {
             add("dpkg_warning", "DPKG parse warning", "warning", warning)
         }
 
+        // D-R2-04：报告聚合完成后跑内部证据一致性校验；合规基线不产生新 finding。
+        let baselineReport = FKDiagnosticReport(environment: environment, roots: roots,
+            dynamicLibraryDirectories: directories, plugins: classifiedPlugins, filters: filters,
+            injectorEvidence: injectorEvidence, packages: dpkgResult.packages,
+            fileOwnership: dpkgResult.ownership, integrity: dpkgResult.integrity,
+            helperCandidates: helpers.candidates, helperRegistrations: helpers.registrations,
+            applications: applications, associations: associations, findings: findings)
+        for violation in DiagnosticEvidenceValidator.validate(report: baselineReport) {
+            add("evidence_\(violation.rule)", "Evidence consistency \(violation.rule)", "warning", violation.message)
+        }
+
         return FKDiagnosticReport(environment: environment, roots: roots,
             dynamicLibraryDirectories: directories, plugins: classifiedPlugins, filters: filters,
             injectorEvidence: injectorEvidence, packages: dpkgResult.packages,
@@ -287,7 +316,7 @@ public final class ReadOnlyDiagnosticsEngine {
             if let root = Self.rootFromJBRootPath(path) { candidates.insert(root) }
         }
         let containerParent = "/var/containers/Bundle/Application"
-        if let entries = try? fileManager.contentsOfDirectory(atPath: containerParent) {
+        if let entries = try? fileSystem.listDirectory(atPath: containerParent) {
             for entry in entries where entry.hasPrefix(".jbroot-") {
                 candidates.insert((containerParent as NSString).appendingPathComponent(entry))
             }
@@ -296,22 +325,22 @@ public final class ReadOnlyDiagnosticsEngine {
                               "Library/MobileSubstrate/DynamicLibraries",
                               "Library/ElleKit/DynamicLibraries"]
         let results = candidates.sorted().map { path -> [String: String] in
-            var isDirectory: ObjCBool = false
-            let exists = fileManager.fileExists(atPath: path, isDirectory: &isDirectory)
-            let readable = exists && fileManager.isReadableFile(atPath: path)
+            let exists = fileSystem.fileExists(atPath: path)
+            let isDir = fileSystem.isDirectory(atPath: path)
+            let readable = exists && fileSystem.isReadableFile(atPath: path)
             let markers = markerSuffixes.filter { suffix in
-                fileManager.fileExists(atPath: (path as NSString).appendingPathComponent(suffix))
+                fileSystem.fileExists(atPath: (path as NSString).appendingPathComponent(suffix))
             }
-            let hasLibrary = fileManager.fileExists(atPath: (path as NSString).appendingPathComponent("Library"))
-            let hasUsr = fileManager.fileExists(atPath: (path as NSString).appendingPathComponent("usr"))
-            let structure = isDirectory.boolValue && (hasLibrary || hasUsr)
+            let hasLibrary = fileSystem.fileExists(atPath: (path as NSString).appendingPathComponent("Library"))
+            let hasUsr = fileSystem.fileExists(atPath: (path as NSString).appendingPathComponent("usr"))
+            let structure = isDir && (hasLibrary || hasUsr)
             let validated = exists && readable && structure
-            let rootOK = exists && isDirectory.boolValue
+            let rootOK = exists && isDir
             let confidence: String
             if validated { confidence = "confirmed" }
             else if rootOK { confidence = "candidate" }
             else { confidence = "path_hint_only" }
-            return ["path": path, "exists": String(exists), "directory": String(isDirectory.boolValue),
+            return ["path": path, "exists": String(exists), "directory": String(isDir),
                     "readable": String(readable), "structure_match": String(structure),
                     "is_symlink": Self.symlinkFlag(at: path),
                     "markers": markers.joined(separator: ","),
@@ -322,7 +351,7 @@ public final class ReadOnlyDiagnosticsEngine {
         return results
     }
 
-    private static func rootFromJBRootPath(_ path: String) -> String? {
+    static func rootFromJBRootPath(_ path: String) -> String? {
         guard let range = path.range(of: #"/\.jbroot-[A-Fa-f0-9]{16}(?=/|$)"#, options: .regularExpression) else { return nil }
         return String(path[..<range.upperBound])
     }
@@ -387,7 +416,7 @@ public final class ReadOnlyDiagnosticsEngine {
 
     // MARK: 6 — Injector recognition
 
-    private func identifyInjectors(packages: [[String: String]], runtimeImages: [[String: String]]) -> [[String: String]] {
+    static func identifyInjectors(packages: [[String: String]], runtimeImages: [[String: String]]) -> [[String: String]] {
         let known: [(String, [String])] = [
             ("ellekit", ["ellekit"]),
             ("substrate", ["mobilesubstrate", "substrate"]),
@@ -463,13 +492,13 @@ public final class ReadOnlyDiagnosticsEngine {
         #endif
     }
 
-    private struct InjectorProfile {
+    struct InjectorProfile {
         let filterParsing: String
         let appTargeting: String
         let globalInjection: String
     }
 
-    private static func injectorProfile(_ name: String) -> InjectorProfile {
+    static func injectorProfile(_ name: String) -> InjectorProfile {
         switch name {
         case "ellekit": return InjectorProfile(filterParsing: "supported", appTargeting: "supported", globalInjection: "supported")
         case "substrate": return InjectorProfile(filterParsing: "unsupported", appTargeting: "supported", globalInjection: "supported")
@@ -484,14 +513,18 @@ public final class ReadOnlyDiagnosticsEngine {
     private func locateDpkgStatus(root: String?) -> String? {
         var paths = ["/var/lib/dpkg/status", "/var/jb/var/lib/dpkg/status"]
         if let root { paths.insert((root as NSString).appendingPathComponent("var/lib/dpkg/status"), at: 0) }
-        return paths.first(where: { fileManager.isReadableFile(atPath: $0) })
+        return paths.first(where: { fileSystem.isReadableFile(atPath: $0) })
     }
 
-    private static func parseDpkgStatus(at path: String) -> ([[String: String]], [String]) {
-        guard let data = try? Data(contentsOf: URL(fileURLWithPath: path)),
+    private func parseDpkgStatus(at path: String) -> ([[String: String]], [String]) {
+        guard let data = try? fileSystem.readData(atPath: path),
               let text = String(data: data, encoding: .utf8) else {
             return ([], ["status_missing_or_invalid_utf8"])
         }
+        return Self.parseDpkgStatusText(text)
+    }
+
+    static func parseDpkgStatusText(_ text: String) -> ([[String: String]], [String]) {
         var records: [[String: String]] = []
         var warnings: [String] = []
         var current: [String: String] = [:]
@@ -557,7 +590,12 @@ public final class ReadOnlyDiagnosticsEngine {
             let packageID = fields["Package"] ?? ""
             guard !packageID.isEmpty, !packageID.contains("/"), !packageID.contains("..") else { continue }
             let listPath = (infoDirectory as NSString).appendingPathComponent(packageID + ".list")
-            let listText = (try? String(contentsOfFile: listPath, encoding: .utf8)) ?? ""
+            let listText: String
+            do {
+                listText = String(decoding: try fileSystem.readData(atPath: listPath), as: UTF8.self)
+            } catch {
+                listText = ""
+            }
             var listed = 0, existing = 0, missing = 0, unreadable = 0, notChecked = 0
             var listedLogicalPaths: [String] = []
             for line in listText.components(separatedBy: .newlines) where !line.isEmpty {
@@ -566,18 +604,17 @@ public final class ReadOnlyDiagnosticsEngine {
                 owners[logical, default: []].insert(packageID)
                 listed += 1
                 let physical = Self.physicalDpkgPath(line, root: selectedRoot)
-                var isDirectory: ObjCBool = false
-                if !fileManager.fileExists(atPath: physical, isDirectory: &isDirectory) {
+                if !fileSystem.fileExists(atPath: physical) {
                     missing += 1
-                } else if isDirectory.boolValue {
+                } else if fileSystem.isDirectory(atPath: physical) {
                     notChecked += 1
-                } else if !fileManager.isReadableFile(atPath: physical) {
+                } else if !fileSystem.isReadableFile(atPath: physical) {
                     unreadable += 1
                 } else {
                     existing += 1
                 }
             }
-            let conffiles = Set(Self.conffilePaths(fields: fields, infoDirectory: infoDirectory).map {
+            let conffiles = Set(conffilePaths(fields: fields, infoDirectory: infoDirectory).map {
                 Self.canonicalDpkgPath($0, root: selectedRoot)
             })
             let state = Self.dpkgState(fields["Status"] ?? "")
@@ -602,7 +639,9 @@ public final class ReadOnlyDiagnosticsEngine {
             // 11. Compare dpkg .md5sums using MD5 only (format compatibility, not a signature).
             let md5Path = (infoDirectory as NSString).appendingPathComponent(packageID + ".md5sums")
             var checksumPaths = Set<String>()
-            if let md5Text = try? String(contentsOfFile: md5Path, encoding: .utf8) {
+            let md5Text: String? = (try? fileSystem.readData(atPath: md5Path))
+                .flatMap { String(data: $0, encoding: .utf8) }
+            if let md5Text {
                 for row in md5Text.components(separatedBy: .newlines) where !row.isEmpty {
                     let parts = row.split(maxSplits: 1, whereSeparator: { $0 == " " || $0 == "\t" })
                     guard parts.count == 2 else { continue }
@@ -611,7 +650,7 @@ public final class ReadOnlyDiagnosticsEngine {
                     let logical = Self.canonicalDpkgPath(entry, root: selectedRoot)
                     checksumPaths.insert(logical)
                     let physical = Self.physicalDpkgPath(entry, root: selectedRoot)
-                    guard fileManager.fileExists(atPath: physical) else {
+                    guard fileSystem.fileExists(atPath: physical) else {
                         integrity.append(["package_id": packageID, "path": logical, "status": "checksum_unavailable", "reason": "missing"])
                         continue
                     }
@@ -667,7 +706,7 @@ public final class ReadOnlyDiagnosticsEngine {
                 }
             }
             // Files listed in .list but absent from .md5sums carry a no-checksum-record bucket.
-            let md5Available = (try? String(contentsOfFile: md5Path, encoding: .utf8)) != nil
+            let md5Available = (try? fileSystem.readData(atPath: md5Path)) != nil
             if listText.isEmpty == false && md5Available {
                 for logical in listedLogicalPaths where !checksumPaths.contains(logical) {
                     integrity.append(["package_id": packageID, "path": logical,
@@ -694,17 +733,23 @@ public final class ReadOnlyDiagnosticsEngine {
                             unownedPluginFiles: unownedPluginFiles)
     }
 
-    private static func conffilePaths(fields: [String: String], infoDirectory: String) -> [String] {
+    static func conffilePathsFromFields(_ fields: [String: String]) -> Set<String> {
+        guard let field = fields["Conffiles"] else { return [] }
         var paths: Set<String> = []
-        if let field = fields["Conffiles"] {
-            for line in field.components(separatedBy: .newlines) {
-                let path = line.trimmingCharacters(in: .whitespaces).split(whereSeparator: { $0.isWhitespace }).first.map(String.init) ?? ""
-                if path.hasPrefix("/") { paths.insert(path) }
-            }
+        for line in field.components(separatedBy: .newlines) {
+            let path = line.trimmingCharacters(in: .whitespaces).split(whereSeparator: { $0.isWhitespace }).first.map(String.init) ?? ""
+            if path.hasPrefix("/") { paths.insert(path) }
         }
+        return paths
+    }
+
+    private func conffilePaths(fields: [String: String], infoDirectory: String) -> [String] {
+        var paths = Self.conffilePathsFromFields(fields)
         if let packageID = fields["Package"] {
             let file = (infoDirectory as NSString).appendingPathComponent(packageID + ".conffiles")
-            if let text = try? String(contentsOfFile: file, encoding: .utf8) {
+            let text: String? = (try? fileSystem.readData(atPath: file))
+                .flatMap { String(data: $0, encoding: .utf8) }
+            if let text {
                 for line in text.components(separatedBy: .newlines) {
                     let path = line.trimmingCharacters(in: .whitespaces)
                     if path.hasPrefix("/") { paths.insert(path) }
@@ -714,7 +759,7 @@ public final class ReadOnlyDiagnosticsEngine {
         return paths.sorted()
     }
 
-    private static func canonicalDpkgPath(_ path: String, root: String?) -> String {
+    static func canonicalDpkgPath(_ path: String, root: String?) -> String {
         var value = (path as NSString).standardizingPath
         if let root, value.hasPrefix(root) { value = String(value.dropFirst(root.count)) }
         if value.hasPrefix("/var/jb/") { value = String(value.dropFirst(7)) }
@@ -722,14 +767,14 @@ public final class ReadOnlyDiagnosticsEngine {
         return value.hasPrefix("/") ? value : "/" + value
     }
 
-    private static func physicalDpkgPath(_ path: String, root: String?) -> String {
+    static func physicalDpkgPath(_ path: String, root: String?) -> String {
         if path.hasPrefix("/var/jb/") || path == "/var/jb" { return path }
         guard let root, path.hasPrefix("/") else { return path }
         return (root as NSString).appendingPathComponent(String(path.dropFirst()))
     }
 
     /// dpkg Status field: `want flag current-state` decomposed conservatively.
-    private static func dpkgState(_ status: String) -> (want: String, errorFlag: String, current: String, state: String) {
+    static func dpkgState(_ status: String) -> (want: String, errorFlag: String, current: String, state: String) {
         let parts = status.split(whereSeparator: { $0.isWhitespace }).map(String.init)
         let want = parts.count > 0 ? parts[0] : "unknown"
         let errorFlag = parts.count > 1 ? parts[1] : "unknown"
@@ -787,7 +832,15 @@ public final class ReadOnlyDiagnosticsEngine {
         return ("unknown", "", "unknown", "low")
     }
 
-    private static func magicFormat(bytes: [UInt8]) -> String? {
+    static func magicFormat(bytes: [UInt8]) -> String? {
+        // Short-buffer signatures are matched by byte position before the
+        // four-byte tuple switch, whose patterns must all be four-element.
+        if bytes.count >= 3, bytes[0] == 0xFF, bytes[1] == 0xD8, bytes[2] == 0xFF {
+            return "jpeg"
+        }
+        if bytes.count >= 2, bytes[0] == 0x1F, bytes[1] == 0x8B {
+            return "gzip"
+        }
         guard bytes.count >= 4 else { return nil }
         let b0 = bytes[0], b1 = bytes[1], b2 = bytes[2], b3 = bytes[3]
         switch (b0, b1, b2, b3) {
@@ -799,9 +852,9 @@ public final class ReadOnlyDiagnosticsEngine {
             return "fat_macho"
         case (0x7F, 0x45, 0x4C, 0x46): return "elf"
         case (0x89, 0x50, 0x4E, 0x47): return "png"
-        case (0xFF, 0xD8, 0xFF): return "jpeg"
+        case (0xFF, 0xD8, 0xFF, _): return "jpeg"
         case (0x50, 0x4B, 0x03, 0x04): return "zip"
-        case (0x1F, 0x8B): return "gzip"
+        case (0x1F, 0x8B, _, _): return "gzip"
         case (0x25, 0x50, 0x44, 0x46): return "pdf"
         default: break
         }
@@ -816,7 +869,7 @@ public final class ReadOnlyDiagnosticsEngine {
         return nil
     }
 
-    private static func typeFromFormat(_ format: String?) -> String? {
+    static func typeFromFormat(_ format: String?) -> String? {
         guard let format else { return nil }
         switch format {
         case "mach_o", "fat_macho", "elf": return "mach_o"
@@ -846,19 +899,19 @@ public final class ReadOnlyDiagnosticsEngine {
         return Double(nonPrintable) / Double(total) < 0.10
     }
 
-    private static func isConfigurationExtension(_ ext: String) -> Bool {
+    static func isConfigurationExtension(_ ext: String) -> Bool {
         ["plist", "conf", "ini", "json", "xml", "yaml", "yml", "toml", "cfg"].contains(ext)
     }
 
-    private static func isTextExtension(_ ext: String) -> Bool {
+    static func isTextExtension(_ ext: String) -> Bool {
         ["txt", "md", "sh", "py", "rb", "js", "strings", "mo"].contains(ext)
     }
 
-    private static func isResourceExtension(_ ext: String) -> Bool {
+    static func isResourceExtension(_ ext: String) -> Bool {
         ["png", "jpg", "jpeg", "webp", "gif", "zst", "zip", "car", "nib", "dat", "pdf", "ttf", "otf"].contains(ext)
     }
 
-    private static func pathCategory(_ logical: String) -> String {
+    static func pathCategory(_ logical: String) -> String {
         if logical.hasPrefix("/usr/lib/") { return "/usr/lib" }
         if logical.hasPrefix("/usr/bin/") { return "/usr/bin" }
         if logical.hasPrefix("/usr/sbin/") { return "/usr/sbin" }
@@ -869,7 +922,7 @@ public final class ReadOnlyDiagnosticsEngine {
         return "other"
     }
 
-    private static func extensionKey(_ path: String) -> String {
+    static func extensionKey(_ path: String) -> String {
         let ext = (path as NSString).pathExtension.lowercased()
         return ext.isEmpty ? "(无扩展名)" : ext
     }
@@ -927,10 +980,7 @@ public final class ReadOnlyDiagnosticsEngine {
         }
 
         func logicalPath(_ physical: String) -> String {
-            var p = (physical as NSString).standardizingPath
-            if let root, p.hasPrefix(root) { p = String(p.dropFirst(root.count)) }
-            if !p.hasPrefix("/") { p = "/" + p }
-            return p.standardizingPath
+            Self.helperLogicalPath(physical, root: root)
         }
 
         func probe(_ path: String) -> [String: String] {
@@ -1058,17 +1108,20 @@ public final class ReadOnlyDiagnosticsEngine {
             let iconFiles = primaryIcon?["CFBundleIconFiles"] as? [String] ?? (info["CFBundleIconFiles"] as? [String] ?? [])
             let iconName = iconFiles.last ?? ""
             let iconPath = iconName.isEmpty ? "" : (path as NSString).appendingPathComponent(iconName)
+            let version = Self.resolveAppVersion(short: shortVersion, build: buildVersion)
             #if canImport(UIKit)
             let iconDecoded = !iconPath.isEmpty && UIImage(contentsOfFile: iconPath) != nil
+            let iconSource = iconDecoded ? "bundle_file" : (iconPath.isEmpty ? "unresolved" : "bundle_file_candidate")
             #else
             let iconDecoded = false
+            let iconSource = iconPath.isEmpty ? "unresolved" : "bundle_file_candidate"
             #endif
             return ["bundle_id": bundleID, "name": name, "bundle_path": path,
-                    "version": shortVersion ?? buildVersion ?? "unknown",
-                    "version_source": shortVersion != nil ? "CFBundleShortVersionString" : (buildVersion != nil ? "CFBundleVersion" : "unknown"),
+                    "version": version.version,
+                    "version_source": version.source,
                     "build_version": buildVersion ?? "", "executable": info["CFBundleExecutable"] as? String ?? "",
-                    "is_system": String(path.hasPrefix("/Applications/") || path.hasPrefix("/System/")),
-                    "icon_source": iconDecoded ? "bundle_file" : (iconPath.isEmpty ? "unresolved" : "bundle_file_candidate"),
+                    "is_system": String(Self.isSystemApp(path: path)),
+                    "icon_source": iconSource,
                     "icon_path": iconPath, "icon_decoded": String(iconDecoded)]
         }
         #else
@@ -1086,14 +1139,14 @@ public final class ReadOnlyDiagnosticsEngine {
 
     // MARK: 17 — Static plugin/App associations
 
-    private struct AssociationSummary {
+    struct AssociationSummary {
         let global: Int
         let unmatched: Int
         let missingDylib: Int
         let missingPlist: Int
     }
 
-    private static func associationSummary(filters: [[String: String]], plugins: [[String: String]]) -> AssociationSummary {
+    static func associationSummary(filters: [[String: String]], plugins: [[String: String]]) -> AssociationSummary {
         let global = filters.filter { $0["global"] == "true" }.count
         let unmatched = filters.filter {
             !($0["unmatched_bundle_ids"] ?? "").isEmpty || !($0["unmatched_executables"] ?? "").isEmpty
@@ -1105,7 +1158,7 @@ public final class ReadOnlyDiagnosticsEngine {
         return AssociationSummary(global: global, unmatched: unmatched, missingDylib: missingDylib, missingPlist: missingPlist)
     }
 
-    private func buildAssociations(applications: [[String: String]], filters: [[String: String]]) -> [[String: String]] {
+    static func buildAssociations(applications: [[String: String]], filters: [[String: String]]) -> [[String: String]] {
         var results: [[String: String]] = []
         for filter in filters {
             let bundleTargets = Set((filter["bundles"] ?? "").split(separator: ",").map(String.init))
@@ -1151,7 +1204,7 @@ public final class ReadOnlyDiagnosticsEngine {
 
     // MARK: Filter dictionary parsing (item 5)
 
-    private static func parseFilterDictionary(_ object: Any?,
+    static func parseFilterDictionary(_ object: Any?,
                                               installedBundleIDs: Set<String>,
                                               installedExecutables: Set<String>) -> [String: String] {
         guard let filter = object as? [String: Any] else {
@@ -1231,6 +1284,36 @@ public final class ReadOnlyDiagnosticsEngine {
             "valid": String(entryCount > 0),
             "entry_count": String(entryCount)
         ]
+    }
+
+    static func helperLogicalPath(_ physical: String, root: String?) -> String {
+        var p = (physical as NSString).standardizingPath
+        if let root, p.hasPrefix(root) { p = String(p.dropFirst(root.count)) }
+        if !p.hasPrefix("/") { p = "/" + p }
+        return (p as NSString).standardizingPath
+    }
+
+    // MARK: Pure classification helpers (offline-testable, no filesystem access)
+
+    static func classifyPluginSource(owners: [String], dpkgStatusPresent: Bool)
+    -> (source: String, sourceEvidence: String, exactRecord: String) {
+        let exactRecord = !owners.isEmpty
+        if owners.isEmpty {
+            let source = dpkgStatusPresent ? "manual_inferred" : "unknown"
+            let evidence = dpkgStatusPresent ? "no_exact_dpkg_list_owner" : "insufficient"
+            return (source, evidence, String(exactRecord))
+        }
+        return ("dpkg", "dpkg_list_exact_path", String(exactRecord))
+    }
+
+    static func resolveAppVersion(short: String?, build: String?) -> (version: String, source: String) {
+        if let short { return (short, "CFBundleShortVersionString") }
+        if let build { return (build, "CFBundleVersion") }
+        return ("unknown", "unknown")
+    }
+
+    static func isSystemApp(path: String) -> Bool {
+        path.hasPrefix("/Applications/") || path.hasPrefix("/System/")
     }
 
     // MARK: Utilities

@@ -1,0 +1,27 @@
+﻿2026-11-20T23:28:59.2654580Z ##[group]Run actions/upload-artifact@v7
+2026-11-20T23:28:59.2655390Z with:
+2026-11-20T23:28:59.2655740Z   name: filterkit-package-validation
+2026-11-20T23:28:59.2656390Z   path: build/validation/metadata-collection.log
+build/validation/package-metadata.json
+
+2026-11-20T23:28:59.2656920Z   retention-days: 14
+2026-11-20T23:28:59.2657170Z   if-no-files-found: warn
+2026-11-20T23:28:59.2657440Z   compression-level: 6
+2026-11-20T23:28:59.2657700Z   overwrite: false
+2026-11-20T23:28:59.2657910Z   include-hidden-files: false
+2026-11-20T23:28:59.2658150Z   archive: true
+2026-11-20T23:28:59.2658350Z ##[endgroup]
+2026-11-20T23:28:59.4715170Z Multiple search paths detected. Calculating the least common ancestor of all paths
+2026-11-20T23:28:59.4718130Z The least common ancestor is /Users/runner/work/FilterKit/FilterKit/build/validation. This will be the root directory of the artifact
+2026-11-20T23:28:59.4719800Z With the provided path, there will be 2 files uploaded
+2026-11-20T23:28:59.4721330Z Artifact name is valid!
+2026-11-20T23:28:59.4722100Z Root directory input is valid!
+2026-11-20T23:28:59.8558180Z Uploading artifact: filterkit-package-validation.zip
+2026-11-20T23:28:59.8768110Z Beginning upload of artifact content to blob storage
+2026-11-20T23:28:59.9456680Z Uploaded bytes 2372
+2026-11-20T23:28:59.9963850Z Finished uploading artifact content to blob storage!
+2026-11-20T23:29:00.0045000Z SHA256 digest of uploaded artifact is 1a3c61d9007e6331011d0c25dce6b9e99deb36ca0a29d6ee6ed522b7bd2fa8dc
+2026-11-20T23:29:00.0045950Z Finalizing artifact upload
+2026-11-20T23:29:00.4776790Z Artifact filterkit-package-validation successfully finalized. Artifact ID 14677989984
+2026-11-20T23:29:00.4972740Z Artifact filterkit-package-validation has been successfully uploaded! Final size is 2372 bytes. Artifact ID is 14677989984
+2026-11-20T23:29:00.5078920Z Artifact download URL: https://github.com/yi-fen/FilterKit/actions/runs/44836799174/artifacts/14677989984

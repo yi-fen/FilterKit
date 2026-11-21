@@ -1,9 +1,41 @@
 # FilterKit DevDocs 0.1 — 打包说明
 
 - 打包时间：2026-11-21（Asia/Shanghai）
-- 本地基线提交：`5940dc8`（0.1-D Diagnostics-Port：18 项只读诊断证据字段增补 + LDID 签名基线对齐，未推送；Runner 结论以在线日志为准，本机 Linux 无 Swift/Xcode、无 RootHide 真机）
+- 本地基线提交：`005c16d`（R3 规格冻结：线 A D-R2-03/04 计划 + 线 B D-R2-05 调查记录；前序链 `7428441` → `472f130` → `0a24e1e` R2 反馈轮 sqlite 夹具/恒真 is 守卫修复与 `751d5ff` 证据 → `624ca8b`，未推送；Runner 结论以在线日志为准，本机 Linux 无 Swift/Xcode、无 RootHide 真机）
+- 当前 DevDocs 包：`FilterKit-DevDocs-0.1.zip`，包内 2158 文件；`unzip -tq` 无错误，清单与暂存目录一致；大小/SHA256 以交付附件复算为准，包内不内嵌自身哈希。
 - 范围：规格文档（Spec/）、App/Core/Models/Adapters/Tools 源码、CI 工作流、Stage1~Stage2 测试与历史 Runner 证据归档、隔离/校验/打包/元数据脚本。
 - 边界：0.1-C 维持未闭环（G10 搁置、不豁免不签署，缺口作为已知限制带入）；0.1-D Runner/Simulator 切片 G1～G9 通过（R2-A/B 复验 run `121082423820`）；R3-A/A2/F 与 R4 规格已冻结；R4-A～E 第五轮 TAR 权限保真链路生效、DEB 在打包前置版本校验中止（App `1.0` vs control 基线 `0.0.1`），已本地统一版本源至 App `0.1.0`/build `1` ↔ control `0.1.0-1`，待下一轮 Runner 复验出包；真机侧 IPA 可启动、DEB 打开闪退，无 `.ips`/系统日志，C1 签名封印 / C2 切片链接 / C3 布局注册 / C4 完整性 / C5 自身异常五类假设待设备取证；H4 切片/签名/弱链接、H5 uicache/JBROOT 映射未闭环，R3-B～F 真机取证待设备/GUI 上下文，真机门禁 G10～G15、R4-G 挂起 pending/unknown，里程碑未闭环、不进入 0.1-E。
+
+## 0.1-D-R2 Diagnostics 离线测试落地（2026-11-21，待 Runner 复验）
+
+规格：`Spec/Stage-2/Stage-2.5-D-R2-Acceptance-Plan.md`（§3 十八项覆盖矩阵、§4 可见性与提取清单、§5 静态核对口径、§6 记录）。本轮仅 D-R2-01 复测口径归档 + D-R2-02 离线测试；D-R2-03 FS 协议解耦、D-R2-04 证据等级、D-R2-05 DEB 闪退调查、D-R2-06 真机验收均未授权，留待后续批次。
+
+- **引擎可见性与纯函数提取（行为不变）**：`ReadOnlyDiagnosticsEngine.swift` 将可离线纯表面由 private 放宽为 internal；`parseDpkgStatusText`/`conffilePathsFromFields` 从 FS 读取中提取为纯文本解析；新增 `classifyPluginSource`/`resolveAppVersion`/`isSystemApp`/`helperLogicalPath` 纯辅助；`identifyInjectors`/`buildAssociations` 无实例状态转 `static`。FS 遍历、句柄读取、流式哈希、私有 Workspace、dyld 运行时表面保留 deferred private，不提取不放宽。
+- **离线测试**：`Tests/Stage2/Diagnostics/` 18 枚测试文件、111 个 `test` 方法；`Package.swift` Stage2Tests `sources` 同步接线。覆盖纯函数/纯聚合可离线表面；FS/私有 API/dyld 运行时项在文件头与规格矩阵标注 deferred，不写伪造断言。口径不变：`loaded`/`installed`/`configured` 语义不改；unknown 不自动翻 false/failed/passed；静态关联 ≠ 实际注入；MD5 仅对照 `.md5sums` 非签名；Mach-O 差异不判成因。
+- **本地静态核对**：引擎 braces 288/288、parens 723/723、brackets 456/456、`#if`/`#endif` 12/12；18 枚新测试括号配平；无 `try!`/`as!`/强制解包/测试内 `jbroot()`/`dlsym`/FileHandle 读取；18 条 Package 接线与磁盘文件一一对应。本机 Linux 无 Swift/Xcode，Core emit-module 与 `swift test` 全套以 Runner 复测为准；无新一轮 Runner 日志前不认定 iOS 编译通过。
+- **证据**：`Tests/Stage2/evidence/r2-device-screenshots-1795218890/`（7 张真机截图 + 合成预览信封 JSON + `METADATA.md`，D1～D5 计数/去重线索挂起 #331，本轮不修聚合语义）。
+- **边界不变**：不改冻结公共 Models/ReportEnvelope/Adapter 七方法协议/Plist Parser 语义/Stage1 fixtures；不启停插件、不写 plist/规则、不动 dylib/dpkg/软链、不注入、不启 Helper/IPC/daemon、不放行 entitlement/签名；0.1-D 未闭环不签署、不进 0.1-E-B。
+- **DevDocs 重打**：基线 `7428441`；包内 2154 文件；`unzip -tq` 无错误，清单与暂存目录一致；排除规则沿用既有口径；大小/SHA256 以交付附件复算为准；R2 Runner 四目标编译与 111 例测试结论待下一轮日志回填。
+
+### R2 首轮 `swift test` 反馈（macOS Runner Debug 切片，基线 `751d5ff`，2026-11-21）
+
+- Runner：macos-26-arm64 / macOS 26.7.2 / Testing Library 1902 / `arm64e-apple-macos14.0`；Core 引擎编译通过，本切片无编译错误；总计 **569 例，1 failure（0 unexpected）**，exit 1。证据 `Tests/Stage2/evidence/r2-run-751d5ff-swift-test/`（`job-logs.txt` 397,467 B + `RUN-METADATA.md`；artifact `filterkit-test-log.zip` ID `14682256827`，17,844 B，SHA256 `b88a3fc4…bb5f6`）。
+- 唯一失败：`FileIntegrityTests.testResourceMagicSignatures` sqlite magic 夹具字节序写错（应为 `53 51 4C 69 74 65`），属测试夹具 bug；引擎 `magicFormat` 口径正确。警告：17 处新测试恒真 `is` 判定（`AppInventoryTests:18`、`DynamicLibrariesTests:47-51`、`DiagnosticSummaryTests:89-99,107`）。
+- 本地修复（引擎未改）：夹具字节序改正；恒真 `is` 断言改为 `count >= 0` 守卫。待下一轮 Runner 复测 569 例 0 failure、警告清零回填；iphoneos/iphonesimulator 目标结论未在本日志覆盖。
+
+## 0.1-D Acceptance R3 规格冻结（2026-11-21，仅规格，实现待下一批授权）
+
+- 授权范围：D-R2-03（只读 FS 协议解耦）、D-R2-04（诊断证据等级与一致性）、D-R2-05（DEB 安装与启动验收，签名修复验证）；D-R2-06 真机验收、#331 截图计数/去重本轮仍冻结。
+- 两条独立开发线、分别提交：线 A 诊断引擎 `Spec/Stage-2/Stage-2.6-D-R2-03-04-Diagnostics-Engine-R3-Plan.md`（03 → 04 顺序依赖；`Core/Diagnostics/Infrastructure/` 协议/本地实现/错误类型；内部证据模型 + E-01～E-09；不改公共 Models/信封/报告 JSON）；线 B DEB 验收 `Spec/Stage-2/DEB-Install-Crash-Investigation.md`（H4/H5/C1～C5 分组、Mach-O/签名/Bundle 静态检查、无 `.ips` 不猜根因；调查完成 ≠ 闪退修复完成）。
+- 边界不变：只读访问；不新增写入接口；不把访问失败当不存在；不重写既有签名链路；不放开 entitlement/沙盒；不安装/启动/注入/daemon。本机 Linux 无 Swift/Xcode，R3 编译与测试结论待 Runner 复测。
+
+## 0.1-D Acceptance R3-A/B 实现落地（2026-11-21，待 Runner 复测）
+
+- **R3-A D-R2-03**：`Core/Diagnostics/Infrastructure/` 三枚只读协议件（`DiagnosticFileSystem` 五接口 / `DiagnosticFileSystemError` 五类 POSIX 映射 / `LocalDiagnosticFileSystem`）；引擎 JBROOT、Filter plist、dpkg status 与 info 目录（`.list`/`.md5sums`/`.conffiles`）三模块迁移至协议；动态库枚举、注入器指纹、Helper、Workspace App、流式句柄与静态文件类型触点保留 deferred `FileManager` 直连。
+- **R3-A D-R2-04**：`Core/Diagnostics/Evidence/` 内部四等级 + 证据记录 + `DiagnosticEvidenceValidator`（E-01～E-09）；违规走既有 finding 通道，合规基线零新增 finding；公共 Models、`ReportEnvelope`、报告 JSON 字段零改动。
+- **测试**：新增 `DiagnosticFileSystemTests`（内存替身，8 例）与 `DiagnosticEvidenceValidatorTests`（13 例）；Diagnostics 套件累计 132 个 `test` 方法。本地静态核对：括号/`#if` 配平零残差、无 `try!`/`as!`/强制解包/写入型 FS 接口、Package 接线与磁盘一一对应；Swift 编译与 `swift test` 全套以 Runner 复测为准。
+- **R3-B D-R2-05**：仅验收准备记录 `Tests/Stage2/evidence/r3-b-deb-signing-prep/PREP-METADATA.md`；既有签名/打包脚本 `bash -n` 通过、CI job 在位；真机安装/首次启动/重启启动三项无设备证据，记 pending/unknown；未重写签名模块、未放宽校验。
+- **本地提交（未推送）**：`951899c`（A1/A2 协议层）→ `133e12e`（A3/A4/A5 迁移）→ `adb9d32`（A6 FS 测试）→ `b422510`（A7/A8/A9 证据层与用例）→ `9fbe709`（B1 准备记录）；R3 实现基线 SHA 以包内 git 清单为准。
 
 ## 0.1-D Diagnostics-Port（2026-11-21，待 Runner 复验）
 
@@ -14,6 +46,27 @@
 - **记录**：`Spec/Stage-2/Stage-2.5-0.1-D-Diagnostics-Port-Plan.md`（18 项缺口矩阵、P0/P1 处置、保守口径、Acceptance 延迟项）。
 - **本地静态核对**：十枚脚本 `bash -n`、workflow YAML 解析、Python 编译通过；引擎括号配平、残留现代 API/`RTLD_`/强制解包扫描通过；本机无 Swift 工具链，Core emit-module 与 `swift test` 全套待 Runner 复验。
 - **边界不变**：全程只读，不启停插件、不写 plist/规则、不动 dylib/dpkg/软链、不注入、不启 Helper/IPC/daemon、不放行 entitlement/沙盒；签名/DEB 闪退仍是独立阻塞项，本轮不视为 amfid/Bootstrap 接受或启动验证；H4/H5、真机闪退 C1～C5、G10～G15、R4-G 沿用 pending/unknown；0.1-D 未闭环不签署、不进 0.1-E-B。
+
+## 0.1-D Diagnostics-Port 首轮 Runner 编译反馈修复（run `44835136866`，待 Runner 复验）
+
+诊断归档：`Tests/Stage2/evidence/0.1-d-run-44835136866-build-failure/`（`job-logs.txt` + `RUN-METADATA.md`）；Runner 基线 `828e69f9fcd90c4ea99c7e5cf73471ffd5eb00ab`。
+
+- **Runner 事实**：`build` job（macos-26-arm64 / macOS 26.7.2）`swift build` 在 Core emit-module 阶段 exit 1（2026-11-20 23:14:08Z）；Models / Adapters / AppPresentation / ReportRoundtripValidator 均 emit/link 通过；错误与 1 条 warning 全部集中在 `Core/Diagnostics/ReadOnlyDiagnosticsEngine.swift`；build 失败后未跑 `swift test`。artifact `filterkit-non-ui-build`（ID `14676389058`，2757B，SHA256 `71400283…b3fe2905`）。
+- **三类诊断**：E1/E2（84 条）magicFormat 4 元组 switch 内 jpeg 3 元素 / gzip 2 元素模式长度错配；E3（42 条）内嵌 `logicalPath` 闭包 `String` 误用 `NSString.standardizingPath`；W1 非 UIKit 单元 `iconDecoded` 恒 false，返回字典三元 `bundle_file` 分支不可达。
+- **修复（唯一源码文件 `Core/Diagnostics/ReadOnlyDiagnosticsEngine.swift`，+14/-4）**：短缓冲签名在 switch 前按字节位置单独 `if` 判定，switch 内改通配 4 元组；`standardizingPath` 补 `as NSString` 桥接；`#if canImport(UIKit)` 两侧分别计算 `iconSource`，非 UIKit 侧直走候选/未解析口径。字段名、保守口径、公共类型与报告结构不变。
+- **本地静态核对**：括号配平 279/279、703/703、450/450；`#if`/`#endif` 12/12；全仓无未桥接 `.standardizingPath`；其余 2 元组 switch 模式长度匹配。本机 Linux 无 Swift 工具链，编译结论待下一轮 Runner 复测 emit-module 与 `swift test`。
+- **DevDocs 重打**：打包基线 `9760e69`（源码修复提交 `9b0c6c3`）；包内 2055 文件；`unzip -tq` 无错误，zip 清单与暂存目录一致，`validate-ldid-signature.sh` 条目模式 100755；大小/SHA256 以交付附件复算为准，包内不内嵌自身哈希。
+
+## 0.1-D Diagnostics-Port 第二轮 Runner iOS 构建反馈修复（run `44836799174`，待 Runner 复验）
+
+诊断归档：`Tests/Stage2/evidence/run-44836799174-ios-build-failure/`（77 文件解包结构 + `RUN-METADATA.md`）；Runner 基线 `fb8a6932bfe7d9f1f21bfe8b9cf68f167dd08790`。
+
+- **Runner 事实**：9 个 job 中 environment / isolation（七项 passed，failed 0）/ signing-prep（entitlements t1～t3 passed）/ test（全量 458 + S1-05 15 例，0 failures）/ artifact 通过；非 UI macOS `swift build` `Build complete! (27.62s)`，首轮三类修复在 macOS 编译单元复测通过；device-build（iphoneos26.5 arm64 Release）与 app-build（iphonesimulator26.5 Debug，arm64 + x86_64 两切片）`BUILD FAILED` exit 65；package-validation 因无产物 Build/IPA/DEB 三态 Pending，Entitlements Static Passed、metadata JSON decodable。
+- **诊断**：E1/E2（6 条，device 1 切片 + app 2 切片）`cannot find '_dyld_image_count' / '_dyld_get_image_name' in scope`，位于 `ReadOnlyDiagnosticsEngine.swift:454/455` `runtimeInjectorImages()`。两符号声明于 `<mach-o/dyld.h>`，属 `MachO.dyld` 子模块；macOS SwiftPM Darwin 伞头透出，iOS SDK 不经 Darwin 重导出，Xcode 显式模块编译单元下符号不在作用域。
+- **修复（唯一源码文件 `Core/Diagnostics/ReadOnlyDiagnosticsEngine.swift`，+4/-0）**：既有 `#if canImport(Darwin)` 块内追加 `import MachO.dyld`；调用点、函数签名、证据字段与保守口径不变；非 Darwin 平台整块排除。未改走 dlsym 动态解析，未写伪造 C 声明/弱链接。
+- **本地静态核对**：括号配平 279/279、704/704、450/450；`#if`/`#endif` 12/12；全仓（排除 `research/`）无其他待导入 MachO 子模块符号；脚本 `bash -n`、Python 编译、YAML 解析通过。本机 Linux 无 Swift 工具链，device/app 编译结论待下一轮 Runner 复测。
+- **DevDocs 重打**：打包基线 `3c8e6f8`（打包 HEAD 以包内清单为准）（源码修复提交 `d53a475`）；包内 2126 文件；`unzip -tq` 无错误，zip 清单与暂存目录一致，`validate-ldid-signature.sh` 条目模式 100755；大小/SHA256 以交付附件复算为准，包内不内嵌自身哈希。
+- **边界不变**：未改 Adapter 七方法协议、冻结 Models、`ReportEnvelope`、Plist Parser 语义、Stage1 fixtures；当前进程 dyld 镜像证据仅限当前进程；未触插件启停、plist/规则写入、dylib/dpkg/软链改动、注入、Helper/IPC/daemon、entitlement/签名/沙盒例外；H4/H5、真机闪退 C1～C5、G10～G15、R4-G 沿用 pending/unknown；0.1-D 未闭环不签署、不进 0.1-E-B。
 
 ## 0.1-D-R4-B2 非界面层 `swift build` 编译失败修复（run `44820826563`，待 Runner 复验）
 

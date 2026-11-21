@@ -1,0 +1,18 @@
+﻿2026-11-20T23:27:54.5525400Z ##[group]Run set -o pipefail
+2026-11-20T23:27:54.5525790Z [36;1mset -o pipefail[0m
+2026-11-20T23:27:54.5526010Z [36;1mmkdir -p build/signing[0m
+2026-11-20T23:27:54.5526370Z [36;1mPACKAGE_VALIDATION_SUMMARY_PATH=build/signing/entitlements-summary.json \[0m
+2026-11-20T23:27:54.5526930Z [36;1m  bash scripts/validate-entitlements.sh 2>&1 | tee build/signing/entitlements-validation.log[0m
+2026-11-20T23:27:54.5572730Z shell: /bin/bash -e {0}
+2026-11-20T23:27:54.5573030Z ##[endgroup]
+2026-11-20T23:27:54.7071110Z == t1. entitlements plist 可解析 ==
+2026-11-20T23:27:54.7474250Z OK: plutil -lint 通过
+2026-11-20T23:27:54.7683900Z == t2. 候选 entitlement 齐全 ==
+2026-11-20T23:27:54.7728070Z OK: platform-application
+2026-11-20T23:27:54.7830970Z OK: com.apple.private.security.no-sandbox
+2026-11-20T23:27:54.7932960Z OK: com.apple.private.security.storage.AppBundles
+2026-11-20T23:27:54.8037900Z OK: com.apple.private.security.storage.AppDataContainers
+2026-11-20T23:27:54.8139820Z == t3. 无未批准私有键 ==
+2026-11-20T23:27:54.8234260Z OK: 全部键均在批准候选清单内
+2026-11-20T23:27:54.8313760Z --- summary ---
+2026-11-20T23:27:54.8376450Z {"checks":[{"id":"t1","name":"entitlements plist parseable","status":"passed"},{"id":"t2","name":"candidate entitlements present","status":"passed"},{"id":"t3","name":"no unapproved entitlement keys","status":"passed"}],"failed":0,"validator":"validate-entitlements"}

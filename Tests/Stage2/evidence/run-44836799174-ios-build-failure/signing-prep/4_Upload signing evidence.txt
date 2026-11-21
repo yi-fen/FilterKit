@@ -1,0 +1,28 @@
+﻿2026-11-20T23:27:54.8543710Z ##[group]Run actions/upload-artifact@v7
+2026-11-20T23:27:54.8544100Z with:
+2026-11-20T23:27:54.8544310Z   name: filterkit-signing-prep
+2026-11-20T23:27:54.8544750Z   path: build/signing/entitlements-validation.log
+build/signing/entitlements-summary.json
+Config/Signing/
+
+2026-11-20T23:27:54.8545200Z   retention-days: 14
+2026-11-20T23:27:54.8545770Z   if-no-files-found: warn
+2026-11-20T23:27:54.8546040Z   compression-level: 6
+2026-11-20T23:27:54.8546250Z   overwrite: false
+2026-11-20T23:27:54.8546490Z   include-hidden-files: false
+2026-11-20T23:27:54.8546690Z   archive: true
+2026-11-20T23:27:54.8546890Z ##[endgroup]
+2026-11-20T23:27:55.0045920Z Multiple search paths detected. Calculating the least common ancestor of all paths
+2026-11-20T23:27:55.0047660Z The least common ancestor is /Users/runner/work/FilterKit/FilterKit. This will be the root directory of the artifact
+2026-11-20T23:27:55.0048660Z With the provided path, there will be 6 files uploaded
+2026-11-20T23:27:55.0049440Z Artifact name is valid!
+2026-11-20T23:27:55.0049810Z Root directory input is valid!
+2026-11-20T23:27:55.4007370Z Uploading artifact: filterkit-signing-prep.zip
+2026-11-20T23:27:55.4008320Z Beginning upload of artifact content to blob storage
+2026-11-20T23:27:55.7090350Z Uploaded bytes 5689
+2026-11-20T23:27:55.8132440Z Finished uploading artifact content to blob storage!
+2026-11-20T23:27:55.8240730Z SHA256 digest of uploaded artifact is d0ee761fae1809779836dc6a76c155dbb6d301b24f4d7e747e67bb0c43dabd42
+2026-11-20T23:27:55.8342170Z Finalizing artifact upload
+2026-11-20T23:27:56.3825520Z Artifact filterkit-signing-prep successfully finalized. Artifact ID 14679271562
+2026-11-20T23:27:56.3963680Z Artifact filterkit-signing-prep has been successfully uploaded! Final size is 5689 bytes. Artifact ID is 14679271562
+2026-11-20T23:27:56.4064930Z Artifact download URL: https://github.com/yi-fen/FilterKit/actions/runs/44836799174/artifacts/14679271562

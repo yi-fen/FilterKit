@@ -81,13 +81,37 @@
 
 ## 6.2 DevDocs 打包
 
-- 打包代码基线提交：`5940dc8`（另含记录回填提交，打包 HEAD 以交付附件内 git 清单为准）；包内文件 2053，大小/SHA256 以交付附件复算为准，包内不内嵌自身哈希。
+- 打包代码基线提交：`9760e69`（源码修复提交 `9b0c6c3`，另含记录回填提交，打包 HEAD 以交付附件内 git 清单为准）；包内文件 2055；`unzip -tq` 无错误、清单与暂存目录一致；大小/SHA256 以交付附件复算为准，包内不内嵌自身哈希。
 - 暂存 `git archive HEAD` 后剔除 `Research/Validation/evidence/0.1.18-device-report.json`；排除规则沿用既有口径（`.git/`、小写 `research/`、`build/`、`.theos/`、`.build/`、`DerivedData/`、`*.xcodeproj/`、`*.xcworkspace/`、`.tmp/`、`.DS_Store`、`*.zip`、`*.xcresult/`、`__pycache__/`、`*.pyc`）；`reference/`、`.github/workflows/`、大写 `Research/` 保留。
 - 本论包内文件计数与大小以交付附件复算为准；包内不内嵌自身哈希。
 
+## 6.3 Runner 首轮编译反馈与修复（run 44835136866，基线 `828e69f9`）
+
+Runner `swift build` 在 Core emit-module 阶段失败（2026-11-20 23:14:08Z exit 1）；Models / Adapters / AppPresentation / ReportRoundtripValidator 均通过，错误与 1 条 warning 全部集中在 `Core/Diagnostics/ReadOnlyDiagnosticsEngine.swift`；build 失败后未跑 `swift test`。证据落盘 `Tests/Stage2/evidence/0.1-d-run-44835136866-build-failure/`（日志 + RUN-METADATA.md）。
+
+| 编号 | Runner 位置 | 报错 | 根因 | 修复 |
+|---|---|---|---|---|
+| E1/E2 | 802:14 / 804:14 | 84 条 `tuple pattern has the wrong length for tuple type '(UInt8, UInt8, UInt8, UInt8)'` | magicFormat switch 对象为 4 元组，jpeg(3 元素)/gzip(2 元素) 分支模式长度不符；短缓冲签名在 `guard count>=4` 后本不可达 | 短缓冲签名在 switch 前按字节位置单独 `if` 判定；switch 内改通配 4 元组 `(0xFF,0xD8,0xFF,_)` / `(0x1F,0x8B,_,_)`；其余分支与 bplist/sqlite 判定不变 |
+| E3 | 933:22 | 42 条 `value of type 'String' has no member 'standardizingPath'` | 内嵌 `logicalPath` 闭包末尾漏 `as NSString` 桥接 | `return (p as NSString).standardizingPath`（对齐同文件 339/718/930 行既有写法） |
+| W1 | 1071:50 | `will never be executed` / `condition always evaluates to false` | 非 UIKit 单元 `iconDecoded` 恒 `false`，返回字典三元首分支不可达 | `#if canImport(UIKit)` 两侧分别计算 `iconSource`；非 UIKit 侧直走 `iconPath.isEmpty ? "unresolved" : "bundle_file_candidate"`；字段名与保守口径不变 |
+
+本地静态复核（2026-11-21，Linux 无 Swift 工具链）：引擎括号配平 279/279、703/703、450/450；`#if`/`#endif` 12/12；全仓无未桥接 `.standardizingPath`；其余 2 元组 switch 模式长度匹配。编译结论以下一轮 Runner 复测为准；本轮未改 Adapter 协议、冻结 Models、报告信封、Plist Parser 语义与 Stage1 fixtures，未触任何写操作/签名放行/沙盒例外。
+
+## 6.4 Runner 第二轮 iOS 构建反馈与修复（run 44836799174，基线 `fb8a6932`）
+
+本轮 9 个 job：environment / isolation / signing-prep / test / artifact 通过；非 UI macOS `swift build` `Build complete! (27.62s)`，458 + S1-05 15 例 0 失败（§6.3 修复在 macOS 编译单元复测通过）；device-build（iphoneos26.5 arm64 Release）与 app-build（iphonesimulator26.5 Debug，arm64 + x86_64 两切片）`BUILD FAILED` exit 65；package-validation 因无产物 Build/IPA/DEB 三态 Pending，Entitlements Static Passed、metadata JSON decodable。证据落盘 `Tests/Stage2/evidence/run-44836799174-ios-build-failure/`（77 文件解包结构 + RUN-METADATA.md）。
+
+| 编号 | Runner 位置 | 报错 | 根因 | 修复 |
+|---|---|---|---|---|
+| E1/E2 | `ReadOnlyDiagnosticsEngine.swift:454:26` / `:455:33` | 6 条 `cannot find '_dyld_image_count' / '_dyld_get_image_name' in scope`（device 1 切片 + app 2 切片） | 两符号声明于 `<mach-o/dyld.h>`，属 `MachO.dyld` 子模块；macOS SwiftPM Darwin 伞头透出，iOS SDK 不经 Darwin 重导出，Xcode 显式模块编译单元下 `import Darwin` 后符号不在作用域 | 既有 `#if canImport(Darwin)` 块内追加 `import MachO.dyld`；调用点、函数签名、证据字段与保守口径不变；非 Darwin 平台整块排除 |
+
+本地静态复核（2026-11-21，Linux 无 Swift 工具链）：括号配平 279/279、704/704、450/450；`#if`/`#endif` 12/12；全仓（排除 `research/`）无其他待导入 MachO 子模块符号；脚本 `bash -n`、Python 编译、YAML 解析通过。device/app 编译结论待下一轮 Runner 复测；未改 Adapter 协议、冻结 Models、报告信封、Plist Parser 语义与 Stage1 fixtures，未触写操作/签名放行/沙盒例外/dlsym 伪造符号。
+
+DevDocs 重打（2026-11-21）：打包基线 `3c8e6f8`（打包 HEAD 以包内清单为准）（源码修复提交 `d53a475`）；包内 2126 文件；`unzip -tq` 无错误、清单与暂存目录一致、`validate-ldid-signature.sh` 条目模式 100755；大小/SHA256 以交付附件复算为准，包内不内嵌自身哈希。
+
 ## 7. 待 Acceptance 轮闭环
 
-1. Runner 同 R4-B2 基线编译 Core/Models/Adapters/AppPresentation，回填编译反馈。
+1. Runner 同 R4-B2 基线编译 Core/Models/Adapters/AppPresentation，回填编译反馈。首轮 run 44835136866 反馈已按 §6.3 修复（macOS 单元复测通过）；第二轮 run 44836799174 iOS 构建 dyld 子模块导入问题已按 §6.4 修复，待下一轮 Runner 复测 device-build / app-build 与 `swift test`。
 2. 为纯函数（Filter 解析、status 状态机、Conffiles 合并、路径归一化）补离线夹具单测。
 3. 真机 RootHide arm64e / Rootless arm64 路径可达性、私有 Workspace、`jbroot()` 符号取证。
 4. 评估补回 entitlements t4 参考一致性静态门禁；评估结构化诊断模型（替代扁平化行）。

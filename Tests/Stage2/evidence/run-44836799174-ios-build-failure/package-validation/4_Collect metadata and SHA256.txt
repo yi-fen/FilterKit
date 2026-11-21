@@ -1,0 +1,82 @@
+﻿2026-11-20T23:28:58.8202640Z ##[group]Run set -o pipefail
+2026-11-20T23:28:58.8203820Z [36;1mset -o pipefail[0m
+2026-11-20T23:28:58.8204860Z [36;1mmkdir -p build/validation[0m
+2026-11-20T23:28:58.8205810Z [36;1m# 缺 artifact（上游 job 被跳过/失败）时记空路径，由归集脚本判 Pending；[0m
+2026-11-20T23:28:58.8206780Z [36;1m# 不允许 find 对缺失目录非零退出而中断元数据归档。[0m
+2026-11-20T23:28:58.8207650Z [36;1m# macOS uses BSD find; avoid GNU-only -maxdepth.[0m
+2026-11-20T23:28:58.8208640Z [36;1mfind_first() {[0m
+2026-11-20T23:28:58.8209400Z [36;1m  local dir="$1" pattern="$2"[0m
+2026-11-20T23:28:58.8210300Z [36;1m  if [ -d "$dir" ]; then[0m
+2026-11-20T23:28:58.8211790Z [36;1m    find "$dir" -name "$pattern" -print -quit 2>/dev/null || true[0m
+2026-11-20T23:28:58.8213300Z [36;1m  fi[0m
+2026-11-20T23:28:58.8214340Z [36;1m}[0m
+2026-11-20T23:28:58.8216790Z [36;1mAPP_PATH="$(find_first build/r4-artifacts/filterkit-device-build 'FilterKit.app')"[0m
+2026-11-20T23:28:58.8219810Z [36;1mIPA_PATH="$(find_first build/r4-artifacts/filterkit-ipa '*.ipa')"[0m
+2026-11-20T23:28:58.8222380Z [36;1mDEB_PATH="$(find_first build/r4-artifacts/filterkit-deb '*.deb')"[0m
+2026-11-20T23:28:58.8223910Z [36;1mDEVICE_SUMMARY="$(find_first build/r4-artifacts/filterkit-device-build 'device-build-summary.json')"[0m
+2026-11-20T23:28:58.8226120Z [36;1mIPA_SUMMARY="$(find_first build/r4-artifacts/filterkit-ipa 'ipa-summary.json')"[0m
+2026-11-20T23:28:58.8227580Z [36;1mDEB_SUMMARY="$(find_first build/r4-artifacts/filterkit-deb 'deb-summary.json')"[0m
+2026-11-20T23:28:58.8230130Z [36;1mENT_SUMMARY="$(find_first build/r4-artifacts/filterkit-signing-prep 'entitlements-summary.json')"[0m
+2026-11-20T23:28:58.8231770Z [36;1mAPP_PATH="$APP_PATH" IPA_PATH="$IPA_PATH" DEB_PATH="$DEB_PATH" \[0m
+2026-11-20T23:28:58.8232980Z [36;1mDEVICE_SUMMARY="$DEVICE_SUMMARY" IPA_SUMMARY="$IPA_SUMMARY" \[0m
+2026-11-20T23:28:58.8233960Z [36;1mDEB_SUMMARY="$DEB_SUMMARY" ENT_SUMMARY="$ENT_SUMMARY" \[0m
+2026-11-20T23:28:58.8235080Z [36;1mPACKAGE_METADATA_PATH=build/validation/package-metadata.json \[0m
+2026-11-20T23:28:58.8236540Z [36;1m  bash scripts/collect-package-metadata.sh 2>&1 | tee build/validation/metadata-collection.log[0m
+2026-11-20T23:28:58.8286120Z shell: /bin/bash -e {0}
+2026-11-20T23:28:58.8286840Z ##[endgroup]
+2026-11-20T23:28:58.9462160Z {
+2026-11-20T23:28:58.9463300Z   "stage": "0.1-D-R4",
+2026-11-20T23:28:58.9464100Z   "generatedAt": "2026-11-20T23:28:58Z",
+2026-11-20T23:28:58.9464990Z   "commitSha": "fb8a6932bfe7d9f1f21bfe8b9cf68f167dd08790",
+2026-11-20T23:28:58.9465750Z   "runner": {
+2026-11-20T23:28:58.9466400Z     "os": "macOS",
+2026-11-20T23:28:58.9467040Z     "name": "GitHub Actions 1000001244",
+2026-11-20T23:28:58.9467820Z     "runId": "44836799174"
+2026-11-20T23:28:58.9468600Z   },
+2026-11-20T23:28:58.9469200Z   "deviceBuild": {
+2026-11-20T23:28:58.9469910Z     "appPath": "unavailable",
+2026-11-20T23:28:58.9470640Z     "platform": "unavailable",
+2026-11-20T23:28:58.9471320Z     "architecture": "unavailable",
+2026-11-20T23:28:58.9472090Z     "bundleId": "unavailable",
+2026-11-20T23:28:58.9472900Z     "minimumOsVersion": "unavailable",
+2026-11-20T23:28:58.9473590Z     "status": "Build Pending"
+2026-11-20T23:28:58.9524150Z   },
+2026-11-20T23:28:58.9528250Z   "packages": {
+2026-11-20T23:28:58.9529920Z     "ipa": {
+2026-11-20T23:28:58.9530940Z       "path": "unavailable",
+2026-11-20T23:28:58.9531810Z       "sha256": "unavailable",
+2026-11-20T23:28:58.9532510Z       "status": "Package Pending"
+2026-11-20T23:28:58.9533170Z     },
+2026-11-20T23:28:58.9534810Z     "deb": {
+2026-11-20T23:28:58.9535760Z       "path": "unavailable",
+2026-11-20T23:28:58.9537060Z       "sha256": "unavailable",
+2026-11-20T23:28:58.9538080Z       "profile": "unavailable",
+2026-11-20T23:28:58.9539350Z       "packageArchitecture": "unavailable",
+2026-11-20T23:28:58.9540300Z       "minimumMachOArchitecture": "unavailable",
+2026-11-20T23:28:58.9541180Z       "signatureState": "unavailable",
+2026-11-20T23:28:58.9541920Z       "installability": "unavailable",
+2026-11-20T23:28:58.9542720Z       "status": "Package Pending"
+2026-11-20T23:28:58.9544170Z     }
+2026-11-20T23:28:58.9544820Z   },
+2026-11-20T23:28:58.9545490Z   "entitlements": {
+2026-11-20T23:28:58.9546220Z     "path": "Config/Signing/FilterKit.entitlements",
+2026-11-20T23:28:58.9547080Z     "status": "Entitlements Static Passed"
+2026-11-20T23:28:58.9547760Z   },
+2026-11-20T23:28:58.9548440Z   "deviceInstall": {
+2026-11-20T23:28:58.9549400Z     "status": "Device Install Pending",
+2026-11-20T23:28:58.9551390Z     "note": "真机安装/注册/启动属 R4-G 门禁，本轮 R4-A～E 未授权、不取证；模拟器产物不得作为设备构建证据。"
+2026-11-20T23:28:58.9553880Z   },
+2026-11-20T23:28:58.9554700Z   "validation": {
+2026-11-20T23:28:58.9555470Z     "deviceBuild": null,
+2026-11-20T23:28:58.9556830Z     "ipa": null,
+2026-11-20T23:28:58.9557680Z     "deb": null,
+2026-11-20T23:28:58.9559960Z     "entitlements": {"checks":[{"id":"t1","name":"entitlements plist parseable","status":"passed"},{"id":"t2","name":"candidate entitlements present","status":"passed"},{"id":"t3","name":"no unapproved entitlement keys","status":"passed"}],"failed":0,"validator":"validate-entitlements"}
+2026-11-20T23:28:58.9561930Z   },
+2026-11-20T23:28:58.9562650Z   "limitations": [
+2026-11-20T23:28:58.9563700Z     "本机/离线 CI 未执行真实设备签名放行验证",
+2026-11-20T23:28:58.9565130Z     "未调用 RootHide jbroot() 真机 API",
+2026-11-20T23:28:58.9567100Z     "DEB RootHide profile 仅证明 rootfs 相对包布局；RootHide 专用链接/弱链接/rpath、签名放行、JBROOT 映射与 uicache 行为仍待目标环境实测",
+2026-11-20T23:28:58.9568250Z     "16.5 SDK 对 iOS 17.0.2 向下兼容待实测",
+2026-11-20T23:28:58.9569060Z     "R4-E 通过仅证明包符合部署要求，不代表 RootHide 真机权限通过"
+2026-11-20T23:28:58.9569770Z   ]
+2026-11-20T23:28:58.9570470Z }

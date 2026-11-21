@@ -1,0 +1,35 @@
+﻿2026-11-20T23:28:57.9260780Z ##[group]Run actions/download-artifact@v7
+2026-11-20T23:28:57.9261850Z with:
+2026-11-20T23:28:57.9262580Z   path: build/r4-artifacts
+2026-11-20T23:28:57.9263400Z   merge-multiple: false
+2026-11-20T23:28:57.9264090Z   repository: yi-fen/FilterKit
+2026-11-20T23:28:57.9264820Z   run-id: 44836799174
+2026-11-20T23:28:57.9265450Z ##[endgroup]
+2026-11-20T23:28:58.3069130Z Found 4 artifact(s)
+2026-11-20T23:28:58.3079300Z No input name, artifact-ids or pattern filtered specified, downloading all artifacts
+2026-11-20T23:28:58.3082050Z An extra directory with the artifact name will be created for each download
+2026-11-20T23:28:58.3083680Z Preparing to download the following artifacts:
+2026-11-20T23:28:58.3086990Z - filterkit-device-build (ID: 14679785106, Size: 15352, Expected Digest: sha256:d1b72a2b640b9a987d40bc9639646128db814b611a1cf69b4d135a558ab865e2)
+2026-11-20T23:28:58.3094610Z - filterkit-isolation (ID: 14679710223, Size: 891, Expected Digest: sha256:fdf5038eb43334dc52619afa86d4eebb453b2718069d84e25f5d60562cb29cb7)
+2026-11-20T23:28:58.3099070Z - filterkit-signing-prep (ID: 14679271562, Size: 5689, Expected Digest: sha256:d0ee761fae1809779836dc6a76c155dbb6d301b24f4d7e747e67bb0c43dabd42)
+2026-11-20T23:28:58.3102530Z - filterkit-non-ui-build (ID: 14678124358, Size: 1636, Expected Digest: sha256:55c6a2bc2ad2576a0ba4cd4cb6615394fdc391ff919a35e443e7094df1ecf669)
+2026-11-20T23:28:58.7032470Z Redirecting to blob download url: https://productionresultssa18.blob.core.windows.net/actions-results/3db17dfc-d05b-4731-9687-2190953f2b63/workflow-job-run-be4b53d8-04e9-5702-8c10-409d0dacd3ad/artifacts/f4db41ab43f908f2ae178433868592c8ab209041276fcb9899c1798d5b957f1a.zip
+2026-11-20T23:28:58.7136940Z Starting download of artifact to: /Users/runner/work/FilterKit/FilterKit/build/r4-artifacts/filterkit-non-ui-build
+2026-11-20T23:28:58.7608350Z Redirecting to blob download url: https://productionresultssa18.blob.core.windows.net/actions-results/3db17dfc-d05b-4731-9687-2190953f2b63/workflow-job-run-8cdb0bb1-5557-5d3a-ad03-3ca0f597b0e0/artifacts/b2bbd94f050ffddf475bb754ff092a7d9a0cec937376912ab508c19de54f817e.zip
+2026-11-20T23:28:58.7616800Z Starting download of artifact to: /Users/runner/work/FilterKit/FilterKit/build/r4-artifacts/filterkit-signing-prep
+2026-11-20T23:28:58.7671670Z Redirecting to blob download url: https://productionresultssa18.blob.core.windows.net/actions-results/3db17dfc-d05b-4731-9687-2190953f2b63/workflow-job-run-c00f1180-c419-5728-a408-68bb6a68f619/artifacts/19bcf8864255031fb886e372ee3a057823a5d946e8cc7800a3f1a6bc641f7208.zip
+2026-11-20T23:28:58.7674120Z Starting download of artifact to: /Users/runner/work/FilterKit/FilterKit/build/r4-artifacts/filterkit-isolation
+2026-11-20T23:28:58.7686400Z Redirecting to blob download url: https://productionresultssa18.blob.core.windows.net/actions-results/3db17dfc-d05b-4731-9687-2190953f2b63/workflow-job-run-cc3064aa-751d-5bec-8121-a78a332b94bb/artifacts/d4b90acaf1721ac7a89a0619dc7e85e5f4cb1a7d6c365320f06a8ca293a6bd95.zip
+2026-11-20T23:28:58.7688890Z Starting download of artifact to: /Users/runner/work/FilterKit/FilterKit/build/r4-artifacts/filterkit-device-build
+2026-11-20T23:28:58.7884090Z (node:1138) [DEP0005] DeprecationWarning: Buffer() is deprecated due to security and usability issues. Please use the Buffer.alloc(), Buffer.allocUnsafe(), or Buffer.from() methods instead.
+2026-11-20T23:28:58.7885960Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-11-20T23:28:58.8029340Z SHA256 digest of downloaded artifact is 55c6a2bc2ad2576a0ba4cd4cb6615394fdc391ff919a35e443e7094df1ecf669
+2026-11-20T23:28:58.8044610Z Artifact download completed successfully.
+2026-11-20T23:28:58.8056160Z SHA256 digest of downloaded artifact is fdf5038eb43334dc52619afa86d4eebb453b2718069d84e25f5d60562cb29cb7
+2026-11-20T23:28:58.8059400Z Artifact download completed successfully.
+2026-11-20T23:28:58.8060770Z SHA256 digest of downloaded artifact is d0ee761fae1809779836dc6a76c155dbb6d301b24f4d7e747e67bb0c43dabd42
+2026-11-20T23:28:58.8062170Z Artifact download completed successfully.
+2026-11-20T23:28:58.8075810Z SHA256 digest of downloaded artifact is d1b72a2b640b9a987d40bc9639646128db814b611a1cf69b4d135a558ab865e2
+2026-11-20T23:28:58.8077020Z Artifact download completed successfully.
+2026-11-20T23:28:58.8077770Z Total of 4 artifact(s) downloaded
+2026-11-20T23:28:58.8081650Z Download artifact has finished successfully
