@@ -231,7 +231,28 @@ let package = Package(
                 "PermissionProbeEvidenceTests.swift",
                 "PermissionProbeReportTests.swift",
                 "PermissionProbeProbeTests.swift",
-                "PermissionProbePresentationTests.swift"
+                "PermissionProbePresentationTests.swift",
+                // Stage 2.5 D-R2-02：18 项诊断离线测试（纯函数/纯聚合表面；
+                // FS/私有 API/dyld 运行时表面 deferred，详见
+                // Spec/Stage-2/Stage-2.5-D-R2-Acceptance-Plan.md §3）。
+                "Diagnostics/JBRootDetectorTests.swift",
+                "Diagnostics/DynamicLibrariesTests.swift",
+                "Diagnostics/DylibScannerTests.swift",
+                "Diagnostics/FilterPlistTests.swift",
+                "Diagnostics/FilterRulesTests.swift",
+                "Diagnostics/InjectorDetectorTests.swift",
+                "Diagnostics/DPKGStatusParserTests.swift",
+                "Diagnostics/DPKGOwnershipTests.swift",
+                "Diagnostics/PackageMetadataTests.swift",
+                "Diagnostics/FileIntegrityTests.swift",
+                "Diagnostics/FileSourceTests.swift",
+                "Diagnostics/ConffilesTests.swift",
+                "Diagnostics/PackageConflictTests.swift",
+                "Diagnostics/HelperPreflightTests.swift",
+                "Diagnostics/AppInventoryTests.swift",
+                "Diagnostics/AppMetadataTests.swift",
+                "Diagnostics/PluginAssociationTests.swift",
+                "Diagnostics/DiagnosticSummaryTests.swift"
             ]
         ),
         // C-F5 P2：导出样本往返解析校验可执行入口；只依赖 Models 与 AppPresentation
