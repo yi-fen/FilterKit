@@ -132,3 +132,25 @@ CombinedReportEncoder.encode(envelope:diagnostics:)
 - Runner 复测：macOS Debug `swift test` 新增 8 例通过且既有 590 例无回归；iphoneos / iphonesimulator 两侧编译结论待日志回填。
 - A6 真机验收：Runner 出新构建包 → 设备安装 → 现场扫描 → 导出首份含真实 `diagnostics` 段的 JSON；当前设备所装仍是 0.1-C 旧 GUI 桩。
 - 本机 Linux 无 Swift/Xcode/plutil/lipo/ldid：本轮仅完成括号配平、符号引用、残留 API 与 Package 接线静态核对，编译通过与否以 Runner 为准。
+
+## 8. Runner 反馈切片（run `44861183809` / job `ui-acceptance`，cf741b）
+
+> 完整事实与轨迹见 `Tests/Stage2/evidence/r3-c-run-44861183809-ui-acceptance/RUN-METADATA.md`。
+
+- 检出 `cf741b`，代码与本地 R3-C 工作树一致；iphonesimulator 侧 R3-C 四枚新文件进入编译清单并构建启动成功，除 AppIntents 元数据提示外无 Swift warning/error。
+- XCUITest 8 例：**7 passed / 1 failure**。失败唯一落在 `EmptyStateTests.testExportDisabledWithoutEnvelope`（空信封冷首跑，5s 内未找到 `settings.exportButton`）；非空态 ExportFlow / SettingsVisible / ShareSheet 均在位通过。
+- 对照基线五轮（`71bc6b0`）同一空态用例通过；R3-C diff 未移除导出按钮（按钮无条件渲染，禁用只置 `.disabled`）。本轮冷首跑 session 54.22s、点按→合成事件间隔约 25s，明显慢于基线；假设 H1 冷启动时序临界 / H2 空态渲染未切换，**均未定论**——失败层级快照封在 xcresult 产物内，本会话取不到。
+- 后置 G9：容器 tmp 未拉到导出 JSON 样本，校验器步骤 exit 1；样本未落盘原因待查，与空态失败分列归因。
+- 本 job **不含** `swift test`：新增 8 例桥接用例与 590 例回归、iphoneos 编译结论仍待对应 job 日志回填。
+- 处置：本轮不改代码、不推送；待复跑或取得 xcresult 快照后再定 H1/H2。
+
+## 9. 真机诊断载荷基线（中间证据，非 A6 验收）
+
+> 定位记录：`Tests/Stage2/evidence/r3-c-real-device-payload-baseline/BASELINE-METADATA.md`。设备报告本体按隐私边界不入库、不进包、不作 fixture。
+
+- 一份真机形态的单文件导出 JSON（14,029 条诊断行，13 类齐全）被接受为 **Real Device Diagnostics Payload Baseline**：证明引擎在真机环境产出规模完整的只读诊断数据；**不证明** R3-C Store/编码器/Settings 导出链路在该次导出中运行，Build provenance 与 Export bridge provenance 均记 unknown/unverified，A6 not passed。
+- 信封顶层仍是合成 preview；诊断段为独立来源。两段环境不一致属路线 A 既定边界，本轮不改顶层环境、归属或 Dashboard 数据来源；环境统一与真实信封构建归路线 B。
+- 基线计数（对照值，非硬指标）：fileOwnership 9,255 / integrity 3,466 / packages 376 / applications 266 / helperRegistrations 534 / dynamicLibraries 16 / injectorEvidence 28 / associations 8 / finding 10，另有 roots 5、plugins 8、filters 8。
+- 往返验收（R3-C-A6-Codable Round-Trip）留待 Runner：全量解码、13 类保留、nil status 不补默认、payload 键值一致、`loaded=unknown` 不变、无兜底伪数据；按模型字段语义比较而非 JSON 字符串比较；另补空扫描/失败扫描 fixture。
+- `environmentSource` 建议字段当前模型不存在；后续若加须为可选且单独授权，本轮不动冻结模型。
+- R3-C2 真实信封闭环（C2-01～C2-07）仅记录方向，未授权编码；D-R2-06、#331 继续冻结。

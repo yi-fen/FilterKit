@@ -1,10 +1,22 @@
 # FilterKit DevDocs 0.1 — 打包说明
 
 - 打包时间：2026-11-21（Asia/Shanghai）
-- 本地基线提交：`b750802`（R3-A/B 实现 + `310a083` 反馈切片归档与夹具修复 + 真机截图批次 `1795227596` 三方核对归档；未推送；Runner 结论以在线日志为准，本机 Linux 无 Swift/Xcode、无 RootHide 真机）
-- 当前 DevDocs 包：`FilterKit-DevDocs-0.1.zip`，包内 2175 文件，15,813,483 B，SHA256 `d226efafbbf5516d650980488c60d1080e2931a320950ce736fd4d2b720bfd63`；`unzip -tq` 无错误，清单与暂存目录一致；包内不内嵌自身哈希。
+- 本地基线提交：`5a611b7`（R3-C Live Diagnostics Export Bridge 路线 A：Core 导出模型/映射/合并编码器 + 8 例离线用例 + App 共享 Store 接线 + 前置基线 CI 切片 `d70c131` 证据归档 + 首轮 ui-acceptance 反馈切片 `44861183809`；未推送；Runner 结论以在线日志为准，本机 Linux 无 Swift/Xcode、无 RootHide 真机）
+- 当前 DevDocs 包：`FilterKit-DevDocs-0.1.zip`，包内 2195 文件，15,766,815 B，SHA256 `502a9d9ef11cf2ffa2cc723906b076517c8d49215a038442dbd04d735feb875c`；`unzip -tq` 无错误，清单与暂存目录一致；包内不内嵌自身哈希。
 - 范围：规格文档（Spec/）、App/Core/Models/Adapters/Tools 源码、CI 工作流、Stage1~Stage2 测试与历史 Runner 证据归档、隔离/校验/打包/元数据脚本。
 - 边界：0.1-C 维持未闭环（G10 搁置、不豁免不签署，缺口作为已知限制带入）；0.1-D Runner/Simulator 切片 G1～G9 通过（R2-A/B 复验 run `121082423820`）；R3-A/A2/F 与 R4 规格已冻结；R4-A～E 第五轮 TAR 权限保真链路生效、DEB 在打包前置版本校验中止（App `1.0` vs control 基线 `0.0.1`），已本地统一版本源至 App `0.1.0`/build `1` ↔ control `0.1.0-1`，待下一轮 Runner 复验出包；真机侧 IPA 可启动、DEB 打开闪退，无 `.ips`/系统日志，C1 签名封印 / C2 切片链接 / C3 布局注册 / C4 完整性 / C5 自身异常五类假设待设备取证；H4 切片/签名/弱链接、H5 uicache/JBROOT 映射未闭环，R3-B～F 真机取证待设备/GUI 上下文，真机门禁 G10～G15、R4-G 挂起 pending/unknown，里程碑未闭环、不进入 0.1-E。
+
+## R3-C Live Diagnostics Export Bridge（路线 A，2026-11-21，待 Runner 复测）
+
+规格：`Spec/Stage-2/Stage-2.7-R3-C-Live-Diagnostics-Export-Bridge.md`。决策：先打通 `Diagnostics 按钮 → 引擎 scan → 共享内存 Store → 单文件 JSON 合并导出`；**不做路线 B**（ReportService 活信封全链路、Dashboard/Plugins 真实数据化、归属推断重构）。
+
+- **Core 桥接**：`Core/Diagnostics/Export/` 独立 Codable 模型 `DiagnosticsScanState` / `DiagnosticsExportItem` / `DiagnosticsExportSection`（neverRun / running / completed / failed 状态机；原始行键值整体进 `payload` 不丢字段）；`DiagnosticsReportMapper` 把 `FKDiagnosticReport` 纯映射为导出段；`Core/Reporting/CombinedReportEncoder.swift` 保留信封顶层字段、新增 `diagnostics` 扩展段，诊断段 nil 按 neverRun 空段导出，不补合成插件。
+- **App 接线**：`App/AppEntry/DiagnosticsReportStore.swift` 运行期唯一内存快照（不持久化）；`AppDependencies` / `FilterKitApp` 注入同一实例；Diagnostics 扫描完成写入 Store，Settings 经合并编码器导出信封 + Store 投影段；Dashboard/Plugins 数据来源不变。
+- **离线用例**：`Tests/Stage2/Diagnostics/DiagnosticsExportBridgeTests.swift` 8 例（全类别映射与 payload 保留、空完成态、未扫描无合成数据、失败追溯不冒充、重复覆盖、JSON 往返、信封兼容、`loaded=unknown` 保留）。本地仅括号配平 / 符号引用 / 残留 API / Package 接线静态核对；编译与用例通过以下一轮 Runner `swift test` 为准。
+- **前置基线**：CI 切片 `d70c131c6ebc0daf0a26ac920f2db5c050960ead`，590 tests / 0 failures，非界面构建 0 warning/error，隔离/设备/IPA/DEB 静态校验全 passed；DEB 仍 `device_acceptance_pending` / `installableCandidate=false`，UI 往返样本为合成 preview。证据 `Tests/Stage2/evidence/r3-c-pre-d70c131-ci-slice/`。
+- **待闭环**：Runner 复测新增 8 例 + 既有 590 例无回归、iOS 两侧编译；A6 真机验收需新构建包安装后现场扫描，导出首份含真实 `diagnostics` 段的 JSON；当前设备所装仍是 0.1-C 旧 GUI 桩。
+- **首轮 ui-acceptance 反馈（run `44861183809`，cf741b，证据 `Tests/Stage2/evidence/r3-c-run-44861183809-ui-acceptance/`）**：iphonesimulator 侧 R3-C 四枚新文件编译进 App 并启动成功，除 AppIntents 元数据提示外无 Swift warning/error；XCUITest 8 例 7 过 1 失败，唯一失败为空信封冷首跑 `EmptyStateTests` 5s 内未找到导出按钮；非空态 ExportFlow/SettingsVisible/ShareSheet 均在位通过。对照基线五轮同用例通过；代码 diff 未移除按钮（无条件渲染，禁用只置 `.disabled`）。假设 H1 冷启动时序临界 / H2 空态渲染未切换，未定论——层级快照封在 xcresult 产物内本会话取不到；本轮不改代码、不推送。后置 G9 未从容器 tmp 拉到导出样本，校验器 exit 1，原因待查。本 job 不含 `swift test`，8 例桥接用例与 590 回归、iphoneos 编译结论仍待对应 job 日志。
+- **边界不变**：只读；不改冻结 Models / 信封既有字段 / 签名与打包链路；不启停插件、不写 plist/规则、不动 dylib/dpkg/软链、不注入、不启 Helper/IPC/daemon、不放行 entitlement；不推送远端。
 
 ## 0.1-D-R2 Diagnostics 离线测试落地（2026-11-21，待 Runner 复验）
 
