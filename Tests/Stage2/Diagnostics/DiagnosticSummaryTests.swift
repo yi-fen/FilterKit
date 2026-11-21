@@ -86,17 +86,17 @@ final class DiagnosticSummaryTests: XCTestCase {
     func testReportTopLevelSectionsArePresent() {
         let report = makeReport(plugins: [], associations: [])
         XCTAssertFalse(report.environment.isEmpty)
-        XCTAssertTrue(report.roots is [[String: String]])
-        XCTAssertTrue(report.dynamicLibraryDirectories is [[String: String]])
-        XCTAssertTrue(report.filters is [[String: String]])
-        XCTAssertTrue(report.injectorEvidence is [[String: String]])
-        XCTAssertTrue(report.packages is [[String: String]])
-        XCTAssertTrue(report.fileOwnership is [[String: String]])
-        XCTAssertTrue(report.integrity is [[String: String]])
-        XCTAssertTrue(report.helperCandidates is [[String: String]])
-        XCTAssertTrue(report.helperRegistrations is [[String: String]])
-        XCTAssertTrue(report.applications is [[String: String]])
-        XCTAssertTrue(report.findings is [FKDiagnosticFinding])
+        XCTAssertGreaterThanOrEqual(report.roots.count, 0)
+        XCTAssertGreaterThanOrEqual(report.dynamicLibraryDirectories.count, 0)
+        XCTAssertGreaterThanOrEqual(report.filters.count, 0)
+        XCTAssertGreaterThanOrEqual(report.injectorEvidence.count, 0)
+        XCTAssertGreaterThanOrEqual(report.packages.count, 0)
+        XCTAssertGreaterThanOrEqual(report.fileOwnership.count, 0)
+        XCTAssertGreaterThanOrEqual(report.integrity.count, 0)
+        XCTAssertGreaterThanOrEqual(report.helperCandidates.count, 0)
+        XCTAssertGreaterThanOrEqual(report.helperRegistrations.count, 0)
+        XCTAssertGreaterThanOrEqual(report.applications.count, 0)
+        XCTAssertGreaterThanOrEqual(report.findings.count, 0)
     }
 
     func testScanEnvironmentRecordsReadOnlyAndUnknownLoadedState() {
@@ -104,7 +104,7 @@ final class DiagnosticSummaryTests: XCTestCase {
         XCTAssertEqual(report.environment["scan_mode"], "read_only")
         XCTAssertEqual(report.environment["runtime_loaded_state"],
                        "unknown_without_independent_evidence")
-        XCTAssertTrue(report.findings is [FKDiagnosticFinding])
+        XCTAssertGreaterThanOrEqual(report.findings.count, 0)
     }
 
     func testEvidenceInsufficiencyRemainsUnknownNotFailed() {

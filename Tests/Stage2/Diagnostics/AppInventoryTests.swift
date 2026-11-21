@@ -13,9 +13,10 @@ import XCTest
 
 final class AppInventoryTests: XCTestCase {
 
-    func testApplicationsSectionIsArrayOnHostRun() {
+    func testApplicationsSectionAccessibleOnHostRun() {
         let report = ReadOnlyDiagnosticsEngine().scan()
-        XCTAssertTrue(report.applications is [[String: String]])
+        // 段类型由 FKDiagnosticReport 冻结；宿主无 Workspace 实例时为空清单。
+        XCTAssertGreaterThanOrEqual(report.applications.count, 0)
     }
 
     func testEveryAppRowCarriesNonEmptyBundleIDWhenPresent() {

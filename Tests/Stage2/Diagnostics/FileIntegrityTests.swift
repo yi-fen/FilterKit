@@ -38,7 +38,7 @@ final class FileIntegrityTests: XCTestCase {
         XCTAssertEqual(ReadOnlyDiagnosticsEngine.magicFormat(
             bytes: [0x62, 0x70, 0x6C, 0x69, 0x73, 0x74, 0x30, 0x30]), "bplist")
         XCTAssertEqual(ReadOnlyDiagnosticsEngine.magicFormat(
-            bytes: [0x53, 0x51, 0x69, 0x4C, 0x69, 0x74, 0x65]), "sqlite")
+            bytes: [0x53, 0x51, 0x4C, 0x69, 0x74, 0x65]), "sqlite")
     }
 
     func testShortOrUnknownBufferReturnsNil() {
