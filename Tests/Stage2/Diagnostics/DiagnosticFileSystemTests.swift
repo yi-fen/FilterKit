@@ -59,7 +59,7 @@ final class InMemoryDiagnosticFileSystem: DiagnosticFileSystem {
             throw DiagnosticFileSystemError.typeMismatch(path: path, expected: "directory")
         }
         let prefix = path.hasSuffix("/") ? path : path + "/"
-        return Set(files.keys + directories.keys)
+        return Set(files.keys + Array(directories))
             .filter { $0.hasPrefix(prefix) && $0 != path }
             .map { ($0 as NSString).lastPathComponent }
             .sorted()
