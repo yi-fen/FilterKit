@@ -1,4 +1,4 @@
-// swift-tools-version:5.7
+// swift-tools-version:5.9
 //
 // Package.swift — Stage 2.1 离线草稿（未在 Apple 工具链验证）。
 //
@@ -8,6 +8,8 @@
 //
 // 注意：tools-version、Deployment Target、Theos/Swift 工具链配置均为待确认项
 // （Stage-2.1 子规格 §14 B1/B2/B5）；本文件不得视为已可构建。
+// tools-version 取 5.9：`SupportedPlatform.MacOSVersion.v14` 自
+// PackageDescription 5.9 起提供；target 仍为 Swift 5 语言模式，未切 Swift 6。
 
 import PackageDescription
 
