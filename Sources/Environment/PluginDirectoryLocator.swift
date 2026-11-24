@@ -37,25 +37,37 @@ final class PluginDirectoryLocator {
 
         let usable = candidates.filter(\.isUsable)
         let inaccessible = candidates.contains { $0.role == .thirdPartyPluginDirectory && $0.exists && (!$0.isReadable || !$0.isEnumerable) }
-        let distinct = Dictionary(grouping: usable, by: { $0.canonicalPath ?? $0.path }).keys
+        // Empty compatibility directories are common in rootless/rootHide layouts. They
+        // must not compete with a directory that actually contains plugin inventory.
+        let populated = usable.filter { $0.dylibCount > 0 || $0.plistCount > 0 }
+        let distinctPopulated = Dictionary(grouping: populated, by: { $0.canonicalPath ?? $0.path }).keys
+        let preferredOrder: [PluginDirectoryKind] = [.elleKitDynamicLibraries, .mobileSubstrateDynamicLibraries, .tweakInject]
+        let preferred: (PluginDirectoryCandidate) -> Int = { candidate in
+            preferredOrder.firstIndex(of: candidate.kind) ?? preferredOrder.count
+        }
 
         let state: PluginDirectoryResolutionState
         let selected: String?
         var warnings: [String] = []
-        if distinct.count > 1 {
-            state = .ambiguous
-            selected = nil
-            warnings.append("environment.plugin_directory.ambiguous")
-        } else if let only = usable.first, let canonical = only.canonicalPath {
-            state = .resolved
-            selected = canonical
-            if only.kind == .mobileSubstrateDynamicLibraries {
-                warnings.append("environment.plugin_directory.legacy_layout_selected")
-            }
-        } else if inaccessible {
+        if inaccessible {
             state = .inaccessible
             selected = nil
             warnings.append("environment.plugin_directory.inaccessible")
+        } else if distinctPopulated.count > 1 {
+            state = .ambiguous
+            selected = nil
+            warnings.append("environment.plugin_directory.ambiguous")
+        } else if let only = populated.sorted(by: { preferred($0) < preferred($1) }).first,
+                  let canonical = only.canonicalPath {
+            state = .resolved
+            selected = canonical
+            if only.kind == .mobileSubstrateDynamicLibraries { warnings.append("environment.plugin_directory.legacy_layout_selected") }
+        } else if let empty = usable.sorted(by: { preferred($0) < preferred($1) }).first,
+                  let canonical = empty.canonicalPath {
+            // No plugin evidence anywhere: resolve deterministically to the preferred
+            // existing directory and return an empty inventory rather than false ambiguity.
+            state = .resolved
+            selected = canonical
         } else {
             state = .unavailable
             selected = nil

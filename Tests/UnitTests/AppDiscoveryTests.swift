@@ -2,7 +2,7 @@ import XCTest
 @testable import FilterKit
 
 final class AppDiscoveryTests: XCTestCase {
-    func testInventorySearchMatchesNameAndBundleIdentifierAndHidesNonUserAppsByDefault() {
+    func testInventorySearchMatchesNameAndBundleIdentifierAndHidesSystemAppsByDefault() {
         let apps = [
             InstalledApp(bundleIdentifier: "com.example.zebra", displayName: "Zebra", systemClassification: .user),
             InstalledApp(bundleIdentifier: "com.apple.settings", displayName: "Settings", systemClassification: .system),
@@ -11,11 +11,26 @@ final class AppDiscoveryTests: XCTestCase {
         ]
 
         XCTAssertEqual(AppInventoryQuery.filter(apps).map(\.bundleIdentifier),
-                       ["com.example.alpha", "com.example.zebra"])
+                       ["com.example.alpha", "com.unknown.app", "com.example.zebra"])
         XCTAssertEqual(AppInventoryQuery.filter(apps, searchText: "ZEB").map(\.bundleIdentifier),
                        ["com.example.zebra"])
         XCTAssertEqual(AppInventoryQuery.filter(apps, searchText: "com.example.alpha").count, 1)
         XCTAssertEqual(AppInventoryQuery.filter(apps, showingSystemApps: true).count, 4)
+    }
+
+    func testTrollStoreContainerAppIsNotMisclassifiedAsSystem() {
+        let appURL = URL(fileURLWithPath: "/var/containers/Bundle/Application/ABC123/Example.app")
+        let classification = LaunchServicesAppDiscoveryProvider.classify(
+            applicationType: "System", bundleID: "com.example.sideloaded",
+            tags: nil, bundleURL: appURL)
+        XCTAssertEqual(classification, .user)
+    }
+
+    func testAppleSystemAppRemainsSystemClassified() {
+        let classification = LaunchServicesAppDiscoveryProvider.classify(
+            applicationType: "System", bundleID: "com.apple.Preferences", tags: nil,
+            bundleURL: URL(fileURLWithPath: "/Applications/Preferences.app"))
+        XCTAssertEqual(classification, .system)
     }
 
     func testCacheUsesTTLAndExplicitRefreshBypassesCache() async throws {

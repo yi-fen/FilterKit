@@ -25,11 +25,39 @@ final class PluginDirectoryLocatorTests: XCTestCase {
         XCTAssertTrue(result.isReadOnly)
     }
 
-    func testDistinctPluginDirectoriesRemainAmbiguous() throws {
+    func testMultipleEmptyCompatibilityDirectoriesResolveDeterministically() throws {
         let root = try makeRoot()
         defer { try? FileManager.default.removeItem(at: root) }
         try FileManager.default.createDirectory(at: root.appendingPathComponent("usr/lib/TweakInject"), withIntermediateDirectories: true)
         try FileManager.default.createDirectory(at: root.appendingPathComponent("Library/MobileSubstrate/DynamicLibraries"), withIntermediateDirectories: true)
+
+        let result = PluginDirectoryLocator().inspect(jbroot: root.path, environment: .rootless)
+        XCTAssertEqual(result.state, .resolved)
+        XCTAssertEqual(result.selectedPath, root.appendingPathComponent("Library/MobileSubstrate/DynamicLibraries").path)
+    }
+
+    func testPopulatedDirectoryWinsOverEmptyCompatibilityDirectory() throws {
+        let root = try makeRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let populated = root.appendingPathComponent("usr/lib/TweakInject", isDirectory: true)
+        try FileManager.default.createDirectory(at: populated, withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: root.appendingPathComponent("Library/MobileSubstrate/DynamicLibraries"), withIntermediateDirectories: true)
+        try Data([0x01]).write(to: populated.appendingPathComponent("RealPlugin.dylib"))
+
+        let result = PluginDirectoryLocator().inspect(jbroot: root.path, environment: .rootless)
+        XCTAssertEqual(result.state, .resolved)
+        XCTAssertEqual(result.selectedPath, populated.resolvingSymlinksInPath().standardizedFileURL.path)
+    }
+
+    func testTwoPopulatedDirectoriesRemainAmbiguous() throws {
+        let root = try makeRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let first = root.appendingPathComponent("usr/lib/TweakInject", isDirectory: true)
+        let second = root.appendingPathComponent("Library/MobileSubstrate/DynamicLibraries", isDirectory: true)
+        try FileManager.default.createDirectory(at: first, withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: second, withIntermediateDirectories: true)
+        try Data([0x01]).write(to: first.appendingPathComponent("A.dylib"))
+        try Data([0x01]).write(to: second.appendingPathComponent("B.dylib"))
 
         let result = PluginDirectoryLocator().inspect(jbroot: root.path, environment: .rootless)
         XCTAssertEqual(result.state, .ambiguous)

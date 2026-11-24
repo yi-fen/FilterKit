@@ -21,9 +21,9 @@ final class LaunchServicesAppDiscoveryProvider: AppDiscoveryProvider {
                     return Self.merge(primary: launchServicesApps, secondary: fallback)
                 }
                 return try directoryScanner.scan()
-            } catch let error as AppDiscoveryError {
+            } catch let lsError as AppDiscoveryError {
                 do { return try directoryScanner.scan() }
-                catch { throw error == .accessRestricted ? error : AppDiscoveryError.noReadableInventory }
+                catch { throw lsError == .accessRestricted ? lsError : AppDiscoveryError.noReadableInventory }
             } catch {
                 return try directoryScanner.scan()
             }
@@ -61,12 +61,11 @@ final class LaunchServicesAppDiscoveryProvider: AppDiscoveryProvider {
             enumerate(workspace, enumerateSelector, 1, callback as AnyObject)
         }
 
-        if proxies.isEmpty {
-            proxies = invokeArray(workspace, selectorName: "allInstalledApplications")
-        }
-        if proxies.isEmpty {
-            proxies = invokeArray(workspace, selectorName: "allApplications")
-        }
+        // Enumeration buckets can be incomplete on some iOS/rootless combinations.
+        // Merge both workspace inventories even when the callback returned results.
+        // Bundle identifiers are deduplicated below, preserving richer LS metadata.
+        proxies += invokeArray(workspace, selectorName: "allInstalledApplications")
+        proxies += invokeArray(workspace, selectorName: "allApplications")
         guard !proxies.isEmpty else { throw AppDiscoveryError.enumerationUnavailable }
 
         var apps: [String: InstalledApp] = [:]
@@ -86,7 +85,7 @@ final class LaunchServicesAppDiscoveryProvider: AppDiscoveryProvider {
             let info = infoPlistValues(bundleURL: bundleURL)
             let appType = stringValue("applicationType", on: proxy)
             let tags = arrayValue("appTags", on: proxy)
-            let classification = classify(applicationType: appType, bundleID: bundleID, tags: tags)
+            let classification = classify(applicationType: appType, bundleID: bundleID, tags: tags, bundleURL: bundleURL)
             let icon = proxyIconDescriptor(proxy: proxy, bundleURL: bundleURL, plist: info)
             apps[bundleID] = InstalledApp(bundleIdentifier: bundleID, displayName: name,
                 systemClassification: classification, bundleURL: bundleURL,
@@ -172,19 +171,26 @@ final class LaunchServicesAppDiscoveryProvider: AppDiscoveryProvider {
         }
         let plistDescriptor = ContainerDirectoryAppScannerIconBuilder.make(plist: plist, bundleURL: bundleURL)
         candidates += plistDescriptor?.fileCandidates ?? []
-        let asset = plist["CFBundleIconName"] as? String ?? plistDescriptor?.assetName
+        let nestedAsset = ((plist["CFBundleIcons"] as? [String: Any])?["CFBundlePrimaryIcon"] as? [String: Any])?["CFBundleIconName"] as? String
+        let asset = nestedAsset ?? plist["CFBundleIconName"] as? String ?? plistDescriptor?.assetName
         guard !candidates.isEmpty || asset != nil || embeddedData != nil else { return nil }
         return AppIconDescriptor(fileCandidates: Array(NSOrderedSet(array: candidates)) as? [URL] ?? candidates,
                                  assetName: asset, bundleURL: bundleURL, embeddedIconData: embeddedData)
     }
 
-    private static func classify(applicationType: String?, bundleID: String, tags: [String]?) -> AppSystemClassification {
+    static func classify(applicationType: String?, bundleID: String, tags: [String]?, bundleURL: URL? = nil) -> AppSystemClassification {
         if tags?.contains(where: { $0.localizedCaseInsensitiveContains("hidden") }) == true { return .hidden }
+        // TrollStore-installed IPAs live in the normal application container. Some
+        // LaunchServices builds report their installation type as "System"; the
+        // container location is stronger evidence that they are user-installed apps.
+        let path = bundleURL?.standardizedFileURL.path ?? ""
+        let isApplicationContainer = path.contains("/var/containers/Bundle/Application/")
+            || path.contains("/private/var/containers/Bundle/Application/")
+        if isApplicationContainer && !bundleID.hasPrefix("com.apple.") { return .user }
         switch applicationType?.lowercased() {
-        case "system": return .system
+        case "system": return bundleID.hasPrefix("com.apple.") ? .system : .unknown
         case "user": return .user
-        default:
-            return bundleID.hasPrefix("com.apple.") ? .system : .unknown
+        default: return bundleID.hasPrefix("com.apple.") ? .system : .unknown
         }
     }
 

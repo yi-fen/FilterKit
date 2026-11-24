@@ -2,13 +2,6 @@ import SwiftUI
 import UIKit
 import UniformTypeIdentifiers
 
-private enum PluginListScope: String, CaseIterable, Identifiable {
-    case managed
-    case all
-    var id: String { rawValue }
-    var titleKey: LocalizedStringKey { self == .managed ? "plugins.scope.managed" : "plugins.scope.all" }
-}
-
 @MainActor
 private final class PluginsViewModel: ObservableObject {
     @Published private(set) var result: PluginScanResult?
@@ -117,14 +110,14 @@ private final class PluginsViewModel: ObservableObject {
 
 struct PluginsView: View {
     @StateObject private var model = PluginsViewModel()
-    @State private var scope: PluginListScope = .managed
+    @State private var showingAllPlugins = false
     @State private var searchText = ""
     @State private var isImportingBackup = false
 
     private var visiblePlugins: [PluginScanItem] {
         let items = model.result?.plugins ?? []
         return items.filter { item in
-            let scopeMatches = scope == .all || (item.managementPermission?.canModify == true)
+            let scopeMatches = showingAllPlugins || (item.managementPermission?.canModify == true)
             let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
             let searchMatches = query.isEmpty || item.baseName.localizedCaseInsensitiveContains(query)
                 || (item.dylibFileName?.localizedCaseInsensitiveContains(query) ?? false)
@@ -202,18 +195,6 @@ struct PluginsView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Menu {
-                        Picker("plugins.scope.title", selection: $scope) {
-                            ForEach(PluginListScope.allCases) { item in
-                                Text(item.titleKey).tag(item)
-                            }
-                        }
-                    } label: {
-                        Image(systemName: "line.3.horizontal.decrease.circle")
-                    }
-                    .accessibilityLabel("plugins.scope.title")
-                }
-                ToolbarItemGroup(placement: .navigationBarTrailing) {
-                    Menu {
                         Button { model.exportAllManageable() } label: {
                             Label("backup.export.manageable", systemImage: "square.and.arrow.up")
                         }
@@ -224,10 +205,14 @@ struct PluginsView: View {
                         Image(systemName: "ellipsis.circle")
                     }
                     .accessibilityLabel("backup.actions")
-                    Button { Task { await model.load() } } label: {
-                        Image(systemName: "arrow.clockwise")
+                }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button { showingAllPlugins.toggle() } label: {
+                        Image(systemName: showingAllPlugins ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle")
                     }
-                    .accessibilityLabel("plugins.refresh")
+                    .accessibilityLabel(showingAllPlugins ? "plugins.scope.all" : "plugins.scope.managed")
+                    .accessibilityValue(showingAllPlugins ? "plugins.scope.all" : "plugins.scope.managed")
+                    .accessibilityIdentifier("plugins.scope.toggle")
                 }
             }
             .searchable(text: $searchText, prompt: "plugins.search.prompt")
@@ -495,7 +480,7 @@ private struct PluginScanDetailView: View {
             }
             if plugin.ownership == .filterKit {
                 Section("plugins.detail.associations") {
-                    LabeledContent("plugins.detail.hard_bound", value: plugin.hardBoundBundleIdentifier ?? "—")
+                    detailRow("plugins.detail.hard_bound", plugin.hardBoundBundleIdentifier ?? "—")
                     ForEach(plugin.softAssociatedBundleIdentifiers, id: \.self) { Text($0) }
                 }
             }

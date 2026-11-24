@@ -44,7 +44,7 @@ targets:
         - FilterKitTests
 
   FilterKitHelper:
-    type: command-line-tool
+    type: tool
     platform: iOS
     sources:
       - path: HelperRuntime
@@ -55,6 +55,7 @@ targets:
       - path: Sources/Environment/Helper/HelperDeploymentCoordinator.swift
       - path: Sources/Environment/Helper/Runtime
       - path: Sources/Environment/Helper/Execution
+      - path: Sources/Environment/Helper/Installer
       - path: Sources/Environment/MachOMetadataReader.swift
       - path: Sources/Environment/Models/ElleKitVersionMetadata.swift
       - path: Sources/Environment/SHA256Digest.swift

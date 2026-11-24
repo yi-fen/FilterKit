@@ -1,13 +1,6 @@
 import SwiftUI
 import UIKit
 
-private enum AppsFilter: String, CaseIterable, Identifiable {
-    case all
-    case associated
-    var id: String { rawValue }
-    var titleKey: LocalizedStringKey { self == .all ? "apps.filter.all" : "apps.filter.associated" }
-}
-
 @MainActor
 private final class AppsViewModel: ObservableObject {
     @Published private(set) var apps: [InstalledApp] = []
@@ -80,12 +73,12 @@ struct AppsView: View {
     @AppStorage("filterkit.showSystemApps") private var showingSystemApps = false
     @StateObject private var model = AppsViewModel()
     @State private var searchText = ""
-    @State private var filter: AppsFilter = .all
+    @State private var showingAssociatedOnly = false
 
     private var visibleApps: [InstalledApp] {
         let inventory = AppInventoryQuery.filter(model.apps, searchText: searchText,
                                                  showingSystemApps: showingSystemApps)
-        guard filter == .associated else { return inventory }
+        guard showingAssociatedOnly else { return inventory }
         return inventory.filter { model.associatedBundleIDs.contains($0.bundleIdentifier) }
     }
 
@@ -133,18 +126,12 @@ struct AppsView: View {
             .searchable(text: $searchText, prompt: Text("app_discovery.search_placeholder"))
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Menu {
-                        Picker("apps.filter.title", selection: $filter) {
-                            ForEach(AppsFilter.allCases) { item in Text(item.titleKey).tag(item) }
-                        }
-                        Divider()
-                        Button { Task { await model.load(forceRefresh: true) } } label: {
-                            Label("app_discovery.refresh", systemImage: "arrow.clockwise")
-                        }
-                    } label: {
-                        Image(systemName: "line.3.horizontal.decrease.circle")
+                    Button { showingAssociatedOnly.toggle() } label: {
+                        Image(systemName: showingAssociatedOnly ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle")
                     }
-                    .accessibilityIdentifier("apps.filter.menu")
+                    .accessibilityLabel(showingAssociatedOnly ? "apps.filter.all" : "apps.filter.associated")
+                    .accessibilityValue(showingAssociatedOnly ? "apps.filter.associated" : "apps.filter.all")
+                    .accessibilityIdentifier("apps.filter.toggle")
                 }
             }
             .task { await model.load() }

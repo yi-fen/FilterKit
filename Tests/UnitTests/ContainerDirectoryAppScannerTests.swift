@@ -15,7 +15,7 @@ final class ContainerDirectoryAppScannerTests: XCTestCase {
             "CFBundleShortVersionString": "2.1",
             "CFBundleVersion": "42",
             "CFBundleExecutable": "Demo",
-            "CFBundleIconName": "AppIcon"
+            "CFBundleIcons": ["CFBundlePrimaryIcon": ["CFBundleIconName": "NestedAppIcon"]]
         ]
         let data = try PropertyListSerialization.data(fromPropertyList: plist, format: .xml, options: 0)
         try data.write(to: app.appendingPathComponent("Info.plist"))
@@ -29,7 +29,7 @@ final class ContainerDirectoryAppScannerTests: XCTestCase {
         XCTAssertEqual(apps[0].buildVersion, "42")
         XCTAssertEqual(apps[0].executableName, "Demo")
         XCTAssertEqual(apps[0].discoverySource, .directoryScan)
-        XCTAssertEqual(apps[0].iconDescriptor?.assetName, "AppIcon")
+        XCTAssertEqual(apps[0].iconDescriptor?.assetName, "NestedAppIcon")
         XCTAssertTrue(FileManager.default.fileExists(atPath: app.appendingPathComponent("Info.plist").path))
     }
 

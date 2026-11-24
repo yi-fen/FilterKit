@@ -83,7 +83,7 @@ final class UnixDomainSocketTransport: HelperIPCTransport {
             raw.initializeMemory(as: UInt8.self, repeating: 0)
             raw.copyBytes(from: pathBytes)
         }
-        var timeoutValue = timeval(tv_sec: Int(timeout), tv_usec: Int((timeout - floor(timeout)) * 1_000_000))
+        var timeoutValue = timeval(tv_sec: Int(timeout), tv_usec: Int32((timeout - floor(timeout)) * 1_000_000))
         _ = setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &timeoutValue, socklen_t(MemoryLayout<timeval>.size))
         _ = setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &timeoutValue, socklen_t(MemoryLayout<timeval>.size))
         let result = withUnsafePointer(to: &address) { pointer in

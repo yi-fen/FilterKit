@@ -21,7 +21,7 @@ enum AppInventoryQuery {
                        showingSystemApps: Bool = false) -> [InstalledApp] {
         let visible = apps.filter {
             if showingSystemApps { return $0.systemClassification != .hidden }
-            return $0.systemClassification == .user
+            return $0.systemClassification != .system && $0.systemClassification != .hidden
         }
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
         let matched = query.isEmpty ? visible : visible.filter {

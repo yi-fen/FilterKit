@@ -1,7 +1,4 @@
 import Foundation
-#if canImport(Darwin)
-import Darwin
-#endif
 
 /// Loads signed release metadata from root-owned files, then verifies the current executable
 /// bytes and kernel-reported CDHash. It is read-only except for the accepted-generation Keychain update.
@@ -61,19 +58,7 @@ struct HelperSignedReleaseRuntimeLoader {
     }
 
     private static func currentExecutablePath() -> String? {
-        #if canImport(Darwin)
-        var capacity: UInt32 = 0
-        _ = _NSGetExecutablePath(nil, &capacity)
-        guard capacity > 1, capacity < 4096 else { return nil }
-        var buffer = [CChar](repeating: 0, count: Int(capacity))
-        let result = buffer.withUnsafeMutableBufferPointer { pointer in
-            _NSGetExecutablePath(pointer.baseAddress, &capacity)
-        }
-        guard result == 0 else { return nil }
-        return String(cString: buffer)
-        #else
-        return Bundle.main.executableURL?.path
-        #endif
+        Bundle.main.executableURL?.path
     }
 }
 
