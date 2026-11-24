@@ -1,0 +1,291 @@
+import Foundation
+
+/// Scans only the single directory already selected by PluginDirectoryLocator.
+/// It never writes, renames, chmods, or deletes files and never invokes dpkg.
+final class ReadOnlyPluginScanner: PluginDiscoveryProvider {
+    private let fileManager: FileManager
+    private let packageOwnershipProvider: PackageOwnershipProviding
+    private let assessmentProvider: (() -> PluginDirectoryAssessment)?
+    private let maximumManifestBytes = 64 * 1024
+
+    init(fileManager: FileManager = .default,
+         packageOwnershipProvider: PackageOwnershipProviding = NoPackageOwnershipEvidenceProvider(),
+         assessmentProvider: (() -> PluginDirectoryAssessment)? = nil) {
+        self.fileManager = fileManager
+        self.packageOwnershipProvider = packageOwnershipProvider
+        self.assessmentProvider = assessmentProvider
+    }
+
+    func scanPlugins() async throws -> PluginScanResult {
+        guard let assessmentProvider else {
+            return scan(assessment: .unresolved("plugin_scan.directory_assessment_not_injected"))
+        }
+        return scan(assessment: assessmentProvider())
+    }
+
+    func scan(assessment: PluginDirectoryAssessment) -> PluginScanResult {
+        guard assessment.state == .resolved, let path = assessment.selectedPath else {
+            return PluginScanResult(scannedAt: Date(), scannedDirectory: nil,
+                directoryState: assessment.state, plugins: [],
+                issues: [PluginScanIssue(id: "directory-unresolved", code: "plugin_scan.directory_not_resolved", fileName: nil, detail: nil)],
+                isReadOnly: true)
+        }
+        let directoryURL = URL(fileURLWithPath: path, isDirectory: true).standardizedFileURL
+        var isDirectory: ObjCBool = false
+        guard fileManager.fileExists(atPath: directoryURL.path, isDirectory: &isDirectory), isDirectory.boolValue,
+              fileManager.isReadableFile(atPath: directoryURL.path) else {
+            return PluginScanResult(scannedAt: Date(), scannedDirectory: path,
+                directoryState: .inaccessible, plugins: [],
+                issues: [PluginScanIssue(id: "directory-inaccessible", code: "plugin_scan.directory_inaccessible", fileName: nil, detail: nil)],
+                isReadOnly: true)
+        }
+        let canonical = directoryURL.resolvingSymlinksInPath().standardizedFileURL.path
+        guard directoryURL.path == canonical else {
+            return PluginScanResult(scannedAt: Date(), scannedDirectory: path,
+                directoryState: .inaccessible, plugins: [],
+                issues: [PluginScanIssue(id: "directory-canonical-mismatch", code: "plugin_scan.directory_path_mismatch", fileName: nil, detail: nil)],
+                isReadOnly: true)
+        }
+        guard let names = try? fileManager.contentsOfDirectory(atPath: path) else {
+            return PluginScanResult(scannedAt: Date(), scannedDirectory: path,
+                directoryState: .inaccessible, plugins: [],
+                issues: [PluginScanIssue(id: "directory-enumeration-failed", code: "plugin_scan.enumeration_failed", fileName: nil, detail: nil)],
+                isReadOnly: true)
+        }
+
+        var issues: [PluginScanIssue] = []
+        var dylibs: [String: [URL]] = [:]
+        var plists: [String: [URL]] = [:]
+        var manifests: [String: [URL]] = [:]
+        for name in names.sorted() {
+            let url = directoryURL.appendingPathComponent(name)
+            let values = try? url.resourceValues(forKeys: [.isSymbolicLinkKey, .isRegularFileKey])
+            if values?.isSymbolicLink == true {
+                issues.append(issue("symlink-\(name)", "plugin_scan.symlink_skipped", name)); continue
+            }
+            guard values?.isRegularFile == true else { continue }
+            let lower = name.lowercased()
+            if lower.hasSuffix(".dylib") {
+                let stem = String(name.dropLast(6)).lowercased(); dylibs[stem, default: []].append(url)
+            } else if lower.hasSuffix(".plist") {
+                let stem = String(name.dropLast(6)).lowercased(); plists[stem, default: []].append(url)
+            } else if lower.hasSuffix(".fk.json") {
+                let stem = String(name.dropLast(8)).lowercased(); manifests[stem, default: []].append(url)
+            }
+        }
+
+        let stems = Set(dylibs.keys).union(plists.keys).union(manifests.keys).sorted()
+        var items: [PluginScanItem] = []
+        for normalizedStem in stems {
+            let dylibGroup = dylibs[normalizedStem] ?? []
+            let plistGroup = plists[normalizedStem] ?? []
+            let manifestGroup = manifests[normalizedStem] ?? []
+            // Never pick an arbitrary file when case-insensitive names collide.
+            let dylib = dylibGroup.count == 1 ? dylibGroup.first : nil
+            let plist = plistGroup.count == 1 ? plistGroup.first : nil
+            let manifest = manifestGroup.count == 1 ? manifestGroup.first : nil
+            let stem: String
+            if let dylib { stem = String(dylib.lastPathComponent.dropLast(6)) }
+            else if let plist { stem = String(plist.lastPathComponent.dropLast(6)) }
+            else if let manifest { stem = String(manifest.lastPathComponent.dropLast(8)) }
+            else { stem = normalizedStem }
+            var warnings: [String] = []
+            var pairing: PluginPairingState = .paired
+            if dylibGroup.count > 1 || plistGroup.count > 1 || manifestGroup.count > 1 {
+                pairing = .invalid
+                warnings.append("plugin_scan.duplicate_case_insensitive_basename")
+                issues.append(issue("duplicate-\(normalizedStem)", "plugin_scan.duplicate_case_insensitive_basename", stem))
+            }
+            var binaryKind: PluginBinaryKind?
+            var dylibHash: String?, plistHash: String?
+            var ownership: PluginOwnership = .unknown
+            var packageID: String?
+            var dylibPackageID: String?
+            var plistPackageID: String?
+            var ownershipConflict: PluginOwnershipConflict = .none
+            var manifestIdentityBinding: PluginManifestIdentityBinding = manifest == nil ? .notPresent : .unverified
+            var verifiedPluginID: String?
+            var hardBound: String?
+            var soft: [String] = []
+            var softStates: [FilterKitManifestSoftAssociation] = []
+            var filterConfiguration: PluginFilterConfiguration?
+            var packageVersion: String?
+            var machoSlices: [MachOSliceMetadata] = []
+
+            if let dylib {
+                do {
+                    let data = try Data(contentsOf: dylib, options: .mappedIfSafe)
+                    dylibHash = SHA256Digest.hex(data)
+                    binaryKind = Self.binaryKind(data)
+                    if binaryKind == .machO {
+                        do { machoSlices = try MachOMetadataReader().readSlices(data: data) }
+                        catch { warnings.append("plugin_scan.macho_metadata_unavailable") }
+                    }
+                    if binaryKind == .notMachO { pairing = .invalid; warnings.append("plugin_scan.dylib_not_macho") }
+                } catch { pairing = .unreadable; warnings.append("plugin_scan.dylib_unreadable") }
+            }
+            if let plist {
+                do {
+                    let data = try Data(contentsOf: plist, options: .mappedIfSafe)
+                    plistHash = SHA256Digest.hex(data)
+                    _ = try PropertyListSerialization.propertyList(from: data, options: [], format: nil)
+                    filterConfiguration = PluginFilterConfiguration.parse(data)
+                    if filterConfiguration?.parseState == .invalid {
+                        pairing = .invalid
+                        warnings.append(contentsOf: filterConfiguration?.warnings ?? [])
+                    } else if filterConfiguration?.parseState == .partial {
+                        warnings.append(contentsOf: filterConfiguration?.warnings ?? [])
+                    }
+                } catch {
+                    pairing = .invalid; warnings.append("plugin_scan.plist_invalid_or_unreadable")
+                }
+            }
+            if pairing == .paired {
+                if dylib == nil && plist != nil { pairing = .orphanPlist }
+                if dylib != nil && plist == nil { pairing = .orphanDylib; warnings.append("plugin_scan.plist_generation_required") }
+                if dylib == nil && plist == nil { pairing = .invalid; warnings.append("plugin_scan.manifest_without_pair") }
+            }
+
+            let dylibEvidence = dylibGroup.count == 1 ? packageEvidence(for: dylib, issues: &issues) : nil
+            let plistEvidence = plistGroup.count == 1 ? packageEvidence(for: plist, issues: &issues) : nil
+            if dylibEvidence?.isOwnedByPackage == true { dylibPackageID = dylibEvidence?.packageIdentifier }
+            if plistEvidence?.isOwnedByPackage == true { plistPackageID = plistEvidence?.packageIdentifier }
+            let packageIDs = Set([dylibPackageID, plistPackageID].compactMap { $0 })
+            if packageIDs.count > 1 {
+                ownershipConflict = .multiplePackageOwners
+                ownership = .unknown
+                warnings.append("plugin_scan.multiple_package_owners")
+            } else if let packageOwner = packageIDs.first {
+                ownership = .packageManager
+                packageID = packageOwner
+                packageVersion = [dylibEvidence, plistEvidence].compactMap { $0 }
+                    .first(where: { $0.isOwnedByPackage && $0.packageIdentifier == packageOwner })?.packageVersion
+            }
+            if dylibGroup.count == 1, plistGroup.count == 1, manifestGroup.count == 1,
+               let manifest, let dylib, let plist, let dylibHash, let plistHash,
+               let verified = verifyManifest(at: manifest, expectedStem: stem,
+                                             dylibName: dylib.lastPathComponent, plistName: plist.lastPathComponent,
+                                             dylibHash: dylibHash, plistHash: plistHash,
+                                             machoSlices: machoSlices) {
+                manifestIdentityBinding = verified.schemaVersion >= 2 ? .binaryIdentityVerified : .fileHashesOnly
+                if ownership == .packageManager || ownershipConflict == .multiplePackageOwners {
+                    ownership = .unknown
+                    if ownershipConflict != .multiplePackageOwners {
+                        ownershipConflict = .filterKitVsPackageManager
+                    }
+                    warnings.append("plugin_scan.ownership_evidence_conflict")
+                } else {
+                    ownership = .filterKit
+                    verifiedPluginID = verified.pluginID
+                    hardBound = verified.hardBoundBundleIdentifier
+                    softStates = verified.softAssociations ?? (verified.softAssociatedBundleIdentifiers ?? []).map {
+                        FilterKitManifestSoftAssociation(bundleIdentifier: $0, isEnabled: true)
+                    }
+                    soft = softStates.map(\.bundleIdentifier).sorted()
+                }
+            } else if manifest != nil {
+                warnings.append("plugin_scan.manifest_unverified")
+            }
+            let permission = PluginManagementPermission.evaluate(ownership: ownership, pairing: pairing,
+                binaryKind: binaryKind, verifiedPluginID: verifiedPluginID, filterConfiguration: filterConfiguration)
+            let itemID = "\(normalizedStem).dylib"
+            items.append(PluginScanItem(id: itemID, baseName: stem,
+                dylibFileName: dylib?.lastPathComponent, plistFileName: plist?.lastPathComponent,
+                manifestFileName: manifest?.lastPathComponent, pairingState: pairing,
+                binaryKind: binaryKind, ownership: ownership, filterKitPluginID: verifiedPluginID, packageIdentifier: packageID,
+                dylibSHA256: dylibHash, plistSHA256: plistHash,
+                hardBoundBundleIdentifier: hardBound,
+                softAssociatedBundleIdentifiers: soft, warnings: warnings,
+                filterConfiguration: filterConfiguration, managementPermission: permission,
+                packageVersion: packageVersion,
+                machOInstallName: Set(machoSlices.compactMap(\.installName)).count == 1 ? machoSlices.compactMap(\.installName).first : nil,
+                machOCurrentVersion: Set(machoSlices.compactMap(\.currentVersion)).count == 1 ? machoSlices.compactMap(\.currentVersion).first : nil,
+                machOCompatibilityVersion: Set(machoSlices.compactMap(\.compatibilityVersion)).count == 1 ? machoSlices.compactMap(\.compatibilityVersion).first : nil,
+                machOUUID: Set(machoSlices.compactMap(\.uuid)).count == 1 ? machoSlices.compactMap(\.uuid).first : nil,
+                machOUUIDs: Array(Set(machoSlices.compactMap(\.uuid))).sorted(),
+                machOArchitectures: Array(Set(machoSlices.compactMap(\.architecture))).sorted(),
+                machOCDHashes: Array(Set(machoSlices.compactMap(\.cdHash))).sorted(),
+                codeSignatureStates: Array(Set(machoSlices.map(\.codeSignatureState))).sorted(),
+                machOSliceDetails: machoSlices.map { slice in "\(slice.architecture ?? "unknown"): \(slice.installName ?? "—") | \(slice.currentVersion ?? "—") | UUID \(slice.uuid ?? "—") | CDHash \(slice.cdHash ?? "—")" }.sorted(),
+                dylibPackageIdentifier: dylibPackageID,
+                plistPackageIdentifier: plistPackageID,
+                ownershipConflict: ownershipConflict,
+                manifestIdentityBinding: manifestIdentityBinding,
+                softAssociationStates: softStates))
+        }
+        let identityAnalysis = PluginIdentityAnalyzer().analyze(items)
+        let authorizedItems = identityAnalysis.items.map { item -> PluginScanItem in
+            var adjusted = item
+            if let permission = adjusted.managementPermission {
+                adjusted.managementPermission = PluginManagementPermission.restricting(permission,
+                    identityStatus: adjusted.identityStatus, ownershipConflict: adjusted.ownershipConflict)
+            }
+            return adjusted
+        }
+        return PluginScanResult(scannedAt: Date(), scannedDirectory: canonical,
+            directoryState: .resolved, plugins: authorizedItems, issues: issues,
+            isReadOnly: true, identityConflicts: identityAnalysis.conflicts)
+    }
+
+    private func packageEvidence(for url: URL?, issues: inout [PluginScanIssue]) -> PackageOwnershipEvidence? {
+        guard let url else { return nil }
+        do { return try packageOwnershipProvider.ownershipEvidence(for: url) }
+        catch {
+            issues.append(issue("package-evidence-\(url.lastPathComponent)", "plugin_scan.package_evidence_unavailable", url.lastPathComponent))
+            return nil
+        }
+    }
+
+    private func verifyManifest(at url: URL, expectedStem: String, dylibName: String,
+                                plistName: String, dylibHash: String, plistHash: String,
+                                machoSlices: [MachOSliceMetadata]) -> FilterKitPluginManifest? {
+        guard let attributes = try? fileManager.attributesOfItem(atPath: url.path),
+              let size = attributes[.size] as? NSNumber, size.intValue <= maximumManifestBytes,
+              let data = try? Data(contentsOf: url),
+              let manifest = try? JSONDecoder().decode(FilterKitPluginManifest.self, from: data),
+              (1...3).contains(manifest.schemaVersion),
+              !manifest.pluginID.isEmpty,
+              manifest.dylibFileName == dylibName,
+              manifest.plistFileName == plistName,
+              manifest.dylibSHA256.lowercased() == dylibHash,
+              manifest.plistSHA256.lowercased() == plistHash,
+              URL(fileURLWithPath: manifest.dylibFileName).lastPathComponent == manifest.dylibFileName,
+              URL(fileURLWithPath: manifest.plistFileName).lastPathComponent == manifest.plistFileName,
+              expectedStem == String(dylibName.dropLast(6)),
+              expectedStem == String(plistName.dropLast(6)) else { return nil }
+        if manifest.schemaVersion >= 2 {
+            let identityDigest = PluginIdentityAnalyzer.fingerprint(
+                installNames: machoSlices.compactMap(\.installName),
+                uuids: machoSlices.compactMap(\.uuid),
+                cdHashes: machoSlices.compactMap(\.cdHash),
+                architectures: machoSlices.compactMap(\.architecture))
+            guard let expectedIdentity = manifest.machOIdentitySHA256?.lowercased(),
+                  let identityDigest, expectedIdentity == identityDigest else { return nil }
+        }
+        if manifest.schemaVersion == 3 {
+            guard let hardBound = manifest.hardBoundBundleIdentifier,
+                  PluginAssociationPlanResolver.isValidBundleIdentifier(hardBound),
+                  let associations = manifest.softAssociations,
+                  associations.allSatisfy({ PluginAssociationPlanResolver.isValidBundleIdentifier($0.bundleIdentifier) }),
+                  Set(associations.map(\.bundleIdentifier)).count == associations.count,
+                  !associations.contains(where: { $0.bundleIdentifier == hardBound }),
+                  Set(associations.map(\.bundleIdentifier)) == Set(manifest.softAssociatedBundleIdentifiers ?? []) else { return nil }
+        }
+        return manifest
+    }
+
+    private func issue(_ id: String, _ code: String, _ file: String?) -> PluginScanIssue {
+        PluginScanIssue(id: id, code: code, fileName: file, detail: nil)
+    }
+
+    private static func binaryKind(_ data: Data) -> PluginBinaryKind {
+        guard data.count >= 4 else { return .notMachO }
+        let magic = data.prefix(4).reduce(UInt32(0)) { ($0 << 8) | UInt32($1) }
+        switch magic {
+        case 0xfeedface, 0xfeedfacf, 0xcefaedfe, 0xcffaedfe,
+             0xcafebabe, 0xbebafeca, 0xcafebabf, 0xbfbafeca: return .machO
+        default: return .notMachO
+        }
+    }
+}
+

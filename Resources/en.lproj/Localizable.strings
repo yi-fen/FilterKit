@@ -1,0 +1,263 @@
+"tab.home" = "Home";
+"tab.apps" = "Apps";
+"tab.plugins" = "Plugins";
+"tab.settings" = "Settings";
+"home.placeholder.title" = "Coming Soon";
+"home.placeholder.message" = "The FilterKit dashboard will be built here.";
+"apps.placeholder.title" = "App Management";
+"apps.placeholder.message" = "Installed app discovery will be implemented in a later phase.";
+"plugins.placeholder.title" = "Plugin Management";
+"plugins.placeholder.message" = "Plugin discovery and management will be implemented in a later phase.";
+"settings.general" = "General";
+"settings.language" = "Language";
+"language.system" = "Follow System";
+"language.chinese" = "简体中文";
+"language.english" = "English";
+"settings.storage" = "Storage & Cache";
+"settings.storage.placeholder" = "Storage management will be implemented in a later phase.";
+"settings.about" = "About";
+"settings.version" = "Version";
+"state.loading" = "Loading";
+"environment.root.validation_failed" = "No JBROOT candidate passed structural validation.";
+"environment.root.ambiguous" = "Multiple distinct JBROOT candidates passed validation.";
+"environment.root.symlink_resolved" = "A JBROOT candidate uses a symbolic link; its canonical path was checked.";
+"environment.root.unresolved" = "The active JBROOT could not be resolved safely.";
+"root.not_found" = "Candidate path does not exist.";
+"root.not_directory" = "Candidate path is not a directory.";
+"root.not_readable" = "Candidate directory is not readable.";
+"root.required_structure_missing" = "Required usr or usr/lib directory is missing or inaccessible.";
+"root.validated" = "JBROOT structure validated.";
+"root.validated_aliases_merged" = "Equivalent path aliases resolved to one JBROOT.";
+"environment.ellekit.not_checked" = "ElleKit inspection was not performed because JBROOT is unresolved.";
+"environment.ellekit.package_metadata_unavailable" = "Installed ElleKit package metadata was not found.";
+"environment.ellekit.metadata_from_status_old" = "ElleKit metadata came from the backup dpkg status database.";
+"environment.ellekit.binary_without_package_metadata" = "An ElleKit-related binary was found, but installed package metadata is unavailable.";
+"environment.ellekit.package_without_binary" = "ElleKit package metadata indicates installation, but no expected ElleKit binary was found.";
+"environment.ellekit.metadata_ambiguous" = "Multiple ElleKit package metadata records were found; version identification is ambiguous.";
+
+"environment.ellekit.primary_library_missing" = "ElleKit metadata or auxiliary files were found, but the primary libellekit.dylib is missing.";
+"environment.ellekit.profile_fingerprint_unknown" = "The package version is known, but no verified binary fingerprint is registered for this profile.";
+"environment.ellekit.profile_unverifiable" = "ElleKit profile identity cannot be verified because required evidence is unavailable.";
+"environment.ellekit.profile_identity_mismatch" = "ElleKit package or binary identity conflicts with the registered profile.";
+"environment.ellekit.profile_version_mismatch" = "ElleKit package identity is compatible, but its package version is outside the registered profile.";
+
+"environment.ellekit.status_database_conflict" = "The current and backup dpkg status databases disagree about ElleKit metadata.";
+"environment.ellekit.multiple_binary_candidates_conflict" = "Multiple ElleKit binary candidates have different identity fingerprints.";
+"environment.ellekit.profile_ambiguous" = "More than one ElleKit Profile or binary candidate matches or conflicts with the available evidence.";
+"environment.plugin_directory.unsupported_environment" = "Plugin directory detection is unavailable for this environment.";
+"environment.plugin_directory.ambiguous" = "Multiple distinct plugin directories were found. No directory was selected.";
+"environment.plugin_directory.legacy_layout_selected" = "The legacy MobileSubstrate plugin directory was found.";
+"environment.plugin_directory.inaccessible" = "A plugin directory exists but cannot be fully inspected.";
+"environment.plugin_directory.not_found" = "No usable third-party plugin directory was found.";
+"environment.plugin_directory.ellekit_component_separate" = "ElleKit component files were found separately from the plugin directory.";
+"environment.plugin_directory.not_checked" = "Plugin directory inspection was not performed.";
+
+// P1-05 read-only plugin scanner
+"plugin_scan.directory_not_resolved" = "Plugin directory was not uniquely resolved; scanning was skipped.";
+"plugin_scan.directory_inaccessible" = "Plugin directory is inaccessible.";
+"plugin_scan.directory_path_mismatch" = "Resolved plugin directory path did not match its canonical path.";
+"plugin_scan.enumeration_failed" = "Plugin directory could not be enumerated.";
+"plugin_scan.symlink_skipped" = "Symbolic link was skipped during plugin scanning.";
+"plugin_scan.dylib_not_macho" = "File does not have a recognized Mach-O header.";
+"plugin_scan.dylib_unreadable" = "Dynamic library could not be read.";
+"plugin_scan.plist_invalid_or_unreadable" = "Property list is invalid or unreadable.";
+"plugin_scan.plist_generation_required" = "A matching property list is missing; generation is required.";
+"plugin_scan.ownership_evidence_conflict" = "FilterKit manifest conflicts with package-manager ownership evidence; ownership is unknown.";
+"plugin_scan.manifest_unverified" = "FilterKit manifest could not be verified against both file hashes and exact file names.";
+"plugin_scan.package_evidence_unavailable" = "Package ownership evidence could not be read.";
+"plugin_scan.directory_assessment_not_injected" = "Plugin directory assessment was not provided; scanning was skipped.";
+
+// P1-06 read-only App association projection
+"plugin_association.hard_bound_installed" = "Hard-bound source app is installed.";
+"plugin_association.hard_bound_missing" = "Hard-bound source app is not installed. Its identity is preserved and will not be migrated.";
+"plugin_association.soft_app_missing" = "One or more soft-associated apps are not installed.";
+"plugin_association.read_only" = "Association information is read-only in this phase.";
+"plugin_association.invalid_manifest_identity" = "Plugin association identity is invalid or unavailable; the record was skipped.";
+
+// P1-07 App discovery
+"app_discovery.launch_services_unavailable" = "LaunchServices app discovery is unavailable on this device.";
+"app_discovery.workspace_unavailable" = "The LaunchServices workspace could not be opened.";
+"app_discovery.enumeration_unavailable" = "Installed applications could not be enumerated.";
+"app_discovery.classification_unknown" = "App type could not be confirmed.";
+"app_discovery.refresh" = "Refresh Apps";
+"app_discovery.search_placeholder" = "Search app name or Bundle ID";
+
+// P1-08 Apps inventory UI
+"apps.filter.title" = "App filter";
+"apps.filter.all" = "All Apps";
+"apps.filter.associated" = "Apps with Plugins";
+"apps.count" = "Applications";
+"apps.loading.title" = "Loading Apps";
+"apps.loading.message" = "Reading the installed application inventory.";
+"apps.error.title" = "Unable to Load Apps";
+"apps.empty.title" = "No Apps Found";
+"apps.empty.message" = "No applications match the current visibility settings.";
+"apps.empty.search_title" = "No Matching Apps";
+"apps.empty.search_message" = "Try another app name or Bundle ID.";
+"apps.badge.system" = "System App";
+"apps.badge.associated" = "Has FilterKit plugin association";
+"apps.detail.information" = "App Information";
+"apps.detail.name" = "Name";
+"apps.detail.bundle_id" = "Bundle ID";
+"apps.detail.type" = "Classification";
+"apps.detail.path" = "App Path";
+"apps.detail.plugins" = "Plugins";
+"apps.detail.import_placeholder" = "Plugin import and per-app controls will be implemented in a later phase.";
+"settings.apps" = "Applications";
+"settings.show_system_apps" = "Show System Apps";
+
+"app_discovery.access_restricted" = "App inventory access is restricted. Check the app or helper permissions.";
+"app_discovery.lsd_guard" = "Application enumeration is disabled inside the lsd process.";
+"app_discovery.no_readable_inventory" = "No readable application inventory was available. This does not mean no apps are installed.";
+"apps.detail.version" = "Version";
+"apps.detail.build" = "Build";
+"apps.detail.executable" = "Executable";
+"apps.detail.discovery_source" = "Discovery source";
+
+"plugins.scope.title" = "Plugin list scope";
+"plugins.scope.managed" = "FilterKit-managed";
+"plugins.scope.all" = "All plugins";
+"plugins.loading.title" = "Scanning plugins";
+"plugins.loading.message" = "Reading plugin files and ownership evidence.";
+"plugins.error.title" = "Plugin scan failed";
+"plugins.directory_unavailable.title" = "Plugin directory unavailable";
+"plugins.directory_ambiguous.message" = "Multiple distinct plugin directories were found. Scanning is disabled to avoid mixing locations.";
+"plugins.directory_unavailable.message" = "The verified plugin directory is unavailable or cannot be read.";
+"plugins.empty.title" = "No plugins found";
+"plugins.empty.message" = "No plugin dylib or plist files were found in the verified directory.";
+"plugins.empty.search_title" = "No matching plugins";
+"plugins.empty.search_message" = "Try another plugin name, file name, or package identifier.";
+"plugins.search.prompt" = "Search name, filename, or package";
+"plugins.refresh" = "Refresh plugins";
+"plugins.scan.read_only" = "Read-only inventory";
+"plugins.ownership.filterkit" = "Managed by FilterKit";
+"plugins.ownership.package_manager" = "Managed by package manager";
+"plugins.ownership.unknown" = "Source unknown";
+"plugins.pairing.paired" = "Dylib + plist paired";
+"plugins.pairing.orphan_dylib" = "Missing plist";
+"plugins.pairing.orphan_plist" = "Missing dylib";
+"plugins.pairing.unreadable" = "Unreadable";
+"plugins.pairing.invalid" = "Invalid / duplicate";
+"plugins.detail.identity" = "Plugin identity";
+"plugins.detail.name" = "Name";
+"plugins.detail.ownership" = "Ownership";
+"plugins.detail.package" = "Package";
+"plugins.detail.pairing" = "Pairing";
+"plugins.detail.binary" = "Binary type";
+"plugins.detail.associations" = "App associations";
+"plugins.detail.hard_bound" = "Hard-bound App";
+"plugins.detail.integrity" = "Integrity and warnings";
+"plugins.detail.read_only_notice" = "This screen only inspects files. It does not enable, disable, modify, or uninstall plugins.";
+"plugin_scan.duplicate_case_insensitive_basename" = "Multiple files share the same case-insensitive basename.";
+
+// P1-10: read-only Filter parsing and management authorization
+"plugins.detail.permission" = "Management permission";
+"plugins.detail.filter" = "Injection Filter configuration (read-only)";
+"plugins.filter.container" = "Configuration location";
+"plugins.filter.parse_state" = "Parse state";
+"plugins.filter.bundles" = "Bundles";
+"plugins.filter.executables" = "Executables";
+"plugins.filter.classes" = "Classes";
+"plugins.filter.mode" = "Mode";
+"plugins.filter.unknown_keys" = "Unknown fields (names only)";
+"plugins.permission.filterkit_managed" = "Verified FilterKit plugin; eligible for future management";
+"plugins.permission.package_manager" = "Owned by another package manager; read-only in FilterKit";
+"plugins.permission.unknown_source" = "Ownership is unverified; read-only in FilterKit";
+"plugins.permission.invalid_pair" = "Pairing, Mach-O, or Filter configuration validation failed; read-only";
+"plugins.permission.unverified_identity" = "FilterKit plugin identity failed UUID validation; read-only";
+"plugins.permission.not_evaluated" = "Not evaluated; read-only";
+"plugin_filter.root_not_dictionary" = "The plist root is not a dictionary.";
+"plugin_filter.filter_not_dictionary" = "The Filter value is not a dictionary.";
+"plugin_filter.plist_parse_failed" = "The plist could not be parsed.";
+"plugin_filter.bundles_not_array" = "Bundles is not an array.";
+"plugin_filter.executables_not_array" = "Executables is not an array.";
+"plugin_filter.classes_not_array" = "Classes is not an array.";
+"plugin_filter.bundles_contains_non_string" = "Bundles contains non-string values.";
+"plugin_filter.executables_contains_non_string" = "Executables contains non-string values.";
+"plugin_filter.classes_contains_non_string" = "Classes contains non-string values.";
+"plugin_filter.mode_unrecognized_type" = "The Mode value has an unrecognized type.";
+
+// P1-11 Mach-O identity and package version
+"plugins.detail.package_version" = "Package version";
+"plugins.detail.macho" = "Mach-O identity";
+"plugins.macho.install_name" = "Install name";
+"plugins.macho.current_version" = "Mach-O current version";
+"plugins.macho.compatibility_version" = "Compatibility version";
+"plugins.macho.uuid" = "Mach-O UUID";
+"plugins.macho.architectures" = "Architectures";
+"plugins.macho.cdhash" = "CDHash";
+"plugins.macho.signature_state" = "Code signature metadata";
+
+// P1-12 identity and ownership conflict analysis
+"plugins.identity.status" = "Identity assessment";
+"plugins.identity.fingerprint" = "Binary identity fingerprint";
+"plugins.identity.conflicts" = "Identity conflicts";
+"plugins.ownership.conflict" = "Ownership conflict";
+"plugins.ownership.dylib_owner" = "Dylib package owner";
+"plugins.ownership.plist_owner" = "Plist package owner";
+"plugins.identity.global_conflicts" = "Inventory identity conflicts";
+"plugins.identity.no_conflicts" = "No cross-plugin identity conflicts detected.";
+"plugin_scan.multiple_package_owners" = "The dylib and plist are attributed to different packages; ownership is unknown.";
+"plugins.identity.manifest_binding" = "Manifest binary binding";
+"plugins.permission.identity_conflict" = "Read-only: binary identity conflict requires review.";
+"plugins.permission.ownership_conflict" = "Read-only: ownership evidence conflicts; FilterKit will not take over this plugin.";
+"deployment.strategy.unsupported_environment" = "Enable/disable is unavailable in this environment.";
+"deployment.strategy.no_profile_evidence" = "No verified enable/disable profile is available.";
+"deployment.strategy.environment_mismatch" = "The profile belongs to a different jailbreak environment.";
+"deployment.strategy.not_verified" = "The enable/disable mechanism is not verified; no files were changed.";
+"deployment.strategy.verified" = "The profile strategy is verified.";
+
+// P1-14 association intent and non-mutating plist preview
+"association.plan.hard_bound" = "Immutable source App";
+"association.plan.soft_enabled" = "Enabled soft associations";
+"association.plan.soft_disabled" = "Disabled soft associations";
+"association.plan.missing_apps" = "Associated Apps not installed";
+"association.plan.hard_bound_locked" = "The source App is immutable. Uninstall the plugin and import it again to change its source App.";
+"association.plist.preview_only" = "This is a proposal only. Original plist bytes are preserved; deployment remains disabled until the exact ElleKit profile is verified.";
+"association.plist.invalid_original" = "The original Filter.plist is invalid. FilterKit will not replace or repair it automatically.";
+"association.plist.proposed_additions" = "Proposed Bundle additions";
+
+// P1-17 backup export workflow
+"backup.export.manageable" = "Export FilterKit backups";
+"backup.export.title" = "Backup export";
+"backup.export.scan_required" = "Scan plugins before creating a backup.";
+"backup.export.no_manageable_plugins" = "No verified FilterKit-managed plugins are available to export.";
+"backup.export.failed" = "Backup export failed. Check plugin ownership, manifest, and file integrity.";
+
+// P1-18 backup import and restore review
+"backup.actions" = "Backup actions";
+"backup.restore.import" = "Import FilterKit backup";
+"backup.restore.title" = "Backup restore review";
+"backup.restore.inspect_failed" = "This backup could not be validated. No files were changed.";
+"backup.restore.import_failed" = "The selected backup could not be opened.";
+"backup.restore.none_selected" = "Select at least one eligible plugin.";
+"backup.restore.review_title" = "Review backup";
+"backup.restore.total" = "Plugins in backup";
+"backup.restore.selectable" = "Eligible for selection";
+"backup.restore.plugins" = "Backup plugins";
+"backup.restore.read_only_notice" = "This is a read-only review. No plugin files, manifests, or injection rules will be written in this phase.";
+"backup.restore.confirm_selection" = "Confirm selection";
+"backup.restore.confirm_title" = "Confirm restore selection";
+"backup.restore.confirm_message" = "This confirms your selection only. Actual deployment is not available yet, and no files will be written.";
+"backup.restore.confirmed_read_only" = "Selection confirmed for review. No files were restored or modified.";
+"backup.restore.status.ready" = "Ready for a later restore phase";
+"backup.restore.status.hard_app_missing" = "Blocked: hard-bound source App is missing";
+"backup.restore.status.soft_apps_missing" = "Eligible with missing soft-associated Apps";
+"backup.restore.status.file_conflict" = "Blocked: destination file name already exists";
+"backup.restore.status.identity_conflict" = "Blocked: plugin identity already exists";
+"backup.restore.destination_unavailable" = "The plugin destination could not be scanned. File-name conflicts may be incomplete; no restore can be performed in this phase.";
+"backup.restore.source_app" = "Hard-bound source App";
+
+"settings.helper" = "Helper";
+"settings.helper.connection" = "Connection";
+"settings.helper.connected" = "Connected";
+"settings.helper.unavailable" = "Unavailable";
+"settings.helper.not_checked" = "Not checked";
+"settings.helper.recovery" = "Recovery state";
+"settings.helper.refresh" = "Refresh status";
+"settings.helper.status_unknown" = "Unknown";
+"settings.helper.recovery_clean" = "No pending recovery";
+"settings.helper.recovery_pending" = "Recovery required";
+"settings.helper.recovery_invalid" = "Recovery journal invalid";
+
+"settings.helper.not_configured" = "Not configured";

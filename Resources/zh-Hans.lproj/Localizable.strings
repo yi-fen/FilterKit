@@ -1,0 +1,263 @@
+"tab.home" = "首页";
+"tab.apps" = "应用";
+"tab.plugins" = "插件";
+"tab.settings" = "设置";
+"home.placeholder.title" = "敬请期待";
+"home.placeholder.message" = "FilterKit 仪表盘将在后续阶段开发。";
+"apps.placeholder.title" = "应用管理";
+"apps.placeholder.message" = "已安装应用扫描将在后续阶段实现。";
+"plugins.placeholder.title" = "插件管理";
+"plugins.placeholder.message" = "插件扫描与管理将在后续阶段实现。";
+"settings.general" = "通用";
+"settings.language" = "语言";
+"language.system" = "跟随系统";
+"language.chinese" = "简体中文";
+"language.english" = "English";
+"settings.storage" = "存储与缓存";
+"settings.storage.placeholder" = "存储管理将在后续阶段实现。";
+"settings.about" = "关于";
+"settings.version" = "版本";
+"state.loading" = "正在加载";
+"environment.root.validation_failed" = "没有 JBROOT 候选路径通过目录结构校验。";
+"environment.root.ambiguous" = "有多个不同的 JBROOT 候选路径通过校验。";
+"environment.root.symlink_resolved" = "JBROOT 候选路径包含符号链接，已检查其规范化路径。";
+"environment.root.unresolved" = "无法安全确定当前使用的 JBROOT。";
+"root.not_found" = "候选路径不存在。";
+"root.not_directory" = "候选路径不是目录。";
+"root.not_readable" = "候选目录不可读取。";
+"root.required_structure_missing" = "缺少必需的 usr 或 usr/lib 目录，或目录不可访问。";
+"root.validated" = "JBROOT 目录结构校验通过。";
+"root.validated_aliases_merged" = "等价路径别名已合并为同一个 JBROOT。";
+"environment.ellekit.not_checked" = "由于无法确定 JBROOT，未执行 ElleKit 检查。";
+"environment.ellekit.package_metadata_unavailable" = "未找到已安装 ElleKit 软件包元数据。";
+"environment.ellekit.metadata_from_status_old" = "ElleKit 元数据来自 dpkg 备用状态数据库。";
+"environment.ellekit.binary_without_package_metadata" = "发现 ElleKit 相关动态库，但无法取得已安装软件包元数据。";
+"environment.ellekit.package_without_binary" = "ElleKit 软件包元数据显示已安装，但未找到预期的 ElleKit 动态库。";
+"environment.ellekit.metadata_ambiguous" = "发现多条 ElleKit 软件包元数据，无法唯一确认版本。";
+
+"environment.ellekit.primary_library_missing" = "发现 ElleKit 元数据或辅助文件，但缺少主库 libellekit.dylib。";
+"environment.ellekit.profile_fingerprint_unknown" = "已知软件包版本，但此 Profile 尚未登记经过验证的二进制指纹。";
+"environment.ellekit.profile_unverifiable" = "缺少必要证据，无法验证 ElleKit Profile 身份。";
+"environment.ellekit.profile_identity_mismatch" = "ElleKit 软件包或二进制身份与已登记的 Profile 不一致。";
+"environment.ellekit.profile_version_mismatch" = "ElleKit 软件包身份符合，但包版本不在已登记的 Profile 范围内。";
+
+"environment.ellekit.status_database_conflict" = "当前 dpkg 状态库与备份状态库中的 ElleKit 元数据不一致。";
+"environment.ellekit.multiple_binary_candidates_conflict" = "发现多个身份指纹不同的 ElleKit 二进制候选文件。";
+"environment.ellekit.profile_ambiguous" = "多个 ElleKit Profile 或二进制候选与现有证据匹配或冲突，无法唯一判定。";
+"environment.plugin_directory.unsupported_environment" = "当前环境不支持插件目录检测。";
+"environment.plugin_directory.ambiguous" = "发现多个不同的插件目录，未自动选择。";
+"environment.plugin_directory.legacy_layout_selected" = "发现并识别到传统 MobileSubstrate 插件目录。";
+"environment.plugin_directory.inaccessible" = "插件目录存在，但无法完整检查。";
+"environment.plugin_directory.not_found" = "未发现可用的第三方插件目录。";
+"environment.plugin_directory.ellekit_component_separate" = "发现 ElleKit 本体组件目录；该目录与插件目录分别识别。";
+"environment.plugin_directory.not_checked" = "尚未执行插件目录检查。";
+
+// P1-05 read-only plugin scanner
+"plugin_scan.directory_not_resolved" = "插件目录未能唯一确定，已跳过扫描。";
+"plugin_scan.directory_inaccessible" = "插件目录不可访问。";
+"plugin_scan.directory_path_mismatch" = "插件目录路径与规范化真实路径不一致。";
+"plugin_scan.enumeration_failed" = "无法枚举插件目录。";
+"plugin_scan.symlink_skipped" = "扫描时已跳过符号链接。";
+"plugin_scan.dylib_not_macho" = "文件不具有可识别的 Mach-O 文件头。";
+"plugin_scan.dylib_unreadable" = "无法读取动态库文件。";
+"plugin_scan.plist_invalid_or_unreadable" = "属性列表文件格式无效或无法读取。";
+"plugin_scan.plist_generation_required" = "缺少同名属性列表，后续需要生成。";
+"plugin_scan.ownership_evidence_conflict" = "FilterKit 清单与包管理器归属证据冲突，来源归属标记为未知。";
+"plugin_scan.manifest_unverified" = "无法通过两个文件的哈希及精确文件名验证 FilterKit 清单。";
+"plugin_scan.package_evidence_unavailable" = "无法读取包管理器归属证据。";
+"plugin_scan.directory_assessment_not_injected" = "未提供插件目录检测结果，已跳过扫描。";
+
+// P1-06 只读 App 关联信息投影
+"plugin_association.hard_bound_installed" = "硬绑定来源应用已安装。";
+"plugin_association.hard_bound_missing" = "硬绑定来源应用当前未安装。系统保留其身份，不会自动迁移。";
+"plugin_association.soft_app_missing" = "一个或多个软关联应用当前未安装。";
+"plugin_association.read_only" = "此阶段的关联信息仅供读取。";
+"plugin_association.invalid_manifest_identity" = "插件关联身份无效或不可用，已跳过该记录。";
+
+// P1-07 App discovery
+"app_discovery.launch_services_unavailable" = "此设备无法使用 LaunchServices 应用扫描功能。";
+"app_discovery.workspace_unavailable" = "无法打开 LaunchServices 工作空间。";
+"app_discovery.enumeration_unavailable" = "无法枚举已安装的应用。";
+"app_discovery.classification_unknown" = "无法确认应用类型。";
+"app_discovery.refresh" = "刷新应用";
+"app_discovery.search_placeholder" = "搜索应用名称或 Bundle ID";
+
+// P1-08 Apps inventory UI
+"apps.filter.title" = "应用筛选";
+"apps.filter.all" = "全部应用";
+"apps.filter.associated" = "已关联插件的应用";
+"apps.count" = "应用数量";
+"apps.loading.title" = "正在加载应用";
+"apps.loading.message" = "正在读取设备已安装的应用列表。";
+"apps.error.title" = "无法加载应用";
+"apps.empty.title" = "没有找到应用";
+"apps.empty.message" = "当前显示条件下没有符合条件的应用。";
+"apps.empty.search_title" = "没有匹配的应用";
+"apps.empty.search_message" = "请尝试其他应用名称或 Bundle ID。";
+"apps.badge.system" = "系统应用";
+"apps.badge.associated" = "已关联 FilterKit 插件";
+"apps.detail.information" = "应用信息";
+"apps.detail.name" = "名称";
+"apps.detail.bundle_id" = "Bundle ID";
+"apps.detail.type" = "分类";
+"apps.detail.path" = "应用路径";
+"apps.detail.plugins" = "插件";
+"apps.detail.import_placeholder" = "插件导入和应用级控制将在后续阶段实现。";
+"settings.apps" = "应用";
+"settings.show_system_apps" = "显示系统应用";
+
+"app_discovery.access_restricted" = "应用清单访问受限，请检查主程序或特权 Helper 的权限。";
+"app_discovery.lsd_guard" = "为避免 lsd 进程发生 watchdog 问题，已禁止在该进程内枚举应用。";
+"app_discovery.no_readable_inventory" = "无法取得可读取的应用清单；这不代表设备没有安装应用。";
+"apps.detail.version" = "版本";
+"apps.detail.build" = "构建版本";
+"apps.detail.executable" = "可执行文件";
+"apps.detail.discovery_source" = "扫描来源";
+
+"plugins.scope.title" = "插件列表范围";
+"plugins.scope.managed" = "FilterKit 管理";
+"plugins.scope.all" = "全部插件";
+"plugins.loading.title" = "正在扫描插件";
+"plugins.loading.message" = "正在读取插件文件和来源证据。";
+"plugins.error.title" = "插件扫描失败";
+"plugins.directory_unavailable.title" = "插件目录不可用";
+"plugins.directory_ambiguous.message" = "发现多个不同的插件目录。为避免混合扫描，已停止扫描。";
+"plugins.directory_unavailable.message" = "经过验证的插件目录不可用或无法读取。";
+"plugins.empty.title" = "未发现插件";
+"plugins.empty.message" = "经过验证的目录中没有发现插件 dylib 或 plist 文件。";
+"plugins.empty.search_title" = "没有匹配的插件";
+"plugins.empty.search_message" = "请尝试其他插件名称、文件名或软件包标识。";
+"plugins.search.prompt" = "搜索名称、文件名或软件包";
+"plugins.refresh" = "刷新插件";
+"plugins.scan.read_only" = "只读库存";
+"plugins.ownership.filterkit" = "由 FilterKit 管理";
+"plugins.ownership.package_manager" = "由其他包管理器管理";
+"plugins.ownership.unknown" = "来源未知";
+"plugins.pairing.paired" = "dylib + plist 已配对";
+"plugins.pairing.orphan_dylib" = "缺少 plist";
+"plugins.pairing.orphan_plist" = "缺少 dylib";
+"plugins.pairing.unreadable" = "无法读取";
+"plugins.pairing.invalid" = "无效 / 重复";
+"plugins.detail.identity" = "插件身份";
+"plugins.detail.name" = "名称";
+"plugins.detail.ownership" = "管理来源";
+"plugins.detail.package" = "软件包";
+"plugins.detail.pairing" = "文件配对";
+"plugins.detail.binary" = "二进制类型";
+"plugins.detail.associations" = "App 关联";
+"plugins.detail.hard_bound" = "硬绑定 App";
+"plugins.detail.integrity" = "完整性与警告";
+"plugins.detail.read_only_notice" = "此页面仅检查文件，不会启用、停用、修改或卸载插件。";
+"plugin_scan.duplicate_case_insensitive_basename" = "存在多个大小写不敏感文件名相同的文件。";
+
+// P1-10: read-only Filter parsing and management authorization
+"plugins.detail.permission" = "管理权限";
+"plugins.detail.filter" = "注入 Filter 配置（只读）";
+"plugins.filter.container" = "配置位置";
+"plugins.filter.parse_state" = "解析状态";
+"plugins.filter.bundles" = "Bundles";
+"plugins.filter.executables" = "Executables";
+"plugins.filter.classes" = "Classes";
+"plugins.filter.mode" = "Mode";
+"plugins.filter.unknown_keys" = "未知字段（仅列名）";
+"plugins.permission.filterkit_managed" = "FilterKit 已验证插件；具备后续管理资格";
+"plugins.permission.package_manager" = "其他包管理器拥有；FilterKit 只读";
+"plugins.permission.unknown_source" = "来源未验证；FilterKit 只读";
+"plugins.permission.invalid_pair" = "文件配对、Mach-O 或 Filter 配置未通过验证；只读";
+"plugins.permission.unverified_identity" = "FilterKit 插件身份未通过 UUID 验证；只读";
+"plugins.permission.not_evaluated" = "尚未评估；只读";
+"plugin_filter.root_not_dictionary" = "plist 顶层不是字典。";
+"plugin_filter.filter_not_dictionary" = "Filter 字段不是字典。";
+"plugin_filter.plist_parse_failed" = "无法解析 plist。";
+"plugin_filter.bundles_not_array" = "Bundles 不是数组。";
+"plugin_filter.executables_not_array" = "Executables 不是数组。";
+"plugin_filter.classes_not_array" = "Classes 不是数组。";
+"plugin_filter.bundles_contains_non_string" = "Bundles 含非字符串项目。";
+"plugin_filter.executables_contains_non_string" = "Executables 含非字符串项目。";
+"plugin_filter.classes_contains_non_string" = "Classes 含非字符串项目。";
+"plugin_filter.mode_unrecognized_type" = "Mode 类型无法识别。";
+
+// P1-11 Mach-O identity and package version
+"plugins.detail.package_version" = "软件包版本";
+"plugins.detail.macho" = "Mach-O 身份信息";
+"plugins.macho.install_name" = "Install Name";
+"plugins.macho.current_version" = "Mach-O 当前版本";
+"plugins.macho.compatibility_version" = "兼容版本";
+"plugins.macho.uuid" = "Mach-O UUID";
+"plugins.macho.architectures" = "架构";
+"plugins.macho.cdhash" = "CDHash";
+"plugins.macho.signature_state" = "代码签名元数据";
+
+// P1-12 identity and ownership conflict analysis
+"plugins.identity.status" = "身份评估";
+"plugins.identity.fingerprint" = "二进制身份指纹";
+"plugins.identity.conflicts" = "身份冲突";
+"plugins.ownership.conflict" = "归属冲突";
+"plugins.ownership.dylib_owner" = "Dylib 所属软件包";
+"plugins.ownership.plist_owner" = "Plist 所属软件包";
+"plugins.identity.global_conflicts" = "库存身份冲突";
+"plugins.identity.no_conflicts" = "未检测到跨插件身份冲突。";
+"plugin_scan.multiple_package_owners" = "Dylib 与 plist 分别归属于不同软件包，来源无法确认。";
+"plugins.identity.manifest_binding" = "Manifest 二进制指纹绑定";
+"plugins.permission.identity_conflict" = "只读：二进制身份存在冲突，需要人工核查。";
+"plugins.permission.ownership_conflict" = "只读：来源归属证据冲突，FilterKit 不会接管此插件。";
+"deployment.strategy.unsupported_environment" = "当前环境不支持启用/停用操作。";
+"deployment.strategy.no_profile_evidence" = "没有可用的、经过验证的启用/停用配置档。";
+"deployment.strategy.environment_mismatch" = "该配置档属于不同的越狱环境。";
+"deployment.strategy.not_verified" = "启用/停用机制尚未验证；未修改任何文件。";
+"deployment.strategy.verified" = "配置档策略已验证。";
+
+// P1-14 association intent and non-mutating plist preview
+"association.plan.hard_bound" = "不可变的来源 App";
+"association.plan.soft_enabled" = "已启用的软关联";
+"association.plan.soft_disabled" = "已停用的软关联";
+"association.plan.missing_apps" = "当前未安装的关联 App";
+"association.plan.hard_bound_locked" = "来源 App 不可直接更改。如需更换来源 App，必须卸载插件后从新的 App 详情页重新导入。";
+"association.plist.preview_only" = "此内容仅为变更预览。原始 plist 字节保持不变；在对应 ElleKit 配置档验证完成前，不允许部署。";
+"association.plist.invalid_original" = "原始 Filter.plist 无效。FilterKit 不会自动覆盖或修复它。";
+"association.plist.proposed_additions" = "建议新增的 Bundle 规则";
+
+// P1-17 备份导出流程
+"backup.export.manageable" = "导出 FilterKit 备份";
+"backup.export.title" = "备份导出";
+"backup.export.scan_required" = "请先扫描插件，再创建备份。";
+"backup.export.no_manageable_plugins" = "没有可导出的、已验证归属 FilterKit 的插件。";
+"backup.export.failed" = "备份导出失败。请检查插件归属、Manifest 和文件完整性。";
+
+// P1-18 备份导入与恢复审查
+"backup.actions" = "备份操作";
+"backup.restore.import" = "导入 FilterKit 备份";
+"backup.restore.title" = "备份恢复审查";
+"backup.restore.inspect_failed" = "无法验证此备份。没有修改任何文件。";
+"backup.restore.import_failed" = "无法打开所选备份。";
+"backup.restore.none_selected" = "请至少选择一个符合条件的插件。";
+"backup.restore.review_title" = "审查备份";
+"backup.restore.total" = "备份中的插件";
+"backup.restore.selectable" = "可选择恢复";
+"backup.restore.plugins" = "备份插件";
+"backup.restore.read_only_notice" = "当前仅提供只读审查。本阶段不会写入插件文件、Manifest 或注入规则。";
+"backup.restore.confirm_selection" = "确认选择";
+"backup.restore.confirm_title" = "确认恢复选择";
+"backup.restore.confirm_message" = "此操作仅确认你的选择。实际部署功能尚未开放，不会写入任何文件。";
+"backup.restore.confirmed_read_only" = "已确认审查选择。没有恢复或修改任何文件。";
+"backup.restore.status.ready" = "符合后续恢复阶段的条件";
+"backup.restore.status.hard_app_missing" = "已阻止：硬绑定来源 App 不存在";
+"backup.restore.status.soft_apps_missing" = "可选择，但部分软关联 App 不存在";
+"backup.restore.status.file_conflict" = "已阻止：目标文件名已存在";
+"backup.restore.status.identity_conflict" = "已阻止：插件身份已存在";
+"backup.restore.destination_unavailable" = "无法扫描插件目标目录，文件名冲突检查可能不完整；本阶段不会执行恢复。";
+"backup.restore.source_app" = "硬绑定来源 App";
+
+"settings.helper" = "Helper 状态";
+"settings.helper.connection" = "连接状态";
+"settings.helper.connected" = "已连接";
+"settings.helper.unavailable" = "不可用";
+"settings.helper.not_checked" = "尚未检查";
+"settings.helper.recovery" = "恢复状态";
+"settings.helper.refresh" = "刷新状态";
+"settings.helper.status_unknown" = "未知";
+"settings.helper.recovery_clean" = "没有待恢复事务";
+"settings.helper.recovery_pending" = "需要恢复";
+"settings.helper.recovery_invalid" = "事务日志异常";
+
+"settings.helper.not_configured" = "尚未配置";

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>cn.yfen.filterkit.helper</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>@FILTERKIT_JBROOT@/usr/libexec/filterkit-helper</string>
+    </array>
+    <!-- Disabled until RootHide/Rootless device validation and explicit release approval. -->
+    <key>Disabled</key>
+    <true/>
+    <key>RunAtLoad</key>
+    <false/>
+    <key>KeepAlive</key>
+    <false/>
+    <key>ThrottleInterval</key>
+    <integer>10</integer>
+    <key>StandardOutPath</key>
+    <string>/dev/null</string>
+    <key>StandardErrorPath</key>
+    <string>/dev/null</string>
+</dict>
+</plist>

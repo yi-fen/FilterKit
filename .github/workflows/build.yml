@@ -1,0 +1,88 @@
+name: FilterKit Manual Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target jailbreak environment
+        required: true
+        type: choice
+        options: [RootHide, Rootless, Both]
+        default: RootHide
+      profile:
+        description: Registered ElleKit reference profile (not a device compatibility certification)
+        required: true
+        type: choice
+        options: [Auto, roothide-dopamine-ellekit-1.2-3-16e3e7e]
+        default: Auto
+      configuration:
+        description: Build configuration
+        required: true
+        type: choice
+        options: [Debug, Release]
+        default: Release
+      architecture:
+        description: Target architecture
+        required: true
+        type: choice
+        options: [arm64e, arm64, Both]
+        default: arm64
+      run_tests:
+        description: Run tests before build
+        required: true
+        type: choice
+        options: [Yes, No]
+        default: No
+      package:
+        description: Output package format
+        required: true
+        type: choice
+        options: [DEB, IPA, Both, None]
+        default: None
+      clean_build:
+        description: Clean DerivedData before build
+        required: true
+        type: choice
+        options: [Yes, No]
+        default: Yes
+
+jobs:
+  select-environments:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set.outputs.matrix }}
+    steps:
+      - id: set
+        shell: bash
+        run: |
+          if [[ "${{ inputs.environment }}" == "Both" ]]; then echo 'matrix={"environment":["RootHide","Rootless"]}' >> "$GITHUB_OUTPUT"; else echo 'matrix={"environment":["${{ inputs.environment }}"]}' >> "$GITHUB_OUTPUT"; fi
+
+  build:
+    needs: select-environments
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.select-environments.outputs.matrix) }}
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select Xcode
+        run: xcode-select -p && xcodebuild -version
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Build and package
+        env:
+          ENVIRONMENT: ${{ matrix.environment }}
+          PROFILE: ${{ inputs.profile }}
+          CONFIGURATION: ${{ inputs.configuration }}
+          ARCHITECTURE: ${{ inputs.architecture }}
+          RUN_TESTS: ${{ inputs.run_tests == 'Yes' && 'true' || 'false' }}
+          PACKAGE: ${{ inputs.package }}
+          CLEAN_BUILD: ${{ inputs.clean_build == 'Yes' && 'true' || 'false' }}
+        run: bash Build/Scripts/ci-build.sh
+      - name: Upload build outputs and report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: FilterKit-${{ matrix.environment }}-${{ inputs.configuration }}-${{ inputs.architecture }}
+          path: Build/Output/${{ matrix.environment }}/
+          if-no-files-found: warn

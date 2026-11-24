@@ -1,0 +1,83 @@
+name: FilterKit
+options:
+  bundleIdPrefix: cn.yfen
+  deploymentTarget:
+    iOS: "15.0"
+  createIntermediateGroups: true
+  developmentLanguage: en
+settings:
+  base:
+    SWIFT_VERSION: 5.0
+    IPHONEOS_DEPLOYMENT_TARGET: 15.0
+    TARGETED_DEVICE_FAMILY: "1,2"
+    PRODUCT_NAME: FilterKit
+    MARKETING_VERSION: 1.0.0
+    CURRENT_PROJECT_VERSION: 1
+    GENERATE_INFOPLIST_FILE: YES
+    INFOPLIST_KEY_CFBundleDisplayName: FilterKit
+    INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+    INFOPLIST_KEY_UILaunchScreen_Generation: YES
+    INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone: "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
+    INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad: "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
+    CODE_SIGN_STYLE: Automatic
+    ENABLE_BITCODE: NO
+    VALIDATE_PRODUCT: YES
+targets:
+  FilterKit:
+    type: application
+    platform: iOS
+    sources:
+      - path: App
+      - path: Sources
+      - path: Resources
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: cn.yfen.filterkit
+        PRODUCT_NAME: FilterKit
+        INFOPLIST_KEY_CFBundleDisplayName: FilterKit
+        INFOPLIST_KEY_CFBundleShortVersionString: 1.0.0
+        INFOPLIST_KEY_CFBundleVersion: 1
+        GENERATE_INFOPLIST_FILE: YES
+        CODE_SIGN_STYLE: Automatic
+    scheme:
+      testTargets:
+        - FilterKitTests
+
+  FilterKitHelper:
+    type: command-line-tool
+    platform: iOS
+    sources:
+      - path: HelperRuntime
+      - path: Sources/Core/Models/Helper
+      - path: Sources/Core/Models/FilterKitPluginManifest.swift
+      - path: Sources/Environment/Helper/Transport/UnixDomainSocketTransport.swift
+      - path: Sources/Environment/Helper/Transport/DarwinPeerIdentityProvider.swift
+      - path: Sources/Environment/Helper/HelperDeploymentCoordinator.swift
+      - path: Sources/Environment/Helper/Runtime
+      - path: Sources/Environment/Helper/Execution
+      - path: Sources/Environment/MachOMetadataReader.swift
+      - path: Sources/Environment/Models/ElleKitVersionMetadata.swift
+      - path: Sources/Environment/SHA256Digest.swift
+      - path: Sources/Environment/Models/JailbreakPaths.swift
+      - path: Sources/Environment/LibrootRuntimeProbe.swift
+    settings:
+      base:
+        PRODUCT_NAME: FilterKitHelper
+        PRODUCT_BUNDLE_IDENTIFIER: cn.yfen.filterkit.helper
+        CODE_SIGN_STYLE: Manual
+        CODE_SIGNING_ALLOWED: NO
+        SWIFT_VERSION: 5.0
+
+  FilterKitTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: Tests/UnitTests
+    dependencies:
+      - target: FilterKit
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: cn.yfen.filterkit.tests
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/FilterKit.app/FilterKit"
+        BUNDLE_LOADER: "$(TEST_HOST)"

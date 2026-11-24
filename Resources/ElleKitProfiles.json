@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 2,
+  "profiles": [
+    {
+      "id": "roothide-dopamine-ellekit-1.2-3-16e3e7e",
+      "environment": "RootHide",
+      "status": "reference-baseline",
+      "allowedPackageVersions": ["1.2-3"],
+      "packageIdentity": {
+        "package": "ellekit",
+        "architectures": ["iphoneos-arm64e"],
+        "maintainers": [],
+        "origins": [],
+        "homepages": []
+      },
+      "binaryFingerprints": [],
+      "note": "Reference version/commit only. No verified installName + LC_UUID + CDHash tuple is registered; this profile cannot produce a matched result yet."
+    }
+  ],
+  "unsupportedProfiles": [
+    {
+      "id": "dopamine-rootless",
+      "environment": "Rootless",
+      "status": "unverified",
+      "note": "No verified Rootless ElleKit commit/profile is frozen yet; do not present as officially supported."
+    }
+  ]
+}
