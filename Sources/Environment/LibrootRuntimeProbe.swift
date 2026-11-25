@@ -20,6 +20,13 @@ final class LibrootRuntimeProbe {
 
     func inspect() -> LibrootPathEvidence {
         #if canImport(Darwin)
+        // R16 FastPluginInventoryEngine first asks the already-loaded RootHide
+        // runtime for jbroot(). Some RootHide builds export this symbol without
+        // exposing libroot_get_jbroot_prefix at the expected dylib paths.
+        if let processRoot = processJBRoot(), let valid = Self.validAbsolutePath(processRoot) {
+            return LibrootPathEvidence(libraryPath: "RTLD_DEFAULT:jbroot", jbrootPrefix: valid,
+                rootPrefix: nil, bootUUID: nil, loaded: true, diagnosticCode: "roothide.jbroot_symbol_observed")
+        }
         for path in candidateLibraryPaths {
             guard let handle = dlopen(path, RTLD_NOW | RTLD_LOCAL) else { continue }
             defer { dlclose(handle) }
@@ -42,6 +49,15 @@ final class LibrootRuntimeProbe {
     }
 
     #if canImport(Darwin)
+    private func processJBRoot() -> String? {
+        guard let processHandle = UnsafeMutableRawPointer(bitPattern: -2),
+              let raw = dlsym(processHandle, "jbroot") else { return nil }
+        typealias JBRootFunction = @convention(c) (UnsafePointer<CChar>?) -> UnsafePointer<CChar>?
+        let function = unsafeBitCast(raw, to: JBRootFunction.self)
+        guard let value = "/".withCString({ function($0) }) else { return nil }
+        return String(validatingUTF8: value)
+    }
+
     private func symbol(_ name: String, in handle: UnsafeMutableRawPointer) -> PrefixFunction? {
         guard let raw = dlsym(handle, name) else { return nil }
         return unsafeBitCast(raw, to: PrefixFunction.self)

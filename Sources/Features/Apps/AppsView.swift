@@ -146,7 +146,7 @@ private struct AppRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            ApplicationIconView(descriptor: app.iconDescriptor, classification: app.systemClassification)
+            ApplicationIconView(bundleIdentifier: app.bundleIdentifier, descriptor: app.iconDescriptor, classification: app.systemClassification)
             VStack(alignment: .leading, spacing: 4) {
                 Text(app.displayName).font(.body.weight(.medium)).foregroundColor(.primary)
                 Text(app.bundleIdentifier).font(.caption).foregroundColor(.secondary).lineLimit(1)

@@ -111,14 +111,14 @@ private final class PluginsViewModel: ObservableObject {
 
 struct PluginsView: View {
     @StateObject private var model = PluginsViewModel()
-    @State private var showingAllPlugins = false
+    @State private var showingFilterKitOnly = false
     @State private var searchText = ""
     @State private var isImportingBackup = false
 
     private var visiblePlugins: [PluginScanItem] {
         let items = model.result?.plugins ?? []
         return items.filter { item in
-            let scopeMatches = showingAllPlugins || (item.managementPermission?.canModify == true)
+            let scopeMatches = PluginListScope.includes(item, filterKitOnly: showingFilterKitOnly)
             let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
             let searchMatches = query.isEmpty || item.baseName.localizedCaseInsensitiveContains(query)
                 || (item.dylibFileName?.localizedCaseInsensitiveContains(query) ?? false)
@@ -209,11 +209,11 @@ struct PluginsView: View {
                     .accessibilityLabel("backup.actions")
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button { showingAllPlugins.toggle() } label: {
-                        Image(systemName: showingAllPlugins ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle")
+                    Button { showingFilterKitOnly.toggle() } label: {
+                        Image(systemName: showingFilterKitOnly ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle")
                     }
-                    .accessibilityLabel(showingAllPlugins ? "plugins.scope.all" : "plugins.scope.managed")
-                    .accessibilityValue(showingAllPlugins ? "plugins.scope.all" : "plugins.scope.managed")
+                    .accessibilityLabel(showingFilterKitOnly ? "plugins.scope.managed" : "plugins.scope.all")
+                    .accessibilityValue(showingFilterKitOnly ? "plugins.scope.managed" : "plugins.scope.all")
                     .accessibilityIdentifier("plugins.scope.toggle")
                 }
             }

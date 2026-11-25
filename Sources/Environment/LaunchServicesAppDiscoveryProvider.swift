@@ -57,24 +57,22 @@ final class LaunchServicesAppDiscoveryProvider: AppDiscoveryProvider {
         guard !proxies.isEmpty else { throw AppDiscoveryError.enumerationUnavailable }
 
         var apps: [String: InstalledApp] = [:]
-        var readableBundleCount = 0
         for proxy in proxies {
             guard let bundleID = stringValue("applicationIdentifier", on: proxy),
                   isValidBundleIdentifier(bundleID) else { continue }
             let bundleURL = urlValue("bundleURL", on: proxy)
-            if let bundleURL, FileManager.default.isReadableFile(atPath: bundleURL.appendingPathComponent("Info.plist").path) {
-                readableBundleCount += 1
-            }
-            let name = stringValue("_localizedName", on: proxy)
-                ?? stringValue("localizedName", on: proxy)
-                ?? infoPlistString("CFBundleDisplayName", bundleURL: bundleURL)
-                ?? infoPlistString("CFBundleName", bundleURL: bundleURL)
-                ?? bundleID
+            // Read Info.plist exactly once per application. The previous path read it
+            // separately for display name and again for version/build/executable/icon,
+            // multiplying filesystem I/O across hundreds of installed apps.
             let info = infoPlistValues(bundleURL: bundleURL)
-            let appType = stringValue("applicationType", on: proxy)
-            let tags = arrayValue("appTags", on: proxy)
-            let classification = classify(applicationType: appType, bundleID: bundleID, tags: tags, bundleURL: bundleURL)
-            let icon = proxyIconDescriptor(proxy: proxy, bundleURL: bundleURL, plist: info)
+            let name = stringValue("localizedName", on: proxy)
+                ?? (info["CFBundleDisplayName"] as? String)
+                ?? (info["CFBundleName"] as? String)
+                ?? bundleID
+            // R16 classifies by the resolved bundle path. Avoid two extra private
+            // proxy calls per app; icon cache lookup is deferred until the row appears.
+            let classification = classify(applicationType: nil, bundleID: bundleID, tags: nil, bundleURL: bundleURL)
+            let icon = proxyIconDescriptor(bundleURL: bundleURL, plist: info)
             apps[bundleID] = InstalledApp(bundleIdentifier: bundleID, displayName: name,
                 systemClassification: classification, bundleURL: bundleURL,
                 shortVersion: info["CFBundleShortVersionString"] as? String,
@@ -84,7 +82,6 @@ final class LaunchServicesAppDiscoveryProvider: AppDiscoveryProvider {
         }
         guard !apps.isEmpty else { throw AppDiscoveryError.noReadableInventory }
         // An LS proxy inventory with inaccessible bundle paths is still useful; do not turn it into an empty result.
-        _ = readableBundleCount
         return apps.values.sorted {
             let order = $0.displayName.localizedStandardCompare($1.displayName)
             return order == .orderedSame ? $0.bundleIdentifier < $1.bundleIdentifier : order == .orderedAscending
@@ -105,13 +102,6 @@ final class LaunchServicesAppDiscoveryProvider: AppDiscoveryProvider {
         return value as? String
     }
 
-    private static func arrayValue(_ selectorName: String, on object: NSObject) -> [String]? {
-        let selector = NSSelectorFromString(selectorName)
-        guard object.responds(to: selector),
-              let value = object.perform(selector)?.takeUnretainedValue() else { return nil }
-        return value as? [String]
-    }
-
     private static func urlValue(_ selectorName: String, on object: NSObject) -> URL? {
         let selector = NSSelectorFromString(selectorName)
         guard object.responds(to: selector),
@@ -129,41 +119,18 @@ final class LaunchServicesAppDiscoveryProvider: AppDiscoveryProvider {
         return plist
     }
 
-    private static func infoPlistString(_ key: String, bundleURL: URL?) -> String? {
-        infoPlistValues(bundleURL: bundleURL)[key] as? String
-    }
-
-    private static func proxyIconDescriptor(proxy: NSObject, bundleURL: URL?, plist: [String: Any]) -> AppIconDescriptor? {
-        var candidates: [URL] = []
-        var embeddedData: Data?
-        for dataSelectorName in ["iconData", "primaryIconData"] {
-            let dataSelector = NSSelectorFromString(dataSelectorName)
-            if proxy.responds(to: dataSelector),
-               let raw = proxy.perform(dataSelector)?.takeUnretainedValue() {
-                if let data = raw as? Data { embeddedData = data; break }
-                if let data = raw as? NSData { embeddedData = data as Data; break }
-            }
-        }
-        for selectorName in ["iconsDictionary", "boundIconsDictionary"] {
-            let selector = NSSelectorFromString(selectorName)
-            guard proxy.responds(to: selector),
-                  let raw = proxy.perform(selector)?.takeUnretainedValue(),
-                  let dictionary = raw as? [String: Any] else { continue }
-            let primary = (dictionary["CFBundlePrimaryIcon"] as? [String: Any]) ?? dictionary
-            if let files = primary["CFBundleIconFiles"] as? [String] {
-                let resourceURL = urlValue("resourcesDirectoryURL", on: proxy) ?? bundleURL
-                if let resourceURL {
-                    candidates += files.map { resourceURL.appendingPathComponent($0) }
-                }
-            }
-        }
+    private static func proxyIconDescriptor(bundleURL: URL?, plist: [String: Any]) -> AppIconDescriptor? {
+        // Keep plist-declared file/asset candidates cheap. Bundle-ID icon cache lookup
+        // is performed lazily by ApplicationIconView, matching TrollFools' App.icon.
         let plistDescriptor = ContainerDirectoryAppScannerIconBuilder.make(plist: plist, bundleURL: bundleURL)
-        candidates += plistDescriptor?.fileCandidates ?? []
         let nestedAsset = ((plist["CFBundleIcons"] as? [String: Any])?["CFBundlePrimaryIcon"] as? [String: Any])?["CFBundleIconName"] as? String
         let asset = nestedAsset ?? plist["CFBundleIconName"] as? String ?? plistDescriptor?.assetName
-        guard !candidates.isEmpty || asset != nil || embeddedData != nil else { return nil }
-        return AppIconDescriptor(fileCandidates: Array(NSOrderedSet(array: candidates)) as? [URL] ?? candidates,
-                                 assetName: asset, bundleURL: bundleURL, embeddedIconData: embeddedData)
+        guard let plistDescriptor else {
+            guard let bundleURL, asset != nil else { return nil }
+            return AppIconDescriptor(fileCandidates: [], assetName: asset, bundleURL: bundleURL)
+        }
+        return AppIconDescriptor(fileCandidates: plistDescriptor.fileCandidates,
+                                 assetName: asset, bundleURL: bundleURL)
     }
 
     static func classify(applicationType: String?, bundleID: String, tags: [String]?, bundleURL: URL? = nil) -> AppSystemClassification {

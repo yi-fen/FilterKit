@@ -3,6 +3,7 @@ import UIKit
 
 /// Loads icons lazily when a row appears; file decode and asset lookup run away from the main thread.
 struct ApplicationIconView: View {
+    let bundleIdentifier: String
     let descriptor: AppIconDescriptor?
     let classification: AppSystemClassification
     @State private var image: UIImage?
@@ -20,28 +21,34 @@ struct ApplicationIconView: View {
             }
         }
         .frame(width: 48, height: 48)
-        .task(id: descriptor) { await loadIcon() }
+        .task(id: "\(bundleIdentifier)|\(descriptor?.hashValue ?? 0)") { await loadIcon() }
     }
 
     @MainActor
     private func loadIcon() async {
-        guard let descriptor else { return }
+        image = nil
         let targetScale = UIScreen.main.scale
         let loaded = await Task.detached(priority: .utility) { () -> UIImage? in
-            if let data = descriptor.embeddedIconData, let image = UIImage(data: data) { return image }
-            let orderedCandidates = descriptor.fileCandidates.sorted { lhs, rhs in
-                Self.scaleDistance(for: lhs, targetScale: targetScale) < Self.scaleDistance(for: rhs, targetScale: targetScale)
-            }
-            for url in orderedCandidates {
-                if let image = UIImage(contentsOfFile: url.path) { return image }
-            }
-            if let asset = descriptor.assetName, let bundleURL = descriptor.bundleURL,
-               let bundle = Bundle(url: bundleURL) {
-                return UIImage(named: asset, in: bundle, compatibleWith: nil)
+            if let data = descriptor?.embeddedIconData, let image = UIImage(data: data) { return image }
+            if let descriptor {
+                let orderedCandidates = descriptor.fileCandidates.sorted { lhs, rhs in
+                    Self.scaleDistance(for: lhs, targetScale: targetScale) < Self.scaleDistance(for: rhs, targetScale: targetScale)
+                }
+                for url in orderedCandidates {
+                    if let image = UIImage(contentsOfFile: url.path) { return image }
+                }
+                if let asset = descriptor.assetName, let bundleURL = descriptor.bundleURL,
+                   let bundle = Bundle(url: bundleURL),
+                   let image = UIImage(named: asset, in: bundle, compatibleWith: nil) {
+                    return image
+                }
             }
             return nil
         }.value
-        image = loaded
+        // TrollFools 4.4 uses UIImage._applicationIconImage for bundle-ID based
+        // lookup. Run this UIKit/LaunchServices fallback on the main actor after
+        // cheap file/asset resolution fails (Chrome/QQ Browser/Dopamine cases).
+        image = loaded ?? AppIconPrivateAPI.applicationIcon(bundleIdentifier: bundleIdentifier, scale: targetScale)
     }
 
     private nonisolated static func scaleDistance(for url: URL, targetScale: CGFloat) -> CGFloat {
