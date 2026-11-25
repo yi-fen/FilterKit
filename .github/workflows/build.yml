@@ -22,10 +22,10 @@ on:
         options: [Debug, Release]
         default: Release
       architecture:
-        description: Target architecture
+        description: Device architecture label (the installable iOS app payload is built as arm64)
         required: true
         type: choice
-        options: [arm64e, arm64, Both]
+        options: [arm64, arm64e]
         default: arm64
       run_tests:
         description: Run tests before build
@@ -69,6 +69,12 @@ jobs:
         run: xcode-select -p && xcodebuild -version
       - name: Install XcodeGen
         run: brew install xcodegen
+      - name: Install Debian packaging tools
+        if: inputs.package == 'DEB' || inputs.package == 'Both'
+        run: brew install dpkg
+      - name: Verify Debian packaging pipeline
+        if: inputs.package == 'DEB' || inputs.package == 'Both'
+        run: bash Build/Scripts/test-deb-packaging.sh
       - name: Build and package
         env:
           ENVIRONMENT: ${{ matrix.environment }}

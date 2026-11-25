@@ -28,7 +28,31 @@ final class ReadOnlyPluginScannerTests: XCTestCase {
         XCTAssertTrue(result.isReadOnly)
     }
 
-    func testDoesNotScanWhenDirectoryIsAmbiguous() {
+    func testAmbiguousPopulatedDirectoriesAreAggregatedForReadOnlyInventory() throws {
+        let first = try makeDirectory(); defer { try? FileManager.default.removeItem(at: first) }
+        let second = try makeDirectory(); defer { try? FileManager.default.removeItem(at: second) }
+        try Data([0xcf, 0xfa, 0xed, 0xfe, 1]).write(to: first.appendingPathComponent("First.dylib"))
+        try PropertyListSerialization.data(fromPropertyList: ["Bundles": ["com.example.first"]], format: .xml, options: 0)
+            .write(to: first.appendingPathComponent("First.plist"))
+        try Data([0xcf, 0xfa, 0xed, 0xfe, 2]).write(to: second.appendingPathComponent("Second.dylib"))
+        let candidates = [first, second].map { url in
+            PluginDirectoryCandidate(path: url.path, canonicalPath: url.resolvingSymlinksInPath().standardizedFileURL.path,
+                kind: .elleKitDynamicLibraries, role: .thirdPartyPluginDirectory,
+                exists: true, isDirectory: true, isReadable: true, isEnumerable: true,
+                isWritable: false, isSymbolicLink: false, dylibCount: 1, plistCount: 0,
+                detailCode: "test")
+        }
+        let assessment = PluginDirectoryAssessment(state: .ambiguous, selectedPath: nil,
+            candidates: candidates, warnings: [], isReadOnly: true)
+        let result = ReadOnlyPluginScanner().scan(assessment: assessment)
+        XCTAssertEqual(result.directoryState, .resolved)
+        XCTAssertEqual(Set(result.plugins.map(\.baseName)), Set(["First", "Second"]))
+        XCTAssertEqual(result.plugins.first(where: { $0.baseName == "First" })?.pairingState, .paired)
+        XCTAssertEqual(result.plugins.first(where: { $0.baseName == "Second" })?.pairingState, .orphanDylib)
+        XCTAssertEqual(result.scannedDirectory?.components(separatedBy: ";").count, 2)
+    }
+
+    func testAmbiguousWithoutReadableCandidatesRemainsAmbiguous() {
         let result = ReadOnlyPluginScanner().scan(assessment: PluginDirectoryAssessment(
             state: .ambiguous, selectedPath: nil, candidates: [], warnings: [], isReadOnly: true))
         XCTAssertNil(result.scannedDirectory)

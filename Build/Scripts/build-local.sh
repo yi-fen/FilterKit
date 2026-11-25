@@ -21,7 +21,7 @@ choose() {
 ENVIRONMENT="$(choose ENVIRONMENT RootHide RootHide Rootless)"
 PROFILE="$(choose PROFILE Auto Auto roothide-dopamine-ellekit-1.2-3-16e3e7e)"
 CONFIGURATION="$(choose CONFIGURATION Release Debug Release)"
-ARCHITECTURE="$(choose ARCHITECTURE arm64 arm64e arm64 Both)"
+ARCHITECTURE="$(choose ARCHITECTURE arm64 arm64e arm64)"
 RUN_TESTS="$(choose RUN_TESTS No Yes No)"
 PACKAGE="$(choose PACKAGE None DEB IPA Both None)"
 CLEAN_BUILD="$(choose CLEAN_BUILD Yes Yes No)"

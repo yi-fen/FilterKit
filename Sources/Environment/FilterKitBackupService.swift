@@ -34,12 +34,12 @@ final class FilterKitBackupService {
     }
 
     func makeBackup(scan: PluginScanResult, pluginIDs: [UUID]) throws -> Data {
-        guard scan.directoryState == .resolved, let directory = scan.scannedDirectory else {
-            throw ServiceError.unresolvedDirectory
-        }
-        let root = URL(fileURLWithPath: directory, isDirectory: true).standardizedFileURL
-        guard root.resolvingSymlinksInPath().standardizedFileURL.path == root.path else {
-            throw ServiceError.unsafeFile(directory)
+        guard scan.directoryState == .resolved else { throw ServiceError.unresolvedDirectory }
+        let directoryPaths = scan.scannedDirectories ?? scan.scannedDirectory.map { [$0] } ?? []
+        guard !directoryPaths.isEmpty else { throw ServiceError.unresolvedDirectory }
+        let roots = directoryPaths.map { URL(fileURLWithPath: $0, isDirectory: true).standardizedFileURL }
+        for root in roots where root.resolvingSymlinksInPath().standardizedFileURL.path != root.path {
+            throw ServiceError.unsafeFile(root.path)
         }
         let requested = Array(Set(pluginIDs)).sorted { $0.uuidString < $1.uuidString }
         guard !requested.isEmpty else { throw BackupValidationError.emptyPluginList }
@@ -63,9 +63,12 @@ final class FilterKitBackupService {
                   let uuid = UUID(uuidString: id.uuidString) else {
                 throw ServiceError.incompletePluginRecord(id)
             }
-            let dylib = try readRegularFile(named: dylibName, in: root, maximumBytes: maximumPluginFileBytes)
-            let plist = try readRegularFile(named: plistName, in: root, maximumBytes: maximumPluginFileBytes)
-            let manifest = try readRegularFile(named: manifestName, in: root, maximumBytes: maximumManifestBytes)
+            let dylibURL = try sourceURL(path: item.dylibPath, fileName: dylibName, fallbackRoots: roots)
+            let plistURL = try sourceURL(path: item.plistPath, fileName: plistName, fallbackRoots: roots)
+            let manifestURL = try sourceURL(path: item.manifestPath, fileName: manifestName, fallbackRoots: roots)
+            let dylib = try readRegularFile(at: dylibURL, allowedRoots: roots, maximumBytes: maximumPluginFileBytes)
+            let plist = try readRegularFile(at: plistURL, allowedRoots: roots, maximumBytes: maximumPluginFileBytes)
+            let manifest = try readRegularFile(at: manifestURL, allowedRoots: roots, maximumBytes: maximumManifestBytes)
             guard SHA256Digest.hex(dylib).caseInsensitiveCompare(expectedDylibHash) == .orderedSame else {
                 throw ServiceError.fileChanged(dylibName)
             }
@@ -157,19 +160,31 @@ final class FilterKitBackupService {
         return data
     }
 
-    private func readRegularFile(named name: String, in root: URL, maximumBytes: Int) throws -> Data {
-        guard !name.isEmpty, name != ".", name != "..", !name.contains("/"),
-              !name.contains("\\"), !name.contains(".."), !name.hasPrefix(".") else {
-            throw ServiceError.unsafeFile(name)
+    private func sourceURL(path: String?, fileName: String, fallbackRoots: [URL]) throws -> URL {
+        if let path {
+            let url = URL(fileURLWithPath: path).standardizedFileURL
+            guard url.lastPathComponent == fileName else { throw ServiceError.unsafeFile(path) }
+            return url
         }
-        let url = root.appendingPathComponent(name).standardizedFileURL
-        guard url.deletingLastPathComponent().path == root.path else { throw ServiceError.unsafeFile(name) }
-        let values = try? url.resourceValues(forKeys: [.isRegularFileKey, .isSymbolicLinkKey, .fileSizeKey])
-        guard values?.isRegularFile == true, values?.isSymbolicLink != true else { throw ServiceError.fileMissing(name) }
-        guard let size = values?.fileSize, size > 0 else { throw ServiceError.fileMissing(name) }
-        guard size <= maximumBytes else { throw ServiceError.fileTooLarge(name) }
-        let data = try Data(contentsOf: url, options: [.mappedIfSafe])
-        guard data.count == size else { throw ServiceError.fileChanged(name) }
+        guard let root = fallbackRoots.first else { throw ServiceError.unresolvedDirectory }
+        return root.appendingPathComponent(fileName).standardizedFileURL
+    }
+
+    private func readRegularFile(at url: URL, allowedRoots: [URL], maximumBytes: Int) throws -> Data {
+        let standardized = url.standardizedFileURL
+        let parent = standardized.deletingLastPathComponent()
+        guard allowedRoots.contains(where: { $0.path == parent.path }),
+              parent.resolvingSymlinksInPath().standardizedFileURL.path == parent.path else {
+            throw ServiceError.unsafeFile(url.path)
+        }
+        let values = try? standardized.resourceValues(forKeys: [.isRegularFileKey, .isSymbolicLinkKey, .fileSizeKey])
+        guard values?.isRegularFile == true, values?.isSymbolicLink != true else {
+            throw ServiceError.fileMissing(standardized.lastPathComponent)
+        }
+        guard let size = values?.fileSize, size > 0 else { throw ServiceError.fileMissing(standardized.lastPathComponent) }
+        guard size <= maximumBytes else { throw ServiceError.fileTooLarge(standardized.lastPathComponent) }
+        let data = try Data(contentsOf: standardized, options: [.mappedIfSafe])
+        guard data.count == size else { throw ServiceError.fileChanged(standardized.lastPathComponent) }
         return data
     }
 }

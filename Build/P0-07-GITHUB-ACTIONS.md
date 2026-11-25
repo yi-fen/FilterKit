@@ -6,7 +6,7 @@
 - Configuration: Debug / Release.
 - Architecture: arm64e / arm64 / Both. `Both` requests separate architecture slices in one Xcode build setting; actual support depends on the selected Xcode SDK/toolchain.
 - Tests: Yes / No.
-- Package: DEB / IPA / Both / None. IPA is an unsigned Payload archive. DEB is deliberately blocked until verified environment-specific package layout and control metadata exist.
+- Package: DEB / IPA / Both / None. IPA is an unsigned Payload archive. DEB packaging is enabled for the registered RootHide profile and installs the app bundle at /Applications/FilterKit.app. Rootless DEB packaging remains blocked until its package layout is verified.
 - Clean Build: Yes / No.
 
 ## Profile safety

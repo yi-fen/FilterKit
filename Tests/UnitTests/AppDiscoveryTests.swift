@@ -26,6 +26,13 @@ final class AppDiscoveryTests: XCTestCase {
         XCTAssertEqual(classification, .user)
     }
 
+    func testR16PathRuleDoesNotHideThirdPartyBundleFromSystemInstallType() {
+        let classification = LaunchServicesAppDiscoveryProvider.classify(
+            applicationType: "System", bundleID: "org.example.legacy-id", tags: ["hidden"],
+            bundleURL: URL(fileURLWithPath: "/var/containers/Bundle/Application/ABC123/Example.app"))
+        XCTAssertEqual(classification, .user)
+    }
+
     func testAppleSystemAppRemainsSystemClassified() {
         let classification = LaunchServicesAppDiscoveryProvider.classify(
             applicationType: "System", bundleID: "com.apple.Preferences", tags: nil,

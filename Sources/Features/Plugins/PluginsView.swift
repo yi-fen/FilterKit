@@ -49,10 +49,11 @@ private final class PluginsViewModel: ObservableObject {
             let currentScan = result
             let existingNames: Set<String>
             let conflictingIDs: Set<UUID>
-            if let directory = currentScan?.scannedDirectory, currentScan?.directoryState == .resolved {
-                let names = (try? FileManager.default.contentsOfDirectory(atPath: directory)) ?? []
+            if let currentScan, currentScan.directoryState == .resolved {
+                let directories = currentScan.scannedDirectories ?? currentScan.scannedDirectory.map { [$0] } ?? []
+                let names = directories.flatMap { (try? FileManager.default.contentsOfDirectory(atPath: $0)) ?? [] }
                 existingNames = Set(names)
-                conflictingIDs = Set((currentScan?.plugins ?? []).compactMap { item in
+                conflictingIDs = Set(currentScan.plugins.compactMap { item in
                     guard let raw = item.filterKitPluginID else { return nil }
                     return UUID(uuidString: raw)
                 })
@@ -163,8 +164,9 @@ struct PluginsView: View {
                                     Text("\(result.plugins.count)")
                                         .foregroundStyle(.secondary)
                                 }
-                                if let path = result.scannedDirectory {
-                                    Text(path).font(.caption2).foregroundStyle(.secondary).textSelection(.enabled)
+                                let paths = result.scannedDirectories ?? result.scannedDirectory.map { [$0] } ?? []
+                                if !paths.isEmpty {
+                                    Text(paths.joined(separator: "\n")).font(.caption2).foregroundStyle(.secondary).textSelection(.enabled)
                                 }
                             }
                             if !result.identityConflicts.isEmpty {

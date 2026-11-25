@@ -1,6 +1,6 @@
 import Foundation
 
-/// Scans only the single directory already selected by PluginDirectoryLocator.
+/// Scans the supported third-party plugin directories reported by PluginDirectoryLocator.
 /// It never writes, renames, chmods, or deletes files and never invokes dpkg.
 final class ReadOnlyPluginScanner: PluginDiscoveryProvider {
     private let fileManager: FileManager
@@ -24,53 +24,82 @@ final class ReadOnlyPluginScanner: PluginDiscoveryProvider {
     }
 
     func scan(assessment: PluginDirectoryAssessment) -> PluginScanResult {
-        guard assessment.state == .resolved, let path = assessment.selectedPath else {
+        guard assessment.state == .resolved || assessment.state == .ambiguous || assessment.state == .inaccessible else {
             return PluginScanResult(scannedAt: Date(), scannedDirectory: nil,
                 directoryState: assessment.state, plugins: [],
                 issues: [PluginScanIssue(id: "directory-unresolved", code: "plugin_scan.directory_not_resolved", fileName: nil, detail: nil)],
                 isReadOnly: true)
         }
-        let directoryURL = URL(fileURLWithPath: path, isDirectory: true).standardizedFileURL
-        var isDirectory: ObjCBool = false
-        guard fileManager.fileExists(atPath: directoryURL.path, isDirectory: &isDirectory), isDirectory.boolValue,
-              fileManager.isReadableFile(atPath: directoryURL.path) else {
-            return PluginScanResult(scannedAt: Date(), scannedDirectory: path,
-                directoryState: .inaccessible, plugins: [],
-                issues: [PluginScanIssue(id: "directory-inaccessible", code: "plugin_scan.directory_inaccessible", fileName: nil, detail: nil)],
+
+        // R16 inventory inspected all supported DynamicLibraries locations beneath
+        // the same jailbreak root. The modern locator may mark multiple populated
+        // locations as ambiguous; for read-only inventory we can safely aggregate
+        // them instead of dropping every plugin. Management still uses each file's
+        // real URL and ownership evidence, so no directory is silently preferred.
+        var issues: [PluginScanIssue] = assessment.candidates.compactMap { candidate in
+            guard candidate.role == .thirdPartyPluginDirectory, candidate.exists, !candidate.isUsable else { return nil }
+            return issue("candidate-unavailable-\(candidate.path)",
+                         "plugin_scan.directory_candidate_unavailable", candidate.path)
+        }
+        var candidatePaths = assessment.candidates
+            .filter { $0.isUsable }
+            .map { $0.canonicalPath ?? $0.path }
+        if let selected = assessment.selectedPath { candidatePaths.append(selected) }
+        let scanPaths = Array(Set(candidatePaths)).sorted()
+        if scanPaths.isEmpty {
+            return PluginScanResult(scannedAt: Date(), scannedDirectory: nil,
+                directoryState: assessment.state, plugins: [], issues: issues,
                 isReadOnly: true)
         }
-        let canonical = directoryURL.resolvingSymlinksInPath().standardizedFileURL.path
-        guard directoryURL.path == canonical else {
-            return PluginScanResult(scannedAt: Date(), scannedDirectory: path,
-                directoryState: .inaccessible, plugins: [],
-                issues: [PluginScanIssue(id: "directory-canonical-mismatch", code: "plugin_scan.directory_path_mismatch", fileName: nil, detail: nil)],
-                isReadOnly: true)
+        var readableDirectories: [URL] = []
+        for candidate in scanPaths {
+            let directoryURL = URL(fileURLWithPath: candidate, isDirectory: true).standardizedFileURL
+            var isDirectory: ObjCBool = false
+            guard fileManager.fileExists(atPath: directoryURL.path, isDirectory: &isDirectory),
+                  isDirectory.boolValue, fileManager.isReadableFile(atPath: directoryURL.path) else {
+                issues.append(issue("directory-inaccessible-\(directoryURL.lastPathComponent)",
+                                    "plugin_scan.directory_candidate_inaccessible", directoryURL.lastPathComponent))
+                continue
+            }
+            let canonical = directoryURL.resolvingSymlinksInPath().standardizedFileURL.path
+            guard directoryURL.path == canonical else {
+                issues.append(issue("directory-canonical-\(directoryURL.lastPathComponent)",
+                                    "plugin_scan.directory_path_mismatch", directoryURL.lastPathComponent))
+                continue
+            }
+            readableDirectories.append(directoryURL)
         }
-        guard let names = try? fileManager.contentsOfDirectory(atPath: path) else {
-            return PluginScanResult(scannedAt: Date(), scannedDirectory: path,
+        guard !readableDirectories.isEmpty else {
+            return PluginScanResult(scannedAt: Date(), scannedDirectory: nil,
                 directoryState: .inaccessible, plugins: [],
-                issues: [PluginScanIssue(id: "directory-enumeration-failed", code: "plugin_scan.enumeration_failed", fileName: nil, detail: nil)],
+                issues: issues + [PluginScanIssue(id: "directory-inaccessible", code: "plugin_scan.directory_inaccessible", fileName: nil, detail: nil)],
                 isReadOnly: true)
         }
 
-        var issues: [PluginScanIssue] = []
         var dylibs: [String: [URL]] = [:]
         var plists: [String: [URL]] = [:]
         var manifests: [String: [URL]] = [:]
-        for name in names.sorted() {
-            let url = directoryURL.appendingPathComponent(name)
-            let values = try? url.resourceValues(forKeys: [.isSymbolicLinkKey, .isRegularFileKey])
-            if values?.isSymbolicLink == true {
-                issues.append(issue("symlink-\(name)", "plugin_scan.symlink_skipped", name)); continue
+        for directoryURL in readableDirectories {
+            guard let names = try? fileManager.contentsOfDirectory(atPath: directoryURL.path) else {
+                issues.append(issue("directory-enumeration-\(directoryURL.lastPathComponent)",
+                                    "plugin_scan.enumeration_failed", directoryURL.lastPathComponent))
+                continue
             }
-            guard values?.isRegularFile == true else { continue }
-            let lower = name.lowercased()
-            if lower.hasSuffix(".dylib") {
-                let stem = String(name.dropLast(6)).lowercased(); dylibs[stem, default: []].append(url)
-            } else if lower.hasSuffix(".plist") {
-                let stem = String(name.dropLast(6)).lowercased(); plists[stem, default: []].append(url)
-            } else if lower.hasSuffix(".fk.json") {
-                let stem = String(name.dropLast(8)).lowercased(); manifests[stem, default: []].append(url)
+            for name in names.sorted() {
+                let url = directoryURL.appendingPathComponent(name)
+                let values = try? url.resourceValues(forKeys: [.isSymbolicLinkKey, .isRegularFileKey])
+                if values?.isSymbolicLink == true {
+                    issues.append(issue("symlink-\(directoryURL.lastPathComponent)-\(name)", "plugin_scan.symlink_skipped", name)); continue
+                }
+                guard values?.isRegularFile == true else { continue }
+                let lower = name.lowercased()
+                if lower.hasSuffix(".dylib") {
+                    let stem = String(name.dropLast(6)).lowercased(); dylibs[stem, default: []].append(url)
+                } else if lower.hasSuffix(".plist") {
+                    let stem = String(name.dropLast(6)).lowercased(); plists[stem, default: []].append(url)
+                } else if lower.hasSuffix(".fk.json") {
+                    let stem = String(name.dropLast(8)).lowercased(); manifests[stem, default: []].append(url)
+                }
             }
         }
 
@@ -211,7 +240,8 @@ final class ReadOnlyPluginScanner: PluginDiscoveryProvider {
                 plistPackageIdentifier: plistPackageID,
                 ownershipConflict: ownershipConflict,
                 manifestIdentityBinding: manifestIdentityBinding,
-                softAssociationStates: softStates))
+                softAssociationStates: softStates,
+                dylibPath: dylib?.path, plistPath: plist?.path, manifestPath: manifest?.path))
         }
         let identityAnalysis = PluginIdentityAnalyzer().analyze(items)
         let authorizedItems = identityAnalysis.items.map { item -> PluginScanItem in
@@ -222,9 +252,12 @@ final class ReadOnlyPluginScanner: PluginDiscoveryProvider {
             }
             return adjusted
         }
-        return PluginScanResult(scannedAt: Date(), scannedDirectory: canonical,
+        let directoryPaths = readableDirectories.map(\.path).sorted()
+        let primaryDirectory = assessment.selectedPath.flatMap { directoryPaths.contains($0) ? $0 : nil } ?? directoryPaths.first
+        return PluginScanResult(scannedAt: Date(), scannedDirectory: primaryDirectory,
             directoryState: .resolved, plugins: authorizedItems, issues: issues,
-            isReadOnly: true, identityConflicts: identityAnalysis.conflicts)
+            isReadOnly: true, identityConflicts: identityAnalysis.conflicts,
+            scannedDirectories: directoryPaths)
     }
 
     private func packageEvidence(for url: URL?, issues: inout [PluginScanIssue]) -> PackageOwnershipEvidence? {

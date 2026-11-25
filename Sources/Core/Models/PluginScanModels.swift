@@ -103,6 +103,11 @@ struct PluginScanItem: Codable, Equatable, Identifiable {
     var ownershipConflict: PluginOwnershipConflict = .none
     var manifestIdentityBinding: PluginManifestIdentityBinding = .notPresent
     var softAssociationStates: [FilterKitManifestSoftAssociation]? = nil
+    // Absolute source paths are retained for multi-directory read-only inventories.
+    // These are descriptive scan evidence, not permission to mutate the files.
+    var dylibPath: String? = nil
+    var plistPath: String? = nil
+    var manifestPath: String? = nil
 }
 
 struct PluginScanResult: Codable, Equatable {
@@ -113,5 +118,6 @@ struct PluginScanResult: Codable, Equatable {
     let issues: [PluginScanIssue]
     let isReadOnly: Bool
     var identityConflicts: [PluginIdentityConflict] = []
+    var scannedDirectories: [String]? = nil
 }
 

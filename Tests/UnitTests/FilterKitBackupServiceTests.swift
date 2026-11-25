@@ -7,6 +7,8 @@ final class FilterKitBackupServiceTests: XCTestCase {
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: root) }
 
+        let pluginDirectory = root.appendingPathComponent("ElleKit", isDirectory: true)
+        try FileManager.default.createDirectory(at: pluginDirectory, withIntermediateDirectories: true)
         let pluginID = UUID()
         let dylib = Data([0xca, 0xfe, 0xba, 0xbe, 1, 2, 3])
         let plist = try PropertyListSerialization.data(fromPropertyList: ["Filter": ["Bundles": ["com.example.source"]]], format: .xml, options: 0)
@@ -26,9 +28,9 @@ final class FilterKitBackupServiceTests: XCTestCase {
             softAssociatedBundleIdentifiers: [association.bundleIdentifier],
             machOIdentitySHA256: identity, softAssociations: [association])
         let manifestData = try JSONEncoder().encode(manifest)
-        try dylib.write(to: root.appendingPathComponent(dylibName))
-        try plist.write(to: root.appendingPathComponent(plistName))
-        try manifestData.write(to: root.appendingPathComponent(manifestName))
+        try dylib.write(to: pluginDirectory.appendingPathComponent(dylibName))
+        try plist.write(to: pluginDirectory.appendingPathComponent(plistName))
+        try manifestData.write(to: pluginDirectory.appendingPathComponent(manifestName))
 
         let item = PluginScanItem(id: "Example.dylib", baseName: "Example",
             dylibFileName: dylibName, plistFileName: plistName, manifestFileName: manifestName,
@@ -42,9 +44,13 @@ final class FilterKitBackupServiceTests: XCTestCase {
             machOInstallName: "@rpath/Example.dylib", machOUUIDs: ["11111111-2222-3333-4444-555555555555"],
             machOArchitectures: ["arm64"], machOCDHashes: ["0123456789abcdef"],
             identityFingerprint: identity, identityStatus: .unique,
-            softAssociationStates: [association])
+            softAssociationStates: [association],
+            dylibPath: pluginDirectory.appendingPathComponent(dylibName).path,
+            plistPath: pluginDirectory.appendingPathComponent(plistName).path,
+            manifestPath: pluginDirectory.appendingPathComponent(manifestName).path)
         let scan = PluginScanResult(scannedAt: Date(), scannedDirectory: root.path,
-            directoryState: .resolved, plugins: [item], issues: [], isReadOnly: true)
+            directoryState: .resolved, plugins: [item], issues: [], isReadOnly: true,
+            scannedDirectories: [root.path, pluginDirectory.path])
 
         let archive = try FilterKitBackupService().makeBackup(scan: scan, pluginIDs: [pluginID])
         let decoded = try FilterKitBackupCodec().decodeAndValidate(archive)

@@ -3,21 +3,51 @@ import Foundation
 enum ContainerDirectoryAppScannerIconBuilder {
     static func make(plist: [String: Any], bundleURL: URL?) -> AppIconDescriptor? {
         guard let bundleURL else { return nil }
-        var names: [String] = []
-        if let icons = plist["CFBundleIcons"] as? [String: Any],
-           let primary = icons["CFBundlePrimaryIcon"] as? [String: Any],
-           let files = primary["CFBundleIconFiles"] as? [String] { names = files }
+        let primary = ((plist["CFBundleIcons"] as? [String: Any])?["CFBundlePrimaryIcon"] as? [String: Any]) ?? [:]
+        var names = primary["CFBundleIconFiles"] as? [String] ?? []
         if names.isEmpty { names = plist["CFBundleIconFiles"] as? [String] ?? [] }
         if names.isEmpty, let legacy = plist["CFBundleIconFile"] as? String { names = [legacy] }
-        let candidates = names.flatMap { name in
-            ["", "@3x", "@2x", "-Large", "-Small"].map { suffix in
-                let candidate = bundleURL.appendingPathComponent(name + suffix)
-                return candidate.pathExtension.isEmpty ? candidate.appendingPathExtension("png") : candidate
+
+        // R16's loader tried the literal CFBundleIconFiles path first, then the
+        // common PNG/JPEG scale variants. Keep candidates even when fileExists
+        // cannot see a protected bundle resource; UIKit gets the final read attempt.
+        var candidates: [URL] = []
+        for name in names {
+            let variants = Self.fileNameVariants(for: name)
+            for base in [bundleURL, bundleURL.appendingPathComponent("Resources", isDirectory: true)] {
+                candidates.append(contentsOf: variants.map { base.appendingPathComponent($0) })
             }
-        }.filter { FileManager.default.fileExists(atPath: $0.path) }
-        let nestedAsset = ((plist["CFBundleIcons"] as? [String: Any])?["CFBundlePrimaryIcon"] as? [String: Any])?["CFBundleIconName"] as? String
-        let asset = nestedAsset ?? plist["CFBundleIconName"] as? String
+        }
+        candidates = Array(Set(candidates)).sorted { lhs, rhs in
+            Self.candidateRank(lhs.lastPathComponent) < Self.candidateRank(rhs.lastPathComponent)
+        }
+
+        let asset = (primary["CFBundleIconName"] as? String)
+            ?? (plist["CFBundleIconName"] as? String)
         guard !candidates.isEmpty || asset != nil else { return nil }
         return AppIconDescriptor(fileCandidates: candidates, assetName: asset, bundleURL: bundleURL)
+    }
+
+    private static func fileNameVariants(for rawName: String) -> [String] {
+        let name = rawName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !name.isEmpty else { return [] }
+        let ext = (name as NSString).pathExtension
+        let stem = ext.isEmpty ? name : (name as NSString).deletingPathExtension
+        let extensions = ext.isEmpty ? ["", ".png", ".jpg", ".jpeg"] : ["", ".png", ".jpg", ".jpeg"]
+        var output: [String] = [name]
+        for scale in ["@3x", "@2x", ""] {
+            for suffix in extensions {
+                let candidate = stem + scale + suffix
+                if !output.contains(candidate) { output.append(candidate) }
+            }
+        }
+        return output
+    }
+
+    private static func candidateRank(_ name: String) -> Int {
+        let lower = name.lowercased()
+        if lower.contains("@3x") { return 0 }
+        if lower.contains("@2x") { return 1 }
+        return 2
     }
 }

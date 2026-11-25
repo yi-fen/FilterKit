@@ -179,26 +179,24 @@ final class LaunchServicesAppDiscoveryProvider: AppDiscoveryProvider {
     }
 
     static func classify(applicationType: String?, bundleID: String, tags: [String]?, bundleURL: URL? = nil) -> AppSystemClassification {
-        if tags?.contains(where: { $0.localizedCaseInsensitiveContains("hidden") }) == true { return .hidden }
-        // TrollStore-installed IPAs live in the normal application container. Some
-        // LaunchServices builds report their installation type as "System"; the
-        // container location is stronger evidence that they are user-installed apps.
-        let path = bundleURL?.standardizedFileURL.path ?? ""
-        let isApplicationContainer = path.contains("/var/containers/Bundle/Application/")
-            || path.contains("/private/var/containers/Bundle/Application/")
-        if isApplicationContainer && !bundleID.hasPrefix("com.apple.") { return .user }
-        switch applicationType?.lowercased() {
-        case "system": return bundleID.hasPrefix("com.apple.") ? .system : .unknown
-        case "user": return .user
-        default: return bundleID.hasPrefix("com.apple.") ? .system : .unknown
-        }
+        // Match R16's proven path-first rule. In particular, an IPA installed by
+        // TrollStore under the ordinary Application container is a user app even
+        // when LaunchServices reports applicationType == "System".
+        guard let bundleURL else { return .unknown }
+        let path = bundleURL.standardizedFileURL.path
+        // R16's established behavior: only the two Apple system bundle roots are
+        // classified as system. Everything with a readable bundle path elsewhere,
+        // including TrollStore-installed IPA containers, remains a user app.
+        if path.hasPrefix("/Applications/") || path.hasPrefix("/System/") { return .system }
+        return .user
     }
 
     private static func isValidBundleIdentifier(_ value: String) -> Bool {
-        let components = value.split(separator: ".", omittingEmptySubsequences: false)
-        return !value.isEmpty && value.count <= 255 && components.count >= 2 && components.allSatisfy {
-            !$0.isEmpty && $0.allSatisfy { $0.isLetter || $0.isNumber || $0 == "-" || $0 == "_" }
-        }
+        // R16 accepted any non-empty LS applicationIdentifier. Avoid excluding
+        // legitimate installed apps because a private identifier uses an unusual
+        // character or component layout.
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        return !trimmed.isEmpty && trimmed.count <= 255
     }
 
     private static func merge(primary: [InstalledApp], secondary: [InstalledApp]) -> [InstalledApp] {
