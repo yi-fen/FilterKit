@@ -141,32 +141,22 @@ final class ReadOnlyPluginScanner: PluginDiscoveryProvider {
             var packageVersion: String?
             var machoSlices: [MachOSliceMetadata] = []
 
-            if let dylib {
-                do {
-                    let data = try Data(contentsOf: dylib, options: .mappedIfSafe)
-                    dylibHash = SHA256Digest.hex(data)
-                    binaryKind = Self.binaryKind(data)
-                    if binaryKind == .machO {
-                        do { machoSlices = try MachOMetadataReader().readSlices(data: data) }
-                        catch { warnings.append("plugin_scan.macho_metadata_unavailable") }
-                    }
-                    if binaryKind == .notMachO { pairing = .invalid; warnings.append("plugin_scan.dylib_not_macho") }
-                } catch { pairing = .unreadable; warnings.append("plugin_scan.dylib_unreadable") }
-            }
+            // Fast inventory deliberately does not read/hash dylib binaries, parse
+            // Mach-O slices, query package ownership, or verify manifests. Those
+            // expensive checks belong to the explicit detail/diagnostics path.
+            // A dylib remains visible even when its metadata cannot be inspected.
             if let plist {
                 do {
                     let data = try Data(contentsOf: plist, options: .mappedIfSafe)
-                    plistHash = SHA256Digest.hex(data)
                     _ = try PropertyListSerialization.propertyList(from: data, options: [], format: nil)
                     filterConfiguration = PluginFilterConfiguration.parse(data)
                     if filterConfiguration?.parseState == .invalid {
-                        pairing = .invalid
                         warnings.append(contentsOf: filterConfiguration?.warnings ?? [])
                     } else if filterConfiguration?.parseState == .partial {
                         warnings.append(contentsOf: filterConfiguration?.warnings ?? [])
                     }
                 } catch {
-                    pairing = .invalid; warnings.append("plugin_scan.plist_invalid_or_unreadable")
+                    warnings.append("plugin_scan.plist_invalid_or_unreadable")
                 }
             }
             if pairing == .paired {
@@ -175,45 +165,12 @@ final class ReadOnlyPluginScanner: PluginDiscoveryProvider {
                 if dylib == nil && plist == nil { pairing = .invalid; warnings.append("plugin_scan.manifest_without_pair") }
             }
 
-            let dylibEvidence = dylibGroup.count == 1 ? packageEvidence(for: dylib, issues: &issues) : nil
-            let plistEvidence = plistGroup.count == 1 ? packageEvidence(for: plist, issues: &issues) : nil
-            if dylibEvidence?.isOwnedByPackage == true { dylibPackageID = dylibEvidence?.packageIdentifier }
-            if plistEvidence?.isOwnedByPackage == true { plistPackageID = plistEvidence?.packageIdentifier }
-            let packageIDs = Set([dylibPackageID, plistPackageID].compactMap { $0 })
-            if packageIDs.count > 1 {
-                ownershipConflict = .multiplePackageOwners
-                ownership = .unknown
-                warnings.append("plugin_scan.multiple_package_owners")
-            } else if let packageOwner = packageIDs.first {
-                ownership = .packageManager
-                packageID = packageOwner
-                packageVersion = [dylibEvidence, plistEvidence].compactMap { $0 }
-                    .first(where: { $0.isOwnedByPackage && $0.packageIdentifier == packageOwner })?.packageVersion
-            }
-            if dylibGroup.count == 1, plistGroup.count == 1, manifestGroup.count == 1,
-               let manifest, let dylib, let plist, let dylibHash, let plistHash,
-               let verified = verifyManifest(at: manifest, expectedStem: stem,
-                                             dylibName: dylib.lastPathComponent, plistName: plist.lastPathComponent,
-                                             dylibHash: dylibHash, plistHash: plistHash,
-                                             machoSlices: machoSlices) {
-                manifestIdentityBinding = verified.schemaVersion >= 2 ? .binaryIdentityVerified : .fileHashesOnly
-                if ownership == .packageManager || ownershipConflict == .multiplePackageOwners {
-                    ownership = .unknown
-                    if ownershipConflict != .multiplePackageOwners {
-                        ownershipConflict = .filterKitVsPackageManager
-                    }
-                    warnings.append("plugin_scan.ownership_evidence_conflict")
-                } else {
-                    ownership = .filterKit
-                    verifiedPluginID = verified.pluginID
-                    hardBound = verified.hardBoundBundleIdentifier
-                    softStates = verified.softAssociations ?? (verified.softAssociatedBundleIdentifiers ?? []).map {
-                        FilterKitManifestSoftAssociation(bundleIdentifier: $0, isEnabled: true)
-                    }
-                    soft = softStates.map(\.bundleIdentifier).sorted()
-                }
-            } else if manifest != nil {
-                warnings.append("plugin_scan.manifest_unverified")
+            // Ownership remains unknown during inventory. This is intentional:
+            // visibility must not depend on dpkg or FilterKit manifest validation.
+            // Management permissions therefore remain conservative until a future
+            // explicit detail verification establishes ownership and binary identity.
+            if manifest != nil {
+                warnings.append("plugin_scan.manifest_verification_deferred")
             }
             let permission = PluginManagementPermission.evaluate(ownership: ownership, pairing: pairing,
                 binaryKind: binaryKind, verifiedPluginID: verifiedPluginID, filterConfiguration: filterConfiguration)

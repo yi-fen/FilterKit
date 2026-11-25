@@ -52,7 +52,9 @@ xcodebuild -project FilterKit.xcodeproj -scheme FilterKit -configuration "$CONFI
 APP="$DERIVED/Build/Products/$CONFIGURATION-iphoneos/FilterKit.app"
 if [[ ! -d "$APP" ]]; then echo "ERROR: expected app product not found: $APP" >&2; exit 32; fi
 cp -R "$APP" "$OUT/FilterKit.app"
-bash "$ROOT/Build/Scripts/sign-ios-app.sh" "$OUT/FilterKit.app"
+# Keep the raw Xcode product untouched here. The RootHide DEB pipeline signs
+# the staged payload with ldid (R16.1 route) and verifies every Mach-O after
+# packaging; Apple ad-hoc codesign is not substituted for the jailbreak signer.
 if [[ "$PACKAGE" == "IPA" || "$PACKAGE" == "Both" ]]; then
   mkdir -p "$OUT/ipa/Payload"
   cp -R "$APP" "$OUT/ipa/Payload/FilterKit.app"

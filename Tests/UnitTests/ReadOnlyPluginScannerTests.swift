@@ -24,7 +24,8 @@ final class ReadOnlyPluginScannerTests: XCTestCase {
         XCTAssertEqual(result.directoryState, .resolved)
         XCTAssertEqual(result.plugins.first(where: { $0.baseName == "Good" })?.pairingState, .paired)
         XCTAssertEqual(result.plugins.first(where: { $0.baseName == "Orphan" })?.pairingState, .orphanDylib)
-        XCTAssertEqual(result.plugins.first(where: { $0.baseName == "Loose" })?.pairingState, .invalid)
+        XCTAssertEqual(result.plugins.first(where: { $0.baseName == "Loose" })?.pairingState, .orphanPlist)
+        XCTAssertTrue(result.plugins.first(where: { $0.baseName == "Loose" })?.warnings.contains("plugin_scan.plist_invalid_or_unreadable") == true)
         XCTAssertTrue(result.isReadOnly)
     }
 
@@ -52,6 +53,17 @@ final class ReadOnlyPluginScannerTests: XCTestCase {
         XCTAssertEqual(result.scannedDirectory?.components(separatedBy: ";").count, 2)
     }
 
+    func testNonMachODylibStillAppearsInFastInventory() throws {
+        let dir = try makeDirectory(); defer { try? FileManager.default.removeItem(at: dir) }
+        try Data("not-yet-inspected".utf8).write(to: dir.appendingPathComponent("Visible.dylib"))
+        let result = ReadOnlyPluginScanner().scan(assessment: assessment(dir))
+        let item = result.plugins.first(where: { $0.baseName == "Visible" })
+        XCTAssertNotNil(item)
+        XCTAssertEqual(item?.pairingState, .orphanDylib)
+        XCTAssertNil(item?.binaryKind, "Binary inspection belongs to the detail path")
+        XCTAssertFalse(item?.managementPermission?.canModify ?? false)
+    }
+
     func testAmbiguousWithoutReadableCandidatesRemainsAmbiguous() {
         let result = ReadOnlyPluginScanner().scan(assessment: PluginDirectoryAssessment(
             state: .ambiguous, selectedPath: nil, candidates: [], warnings: [], isReadOnly: true))
@@ -60,7 +72,7 @@ final class ReadOnlyPluginScannerTests: XCTestCase {
         XCTAssertEqual(result.directoryState, .ambiguous)
     }
 
-    func testManifestRequiresBothHashesAndExactNames() throws {
+    func testFastInventoryDefersManifestAndOwnershipVerification() throws {
         let dir = try makeDirectory(); defer { try? FileManager.default.removeItem(at: dir) }
         let dylib = Data([0xcf, 0xfa, 0xed, 0xfe, 1, 2, 3, 4])
         let plist = try PropertyListSerialization.data(fromPropertyList: ["Bundles": ["com.example.app"]], format: .xml, options: 0)
@@ -72,10 +84,13 @@ final class ReadOnlyPluginScannerTests: XCTestCase {
         let json = try JSONSerialization.data(withJSONObject: manifest)
         try json.write(to: dir.appendingPathComponent("Owned.fk.json"))
         let item = ReadOnlyPluginScanner().scan(assessment: assessment(dir)).plugins.first
-        XCTAssertEqual(item?.ownership, .filterKit)
-        XCTAssertEqual(item?.hardBoundBundleIdentifier, "com.example.app")
-        XCTAssertTrue(item?.managementPermission?.canModify == true)
+        XCTAssertNotNil(item, "Fast inventory must keep the plugin visible")
+        XCTAssertEqual(item?.ownership, .unknown, "Ownership verification is deferred from the fast inventory")
+        XCTAssertNil(item?.hardBoundBundleIdentifier)
+        XCTAssertFalse(item?.managementPermission?.canModify ?? false, "No management permission without detail verification")
         XCTAssertEqual(item?.filterConfiguration?.bundles, ["com.example.app"])
+        XCTAssertNil(item?.dylibSHA256, "Fast inventory must not hash dylibs")
+        XCTAssertTrue(item?.warnings.contains("plugin_scan.manifest_verification_deferred") == true)
     }
 
     func testSHA256KnownVector() {

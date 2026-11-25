@@ -16,9 +16,11 @@ final class LaunchServicesAppDiscoveryProvider: AppDiscoveryProvider {
             do {
                 let launchServicesApps = try Self.scanLaunchServices()
                 if !launchServicesApps.isEmpty {
-                    // Supplement partial LS results from readable app containers; LS metadata wins on duplicates.
-                    let fallback = (try? directoryScanner.scan()) ?? []
-                    return Self.merge(primary: launchServicesApps, secondary: fallback)
+                    // LaunchServices is the primary inventory (as in R16/TrollFools).
+                    // Do not walk every app container on the successful fast path:
+                    // that duplicates I/O and delays the first visible list. The
+                    // container scanner remains a fallback only when LS is empty.
+                    return launchServicesApps
                 }
                 return try directoryScanner.scan()
             } catch let lsError as AppDiscoveryError {
@@ -45,27 +47,13 @@ final class LaunchServicesAppDiscoveryProvider: AppDiscoveryProvider {
             throw AppDiscoveryError.workspaceUnavailable
         }
 
-        var proxies: [NSObject] = []
-        let enumerateSelector = NSSelectorFromString("enumerateApplicationsOfType:block:")
-        if workspace.responds(to: enumerateSelector),
-           let method = class_getInstanceMethod(type(of: workspace), enumerateSelector) {
-            typealias Enumerator = @convention(c) (AnyObject, Selector, Int, AnyObject) -> Void
-            let implementation = method_getImplementation(method)
-            let enumerate = unsafeBitCast(implementation, to: Enumerator.self)
-            let callback: @convention(block) (AnyObject) -> Void = { object in
-                if let proxy = object as? NSObject { proxies.append(proxy) }
-            }
-            // AltList's mature implementation enumerates both public app-type buckets (0 and 1).
-            // The numeric values and method ABI are private SPI and remain device-validation items.
-            enumerate(workspace, enumerateSelector, 0, callback as AnyObject)
-            enumerate(workspace, enumerateSelector, 1, callback as AnyObject)
+        // R16 and TrollFools use allApplications/allInstalledApplications as the
+        // primary inventory. Prefer allInstalledApplications and call the broader
+        // allApplications API only when the primary result is empty/unavailable.
+        var proxies = invokeArray(workspace, selectorName: "allInstalledApplications")
+        if proxies.isEmpty {
+            proxies = invokeArray(workspace, selectorName: "allApplications")
         }
-
-        // Enumeration buckets can be incomplete on some iOS/rootless combinations.
-        // Merge both workspace inventories even when the callback returned results.
-        // Bundle identifiers are deduplicated below, preserving richer LS metadata.
-        proxies += invokeArray(workspace, selectorName: "allInstalledApplications")
-        proxies += invokeArray(workspace, selectorName: "allApplications")
         guard !proxies.isEmpty else { throw AppDiscoveryError.enumerationUnavailable }
 
         var apps: [String: InstalledApp] = [:]
