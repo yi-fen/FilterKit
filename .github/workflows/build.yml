@@ -76,7 +76,7 @@ jobs:
       matrix: ${{ fromJson(needs.select-environments.outputs.matrix) }}
     runs-on: macos-15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Validate package/environment compatibility
         if: inputs.package == 'DEB' || inputs.package == 'Both'
         shell: bash
@@ -110,7 +110,7 @@ jobs:
         run: bash Build/Scripts/ci-build.sh
       - name: Upload build outputs and report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: FilterKit-${{ matrix.environment }}-${{ inputs.configuration }}-${{ inputs.architecture }}
           path: Build/Output/${{ matrix.environment }}/
