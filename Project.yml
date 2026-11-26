@@ -28,7 +28,13 @@ targets:
     platform: iOS
     sources:
       - path: App
-      - path: Sources
+      - path: Sources/Core
+      - path: Sources/DesignSystem
+      - path: Sources/Environment
+      - path: Sources/Features
+      - path: Sources/Localization
+      - path: Sources/Persistence
+      - path: Sources/Shared
       - path: Resources
     settings:
       base:

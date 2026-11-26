@@ -8,6 +8,10 @@ actor CachedAppDiscoveryProvider: AppDiscoveryProvider, AppDiscoveryRefreshing {
     private let now: () -> Date
     private var cachedApps: [InstalledApp]?
     private var cachedAt: Date?
+    /// Single in-flight enumeration shared by every concurrent caller, mirroring
+    /// R16's `isLoading` + completion-waiters. Prewarm, Apps, and Plugins all
+    /// await the same task instead of each launching a separate LaunchServices scan.
+    private var inFlight: Task<[InstalledApp], Error>?
 
     init(source: AppDiscoveryProvider, timeToLive: TimeInterval = 60,
          now: @escaping () -> Date = Date.init) {
@@ -20,14 +24,11 @@ actor CachedAppDiscoveryProvider: AppDiscoveryProvider, AppDiscoveryRefreshing {
         if let cachedApps, let cachedAt, now().timeIntervalSince(cachedAt) < timeToLive {
             return cachedApps
         }
-        return try await refreshInstalledApps()
+        return try await sharedRefresh().value
     }
 
     func refreshInstalledApps() async throws -> [InstalledApp] {
-        let apps = try await source.scanInstalledApps()
-        cachedApps = Self.deduplicatedAndSorted(apps)
-        cachedAt = now()
-        return cachedApps ?? []
+        try await sharedRefresh().value
     }
 
     func findApp(bundleIdentifier: String) async throws -> InstalledApp? {
@@ -58,6 +59,29 @@ actor CachedAppDiscoveryProvider: AppDiscoveryProvider, AppDiscoveryRefreshing {
             guard let self else { return }
             _ = try? await self.refreshInstalledApps()
         }
+    }
+
+    /// Reuse the existing in-flight enumeration, or start one. All concurrent
+    /// callers await the same task; its result is written to the cache once on
+    /// completion. A failed enumeration leaves the cache untouched for retry.
+    private func sharedRefresh() -> Task<[InstalledApp], Error> {
+        if let inFlight { return inFlight }
+        let task = Task.detached(priority: .userInitiated) { [source] in
+            try await source.scanInstalledApps()
+        }
+        inFlight = task
+        Task { [weak self] in
+            let result = await task.result
+            await self?.finalizeRefresh(result: result)
+        }
+        return task
+    }
+
+    private func finalizeRefresh(result: Result<[InstalledApp], Error>) {
+        inFlight = nil
+        guard case .success(let apps) = result else { return }
+        cachedApps = Self.deduplicatedAndSorted(apps)
+        cachedAt = now()
     }
 
     private static func deduplicatedAndSorted(_ apps: [InstalledApp]) -> [InstalledApp] {

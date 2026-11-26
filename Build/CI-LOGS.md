@@ -240,3 +240,71 @@ Process completed with exit code 1.
 - PID generation 源在公开 SDK 不可用；未来私有头/entitlement 环境接入时复用保留的 `pidVersion` 字段与 `HelperPeerProcessGenerationBindingPolicy`，按平台显式开启，不得在公开路径引用 PRIVATE 结构。
 - Xcode 编译、XCTest Apple SDK、ldid 签名、`lipo`/`otool` 校验、Sileo 安装、冷启动与重启启动均未在本机执行；静态校验不证明 amfid/RootHide 接受与运行时权限。
 - DEB 安装/签名放行/jbroot API/真机注入验证仍 pending，0.1 未闭环不签署。
+
+
+## P2-32 — 扫描动作 R16 对齐审计（规格评审，未改扫描源码，2026-11-26）
+
+- 触发：P2-31 交付后，要求把 NEW 的 App 扫描与插件扫描动作口径对齐 R16 设计。本轮仅做双侧源码审计与规格评审，**未改动任何 `Sources/` 扫描代码**。
+- 审计基准：R16 只读快照 `FilterKit-R16/`；NEW 工作树 P2-31 交付态。规格文档 `Build/P2-32-SCAN-R16-ALIGNMENT-AUDIT.md`。
+
+### 已核对一致（不改）
+
+- App 线：LS 类枚举与 `allInstalledApplications`→`allApplications` 回退、逐条读取与 Info.plist 单次解码、路径前缀系统判定、图标懒解码、bundleID 首条胜去重、名称本地化排序。
+- 插件线：四固定相对目录、单层非递归、软链跳过、后缀小写、stem 小写配对、库存层不哈希/不解析 Mach-O/不查 dpkg、plist `Filter`??顶层解析、只读不写。
+
+### 待对齐缺口（草案，待授权）
+
+- A1 工作区实例获取缺方法存在性校验；A2/A3 容器兜底与关联侧 bundleID 校验过严，需对齐宽松口径。
+- P1 静态关联匹配未做全量：`Bundles/Executables` 解析后未对已装 App 匹配，关联仅来自 manifest；P2 缺 R16 五态分类（exact_match/global/unmatched_target/invalid_configuration/unresolved）；P3 缺 `static_filter_match_only`/`loaded=unknown` 证据口径；P4 列表筛选仅所有权开关，未对齐配置/关联/证据三维；P5 条目文件事实位（size/regular/readable）待补；P6 枚举四态与单条目 partial 口径待对齐。
+- 待授权开放项：是否保留 NEW 新增层（manifest/Mach-O 身份/所有权/Helper，默认保留）；静态匹配是否补全量（默认补，manifest 优先）；在飞合并与 partial 态是否本轮补；三维筛选模型/引擎与 UI 的落地次序；枚举状态机是否对齐。
+
+### 边界与静态核对
+
+- 红线不变：不改目标 App Bundle、不重签名、不自研注入引擎；库存层不碰 dpkg/哈希/Mach-O；不回退 Helper IPC、备份恢复与授权模型。
+- 本机 Linux 无 Xcode/iOS SDK，未做编译回归；编译结论以下次 Runner `xcodebuild` 为准。
+- 本轮无源码改动，仅新增规格文档；未开启生产写门禁，未补 Rootless DEB，未注入、未装卸、未改 Resources。
+
+### 交付包（P2-32 规格评审态）
+
+- `FilterKit-NEW-0.1.0-source.zip`：505 条目 / 710,667 B，SHA256 `0b1fad3f54b9b79a16037bf29bcf0023b68e321eda42d76dccc4e56b3960d00d`。
+- 待授权落地后按排除口径重打并更新条目数/字节/哈希。
+
+
+## P2-33 — 应用扫描在飞任务合并与首屏提速（2026-11-26，离线优化轮）
+
+- 证据：两段真机录屏对比——新版 4.83s（2.4s 首页占位、3.6s 才出 114 应用，中间蓝色加载过渡）；旧版 2.77s（0.3s 首页已带 266 计数、1.8s 直接出列表，无过渡）。目标为加速上屏，不补首页仪表盘内容。
+- 本机 Linux 无 Xcode/iOS SDK，未做编译回归；编译结论以下次 Runner `xcodebuild` 为准。
+
+### 改动文件与目录
+
+- `Sources/Environment/CachedAppDiscoveryProvider.swift`（目录 `Sources/Environment/`）：新增 `inFlight` 任务与 `sharedRefresh()`，复用同一在飞枚举；`finalizeRefresh` 一次性写缓存并清在飞，失败不写缓存可重试；`scanInstalledApps`/`refreshInstalledApps` 走合并路径；`prewarm` 非阻塞外层不变。
+- `Tests/UnitTests/AppDiscoveryTests.swift`（目录 `Tests/UnitTests/`）：新增并发扫描复用用例，断言底层 source 仅调用一次。
+
+### 静态核对
+
+- 缓存层与测试文件花括号配平通过；`verify-project-config.sh` PASS、`verify-architecture.py` PASS。
+- 协议签名、`InstalledApp` 字段、Apps/Plugins 两屏共享 `AppDiscoveryProviderRegistry.shared` 不变；既有 TTL/绕缓存/去重/快照断言不破坏。
+- 未开启生产写门禁；未补 Rootless DEB；未注入、未装卸、未改目标 App Bundle；未改 Resources；未做流式壳行改造。
+
+### 未闭环 / 待下一轮 Runner 与真机复验
+
+- 首次冷启动无快照、在飞未完成时应用页仍走 loading；LS 枚举期流式轻量壳行留待单独评审。
+- 真机复核：预热命中表现、页面切换是否只触发一次枚举、首屏到列表实际耗时。
+- Xcode 编译、XCTest Apple SDK、ldid 签名、`lipo`/`otool` 校验、Sileo 安装、冷启动与重启启动均未在本机执行；DEB 安装/签名放行/jbroot API/真机注入验证 pending，0.1 未闭环不签署。
+
+### 交付包（P2-33 在飞合并态）
+
+- `FilterKit-NEW-0.1.0-source.zip`：507 条目 / 714,626 B，SHA256 `8375c3741f987968b99d0cea5b3b6fdac9decf5218e53490d499bc391cb3b108`。
+
+### P2-34 — 重复源文件同名冲突（job 9a609b49，2026-11-26）
+
+- 错误：app target 编译期 `filename "CachedAppDiscoveryProvider.swift" used twice`，`Sources/CachedAppDiscoveryProvider.swift`（仓库根目录旧副本）与 `Sources/Environment/CachedAppDiscoveryProvider.swift`（现行）同时被纳入。
+- 根因：CI 纯 `actions/checkout@v4`，仓库根目录残留早期骨架旧副本；`Project.yml` 递归 `- path: Sources` 把两份都编入 target。本地工作树/zip 不含残留，无法本地删除。
+- 修复：FilterKit target Sources 改为显式 7 个一级子目录（Core/DesignSystem/Environment/Features/Localization/Persistence/Shared），根层散落旧文件天然不纳入；122 个 Swift 全覆盖。仅改 `Project.yml`。
+- 仓库侧待办：删除根目录 `Sources/CachedAppDiscoveryProvider.swift`（保留 Environment 现行版），核对 Sources 根目录有无其他早期骨架 `.swift`。
+- 静态核对：PyYAML 解析通过，9 条 source 路径本地均存在；Helper/Tests target 未动。Runner `xcodegen generate`/`xcodebuild` 结论待下轮复验。
+
+### 交付包（P2-34 重复源文件修复态）
+
+- `FilterKit-NEW-0.1.0-source.zip`：509 条目 / 717,797 B，SHA256 `cb4fc9008445c4b3f8555aa014a7b1ac9ee70c5b8ab6c5ebc58dc7b01bc86d60`（回填前一版；文档自引用，覆盖重打包后哈希差一版，以最终文件为准）。
+- 包内仅含 `Sources/Environment/CachedAppDiscoveryProvider.swift` 现行版，无根目录旧副本。

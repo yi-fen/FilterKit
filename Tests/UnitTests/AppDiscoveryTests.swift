@@ -65,6 +65,16 @@ final class AppDiscoveryTests: XCTestCase {
         XCTAssertEqual(calls, 4)
     }
 
+    func testConcurrentScansShareOneInFlightSourceCall() async throws {
+        let source = CountingAppDiscoveryProvider()
+        let cache = CachedAppDiscoveryProvider(source: source)
+        async let first = cache.scanInstalledApps()
+        async let second = cache.scanInstalledApps()
+        _ = try await (first, second)
+        let calls = await source.callCount
+        XCTAssertEqual(calls, 1)
+    }
+
     func testCacheDeduplicatesByBundleIdentifier() async throws {
         let duplicate = InstalledApp(bundleIdentifier: "com.example.app", displayName: "Example", isSystemApp: false)
         let source = StaticAppDiscoveryProvider(apps: [duplicate, duplicate])
