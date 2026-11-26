@@ -107,7 +107,7 @@ final class UnixDomainSocketTransport: HelperIPCTransport {
 
     private static func auditTokenEvidenceIsSufficient(_ identity: HelperPeerIdentity) -> Bool {
         #if canImport(Darwin)
-        return HelperPeerIdentityBindingPolicy.hasCompleteDarwinProcessGenerationEvidence(identity)
+        return HelperPeerIdentityBindingPolicy.hasKernelPeerEvidence(identity)
         #else
         return true
         #endif
@@ -398,7 +398,7 @@ final class UnixDomainSocketServer {
 
     private static func auditTokenEvidenceIsSufficient(_ identity: HelperPeerIdentity) -> Bool {
         #if canImport(Darwin)
-        return HelperPeerIdentityBindingPolicy.hasCompleteDarwinProcessGenerationEvidence(identity)
+        return HelperPeerIdentityBindingPolicy.hasKernelPeerEvidence(identity)
         #else
         return true
         #endif

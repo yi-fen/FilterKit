@@ -39,6 +39,27 @@ actor CachedAppDiscoveryProvider: AppDiscoveryProvider, AppDiscoveryRefreshing {
         cachedAt = nil
     }
 
+    /// Non-scanning snapshot of the cached inventory, if present. Used to render
+    /// a warm list before the background refresh completes; never triggers a
+    /// LaunchServices enumeration.
+    func currentSnapshot() -> [InstalledApp]? {
+        cachedApps
+    }
+
+    /// Warm the inventory off the foreground path. The scan runs detached and
+    /// any failure is ignored: the next foreground `scanInstalledApps()` retries
+    /// normally. This keeps app startup non-blocking while giving the Apps and
+    /// Plugins screens a warm cache when they appear.
+    ///
+    /// `nonisolated` so SwiftUI's `.task` Sendable closure can start the warm-up
+    /// synchronously; the detached task hops back onto the actor to refresh.
+    nonisolated func prewarm() {
+        Task.detached { [weak self] in
+            guard let self else { return }
+            _ = try? await self.refreshInstalledApps()
+        }
+    }
+
     private static func deduplicatedAndSorted(_ apps: [InstalledApp]) -> [InstalledApp] {
         let unique = Dictionary(apps.map { ($0.bundleIdentifier, $0) },
                                 uniquingKeysWith: { first, _ in first })

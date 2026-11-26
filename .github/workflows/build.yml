@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       environment:
-        description: Target jailbreak environment
+        description: Target jailbreak environment (Rootless DEB packaging remains unverified; use IPA/None for Rootless)
         required: true
         type: choice
         options: [RootHide, Rootless, Both]
@@ -34,7 +34,7 @@ on:
         options: [Yes, No]
         default: No
       package:
-        description: Output package format
+        description: Output package format (DEB/Both is supported for RootHide only)
         required: true
         type: choice
         options: [DEB, IPA, Both, None]
@@ -78,6 +78,14 @@ jobs:
       - name: Verify Debian packaging pipeline
         if: inputs.package == 'DEB' || inputs.package == 'Both'
         run: bash Build/Scripts/test-deb-packaging.sh
+      - name: Validate package/environment compatibility
+        if: inputs.package == 'DEB' || inputs.package == 'Both'
+        shell: bash
+        run: |
+          if [[ "${{ matrix.environment }}" != "RootHide" ]]; then
+            echo "ERROR: package '${{ inputs.package }}' is supported only for RootHide; the '${{ matrix.environment }}' DEB layout is unverified. Use IPA/None for Rootless." >&2
+            exit 30
+          fi
       - name: Build and package
         env:
           ENVIRONMENT: ${{ matrix.environment }}

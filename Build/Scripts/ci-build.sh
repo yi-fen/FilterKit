@@ -18,7 +18,7 @@ mkdir -p "$OUT"
 python3 "$ROOT/Build/Scripts/resolve-profile.py" --environment "$ENVIRONMENT" --profile "$PROFILE" --output "$OUT/profile.json"
 if [[ "$PACKAGE" == "DEB" || "$PACKAGE" == "Both" ]]; then
   if [[ "$ENVIRONMENT" != "RootHide" ]]; then
-    echo "ERROR: DEB packaging is currently enabled only for RootHide; Rootless layout remains unverified." >&2
+    echo "ERROR: DEB/Both packaging is enabled only for RootHide; the Rootless DEB layout remains unverified. Use IPA or None for Rootless." >&2
     exit 30
   fi
   if ! command -v dpkg-deb >/dev/null 2>&1; then

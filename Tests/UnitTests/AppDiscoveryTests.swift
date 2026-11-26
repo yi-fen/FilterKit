@@ -72,6 +72,18 @@ final class AppDiscoveryTests: XCTestCase {
         let result = try await cache.scanInstalledApps()
         XCTAssertEqual(result.count, 1)
     }
+
+    func testCurrentSnapshotReflectsCacheAndInvalidation() async throws {
+        let source = StaticAppDiscoveryProvider(apps: [
+            InstalledApp(bundleIdentifier: "com.example.app", displayName: "Example", isSystemApp: false)
+        ])
+        let cache = CachedAppDiscoveryProvider(source: source)
+        XCTAssertNil(await cache.currentSnapshot())
+        _ = try await cache.scanInstalledApps()
+        XCTAssertEqual(await cache.currentSnapshot()?.map(\.bundleIdentifier), ["com.example.app"])
+        await cache.invalidateCache()
+        XCTAssertNil(await cache.currentSnapshot())
+    }
 }
 
 private actor CountingAppDiscoveryProvider: AppDiscoveryProvider {

@@ -157,3 +157,86 @@ Process completed with exit code 1.
 - Static audits P2-16 through P2-25: PASS (11/11, 11/11, 10/10, 12/12, 12/12, 14/14, 11/11, 10/10, 13/13, 18/18 respectively).
 - Apple SDK/Xcode build, XCTest on Apple SDK, and RootHide device recovery tests: NOT RUN in this Linux environment.
 - All production deployment and plugin-association write gates remain disabled.
+
+
+## P2-29 — App Scan Prewarm & DEB Profile Externalization（2026-11-26，离线优化轮）
+
+- 基线：上传包 `FilterKit-P2-28-Plugin-Toggle-Release-Gate.zip`；清除本地旧工作树后仅以该包为准。
+- 本轮无 GitHub Actions Runner run；本机 Linux 无 Xcode/iOS SDK/ldid/lipo/otool，未做编译回归，编译结论以下次 Runner `xcodebuild` 为准。
+
+### 改动文件与目录
+
+- `Sources/Environment/CachedAppDiscoveryProvider.swift`（目录 `Sources/Environment/`）：新增 `nonisolated prewarm()`，detached 后台扫描填充缓存，失败静默，不阻塞启动；既有 `init(source:timeToLive:now:)` 与协议方法签名不变。`nonisolated` 保证 SwiftUI `.task` Sendable 闭包可同步触发，detached 任务再跨 actor 刷新。
+- `App/MainTabView.swift`（目录 `App/`）：根视图 `.task` 调 `AppDiscoveryProviderRegistry.shared.prewarm()`，启动即后台预热库存。
+- `Build/Config/DEB/roothide.env`（目录 `Build/Config/DEB/`，新增）：RootHide 包身份/架构/rootfs 负载/注册路径/依赖/control 元数据外置。
+- `Build/Scripts/package-deb.sh`（目录 `Build/Scripts/`）：source 外置 profile，control/postinst 由 profile 变量装配；新增字段非空、负载路径以 bundle 名结尾、注册路径为 rootfs 形式、profile 包名与 App `Info.plist` 包名一致等断言；签名/嵌套 Mach-O 校验/解包复验流程保持不变。
+- `Build/Scripts/ci-build.sh`（目录 `Build/Scripts/`）：非 RootHide 的 DEB/Both 拒绝信息补充可行替代（Rootless 用 IPA/None）。
+- `.github/workflows/build.yml`（目录 `.github/workflows/`）：表单描述标注 DEB/Both 仅 RootHide；新增 package/environment 兼容性前置校验步骤，Rootless × DEB/Both 在构建前明确失败。
+
+### 静态核对
+
+- `bash -n` 通过：`package-deb.sh`、`ci-build.sh`；`test-deb-packaging.sh` 语法通过。
+- workflow YAML 经 PyYAML 解析通过。
+- 离线 drill：`roothide.env` 可被 source，必填字段非空，payload/register 路径断言通过。
+- `AppDiscoveryTests` 引用的缓存初始化器与方法签名未变；全树缓存/Provider 引用已核对，Apps 与 Plugins 两屏仍复用 `AppDiscoveryProviderRegistry.shared`。
+- 未开启任何生产写门禁；未补 Rootless DEB 产物；未注入、未装卸、未改目标 App Bundle。
+
+### 未闭环 / 待下一轮 Runner 与真机复验
+
+- 预热在冷启动首次进入 App 页（预热尚未完成）时仍显示 loading；两段式壳行上屏与在飞扫描去重留待后续单独评审。
+- 单数组 LS 枚举对各 rootless/RootHide 组合的覆盖度需真机核对。
+- Xcode 编译、XCTest Apple SDK、ldid 签名、`lipo`/`otool` 校验、Sileo 安装、冷启动与重启启动均未在本机执行；静态签名校验不证明 amfid/RootHide 接受与运行时权限。
+- `verify-localizations.py` 报 `Resources/en.lproj/Localizable.strings:277` 语法无效；该文件与 P2-28 基线逐字节一致，属基线既有问题，本轮未改 Resources，留待后续单独处理。
+
+
+## P2-30 — A2/A7 两段式上屏与重复排序收敛（2026-11-26，离线优化轮）
+
+- 基线：P2-29 工作树；本轮落地用户授权的 A2、A7 两项。本机 Linux 无 Xcode/iOS SDK/ldid/lipo/otool，未做编译回归，编译结论以下次 Runner `xcodebuild` 为准。
+
+### 改动文件与目录
+
+- `Sources/Environment/LaunchServicesAppDiscoveryProvider.swift`（目录 `Sources/Environment/`）：删除扫描返回路径的二次 `sorted`，返回去重后的 `Array(apps.values)`；排序统一由缓存层 `deduplicatedAndSorted` 与显示层 `AppInventoryQuery.filter` 完成。
+- `Sources/Environment/CachedAppDiscoveryProvider.swift`（目录 `Sources/Environment/`）：新增非扫描 `currentSnapshot() -> [InstalledApp]?`，仅读 `cachedApps`，不触发 LaunchServices 枚举；去重排序仍在 `deduplicatedAndSorted`。
+- `Sources/Features/Apps/AppsView.swift`（目录 `Sources/Features/Apps/`）：`AppsViewModel.load(forceRefresh:)` 两段式——先在 `apps` 为空且有快照时上屏快照，再 await 扫描/刷新，完成后替换库存、更新 `scannedAt` 并异步加载关联；View loading/错误/空态条件不变。
+- `Tests/UnitTests/AppDiscoveryTests.swift`（目录 `Tests/UnitTests/`）：新增 `testCurrentSnapshotReflectsCacheAndInvalidation`，覆盖快照首次为 nil、扫描后反映库存、失效后回 nil。
+
+### 静态核对
+
+- 三处 Swift 源文件与测试文件花括号配平通过；`currentSnapshot` 仅被缓存层定义与 Apps ViewModel 调用，Plugins 两屏仍只调 `scanInstalledApps()`。
+- LS provider 无残留 `sorted`/`localizedStandardCompare`；既有测试不断言扫描侧返回顺序，删排序不破坏现有断言。
+- 未开启生产写门禁；未补 Rootless DEB；未注入、未装卸、未改目标 App Bundle；未改 Resources。
+
+### 未闭环 / 待下一轮 Runner 与真机复验
+
+- 首次冷启动无快照、预热在飞未完成时仍走 loading；在飞扫描并发去重与 LS 枚举期流式轻量壳行留待后续单独评审。
+- Xcode 编译、XCTest Apple SDK、ldid 签名、`lipo`/`otool` 校验、Sileo 安装、冷启动与重启启动均未在本机执行；静态签名校验不证明 amfid/RootHide 接受与运行时权限。
+- `Localizable.strings:277` 为基线既有问题；DEB 安装/签名放行/jbroot API/真机注入验证仍 pending，0.1 未闭环不签署。
+
+
+## P2-31 — Runner 编译修复：libproc 不可见符号与 Dispatcher 实参顺序（2026-11-26）
+
+- 证据：Runner job `5c0ff41a-f249-5d7c-9d7d-0ad5a4ea287a`（workflow `b99bf07f-043e-432e-989e-9fedc21792c2`，macOS 15.8.2 arm64，FilterKit app target Release-iphoneos）；日志留存 `.tmp/ci-logs/p2-30/job-logs.txt`。编译期失败，未进入 XCTest；DEB 离线 drill 在 Swift 编译前已通过。
+- 本机 Linux 无 Xcode/iOS SDK，未做编译回归；编译结论以下次 Runner `xcodebuild` 为准。
+
+### 改动文件与目录
+
+- `Sources/Environment/Helper/Transport/HelperPeerAuthenticationDiagnostics.swift`（`Sources/Environment/Helper/Transport/`）：新增 `hasKernelPeerEvidence`（存活 PID + 完整 audit token 哈希）作为公开平台门禁证据；组合 generation 证据函数保留供诊断展示与纯策略测试。
+- `Sources/Environment/Helper/Transport/UnixDomainSocketTransport.swift`（`Sources/Environment/Helper/Transport/`）：两处 `auditTokenEvidenceIsSufficient` 改调 `hasKernelPeerEvidence`。
+- `Sources/Environment/Helper/Runtime/HelperStartupRecoveryCheck.swift`（`Sources/Environment/Helper/Runtime/`）：恢复授权门禁改调 `hasKernelPeerEvidence`，错误码 `incompleteKernelEvidence` 保留。
+- `Sources/Environment/Helper/Transport/DarwinPeerIdentityProvider.swift`（`Sources/Environment/Helper/Transport/`）：删除 `readPIDVersion` 及全部不可用 libproc 引用；identity 返回 `pidVersion: nil`，保留 credentials/audit token 双读比对与 csops CDHash；generation 错误 case 与诊断码字符串保留。
+- `Sources/Environment/Helper/Runtime/HelperRuntime.swift`（`Sources/Environment/Helper/Runtime/`）：Dispatcher 调用实参顺序对齐声明（`deploymentIdempotencyLedger` → `deploymentLedgerStore` → `deploymentPipeline`）。
+- `Sources/Environment/Helper/Runtime/HelperReleaseGenerationStore.swift`（`Sources/Environment/Helper/Runtime/`）：两处未变异 `var query` 改 `let query`；`var insert` 保留可变。
+- `Tests/UnitTests/HelperPeerIdentityBindingTests.swift`（`Tests/UnitTests/`）：新增 `hasKernelPeerEvidence` 纯策略用例（完整 token + 存活 PID 通过；缺 token / PID=0 拒绝）。
+
+### 静态核对
+
+- 全树无 `proc_pidinfo`/`proc_bsdinfo`/`PROC_PIDT*`/`pbi_pidversion`/`readPIDVersion` 代码引用（注释保留 PRIVATE flavor 名说明）。
+- 门禁三处均切到 `hasKernelPeerEvidence`；改动 Swift 文件花括号配平通过；`verify-project-config.sh` PASS、`verify-architecture.py` PASS。
+- 既有授权夹具：完整 digest peer 通过；root peer 仍被 `peerMustBeUnprivileged` 拒绝；缺 digest incomplete peer 仍被新门禁拒绝，断言不破坏。
+- 未开启生产写门禁；未补 Rootless DEB；未注入、未装卸、未改目标 App Bundle；未改 Resources。
+
+### 未闭环 / 待下一轮 Runner 与真机复验
+
+- PID generation 源在公开 SDK 不可用；未来私有头/entitlement 环境接入时复用保留的 `pidVersion` 字段与 `HelperPeerProcessGenerationBindingPolicy`，按平台显式开启，不得在公开路径引用 PRIVATE 结构。
+- Xcode 编译、XCTest Apple SDK、ldid 签名、`lipo`/`otool` 校验、Sileo 安装、冷启动与重启启动均未在本机执行；静态校验不证明 amfid/RootHide 接受与运行时权限。
+- DEB 安装/签名放行/jbroot API/真机注入验证仍 pending，0.1 未闭环不签署。

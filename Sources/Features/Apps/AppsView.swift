@@ -21,6 +21,12 @@ private final class AppsViewModel: ObservableObject {
         guard !isLoading else { return }
         isLoading = true
         defer { isLoading = false }
+        // First paint: show any warm cached inventory before the background
+        // scan/refresh completes. A first cold launch with no snapshot still
+        // renders the loading state until the inventory arrives.
+        if apps.isEmpty, let snapshot = await appProvider.currentSnapshot() {
+            apps = snapshot
+        }
         do {
             let inventory: [InstalledApp]
             if forceRefresh { inventory = try await appProvider.refreshInstalledApps() }

@@ -34,5 +34,11 @@ struct MainTabView: View {
                 .accessibilityIdentifier("tab.settings")
         }
         .accentColor(FilterKitTheme.ColorToken.accent)
+        .task {
+            // Warm the installed-app inventory in the background at launch so the
+            // Apps/Plugins screens can read a warm cache instead of blocking on
+            // the first LaunchServices enumeration. Non-blocking and failure-tolerant.
+            AppDiscoveryProviderRegistry.shared.prewarm()
+        }
     }
 }

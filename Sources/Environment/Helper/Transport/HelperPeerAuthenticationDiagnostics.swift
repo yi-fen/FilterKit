@@ -74,6 +74,15 @@ enum HelperPeerIdentityBindingPolicy {
         return digest.range(of: "^[0-9a-fA-F]{64}$", options: .regularExpression) != nil
     }
 
+    /// Hard gate evidence on the public Darwin SDK: a complete kernel LOCAL_PEERTOKEN
+    /// snapshot bound to a live PID. Process-generation counters live in XNU PRIVATE
+    /// headers (`proc_uniqidentifierinfo`, flavors 17/18) that the public iOS SDK does
+    /// not export, so generation is retained as an optional diagnostic enhancement rather
+    /// than a compilable acceptance requirement.
+    static func hasKernelPeerEvidence(_ identity: HelperPeerIdentity) -> Bool {
+        identity.pid > 0 && hasKernelAuditTokenEvidence(identity)
+    }
+
     static func hasCompleteDarwinProcessGenerationEvidence(_ identity: HelperPeerIdentity) -> Bool {
         hasKernelAuditTokenEvidence(identity) && identity.pid > 0 &&
         identity.pidVersion.map { $0 > 0 } == true

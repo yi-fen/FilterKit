@@ -28,6 +28,20 @@ final class HelperPeerIdentityBindingTests: XCTestCase {
         XCTAssertFalse(HelperPeerIdentityBindingPolicy.hasKernelAuditTokenEvidence(truncated))
     }
 
+    func testKernelPeerEvidenceRequiresLivePIDAndCompleteAuditTokenDigest() {
+        let valid = HelperPeerIdentity(uid: 501, gid: 501, pid: 123,
+            cdHashHex: String(repeating: "a", count: 40), pidVersion: nil,
+            auditSessionID: 7, auditTokenDigest: String(repeating: "b", count: 64))
+        XCTAssertTrue(HelperPeerIdentityBindingPolicy.hasKernelPeerEvidence(valid))
+        let missingToken = HelperPeerIdentity(uid: 501, gid: 501, pid: 123,
+            cdHashHex: String(repeating: "a", count: 40), pidVersion: nil, auditSessionID: 7)
+        XCTAssertFalse(HelperPeerIdentityBindingPolicy.hasKernelPeerEvidence(missingToken))
+        let deadPID = HelperPeerIdentity(uid: 501, gid: 501, pid: 0,
+            cdHashHex: String(repeating: "a", count: 40), pidVersion: nil,
+            auditSessionID: 7, auditTokenDigest: String(repeating: "b", count: 64))
+        XCTAssertFalse(HelperPeerIdentityBindingPolicy.hasKernelPeerEvidence(deadPID))
+    }
+
     func testIdentityMustMatchAllKernelSocketCredentials() {
         let peer = HelperSocketPeerCredentials(uid: 501, gid: 501, pid: 123)
         let valid = HelperPeerIdentity(uid: 501, gid: 501, pid: 123,

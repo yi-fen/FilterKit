@@ -58,7 +58,7 @@ final class KeychainHelperReleaseGenerationStore: HelperReleaseGenerationStoring
     func highestAcceptedGeneration(for bundleIdentifier: String) throws -> UInt64? {
         guard Self.valid(bundleIdentifier) else { throw StoreError.invalidBundleIdentifier }
         lock.lock(); defer { lock.unlock() }
-        var query: [String: Any] = [
+        let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
             kSecReturnAttributes as String: true,
@@ -110,7 +110,7 @@ final class KeychainHelperReleaseGenerationStore: HelperReleaseGenerationStoring
 
     /// Avoid recursively acquiring the process lock while preserving the same append-only scan.
     private func highestAcceptedGenerationUnlocked(for bundleIdentifier: String) throws -> UInt64? {
-        var query: [String: Any] = [kSecClass as String: kSecClassGenericPassword,
+        let query: [String: Any] = [kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service, kSecReturnAttributes as String: true,
             kSecReturnData as String: true, kSecMatchLimit as String: kSecMatchLimitAll]
         var result: CFTypeRef?

@@ -2,7 +2,7 @@
 
 ## RootHide DEB
 
-The RootHide release package follows the R16.1 RootHide rootfs profile:
+The RootHide release package follows the R16.1 RootHide rootfs profile. Package identity, architecture, payload layout, register path, dependencies, and control metadata live in `Build/Config/DEB/roothide.env`; `Build/Scripts/package-deb.sh` sources that profile and only assembles, signs, validates, and archives the package.
 
 - Debian `Architecture: iphoneos-arm64e`
 - Payload `Applications/FilterKit.app` (installed as `/Applications/FilterKit.app`)

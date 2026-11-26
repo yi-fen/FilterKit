@@ -100,7 +100,7 @@ struct HelperRecoveryAuthorization: Equatable {
               context.identity.cdHashHex.range(of: "^[0-9a-fA-F]{40}$", options: .regularExpression) != nil else {
             throw AuthorizationError.identityMismatch
         }
-        guard HelperPeerIdentityBindingPolicy.hasCompleteDarwinProcessGenerationEvidence(context.identity) else {
+        guard HelperPeerIdentityBindingPolicy.hasKernelPeerEvidence(context.identity) else {
             throw AuthorizationError.incompleteKernelEvidence
         }
         return HelperRecoveryAuthorization(transactionID: transactionID, requestNonce: requestNonce,

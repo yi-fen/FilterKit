@@ -13,6 +13,22 @@ if [[ "$ENVIRONMENT" != "RootHide" ]]; then
   echo "ERROR: This release package script only creates the RootHide rootfs package." >&2
   exit 40
 fi
+
+# Package identity and layout live in the external RootHide profile so the
+# script only assembles and validates the package. Rootless packaging is not
+# produced here; keep that boundary explicit.
+PROFILE_ENV="$ROOT/Build/Config/DEB/roothide.env"
+[[ -f "$PROFILE_ENV" ]] || { echo "ERROR: RootHide DEB profile missing: $PROFILE_ENV" >&2; exit 40; }
+# shellcheck disable=SC1090
+source "$PROFILE_ENV"
+for required in DEB_PACKAGE_ID DEB_PACKAGE_ARCH DEB_PAYLOAD_RELATIVE_PATH DEB_PAYLOAD_BUNDLE_NAME DEB_REGISTER_PATH DEB_DEPENDS DEB_MAINTAINER DEB_SECTION DEB_PRIORITY DEB_DESCRIPTION; do
+  [[ -n "${!required:-}" ]] || { echo "ERROR: profile variable $required is empty in $PROFILE_ENV" >&2; exit 40; }
+done
+[[ "$DEB_PAYLOAD_RELATIVE_PATH" == */"$DEB_PAYLOAD_BUNDLE_NAME" ]] \
+  || { echo "ERROR: payload path '$DEB_PAYLOAD_RELATIVE_PATH' does not end in bundle '$DEB_PAYLOAD_BUNDLE_NAME'" >&2; exit 40; }
+[[ "$DEB_REGISTER_PATH" == "/$DEB_PAYLOAD_RELATIVE_PATH" ]] \
+  || { echo "ERROR: register path '$DEB_REGISTER_PATH' must be rootfs path '/$DEB_PAYLOAD_RELATIVE_PATH'" >&2; exit 40; }
+
 [[ -d "$APP" && -f "$APP/Info.plist" ]] || { echo "ERROR: FilterKit.app or Info.plist missing: $APP" >&2; exit 41; }
 command -v dpkg-deb >/dev/null 2>&1 || { echo "ERROR: dpkg-deb is required." >&2; exit 42; }
 command -v python3 >/dev/null 2>&1 || { echo "ERROR: python3 is required." >&2; exit 43; }
@@ -37,10 +53,12 @@ EXECUTABLE="$(printf '%s\n' "$META" | sed -n '4p')"
 [[ -x "$APP/$EXECUTABLE" ]] || { echo "ERROR: main executable is not executable: $APP/$EXECUTABLE" >&2; exit 48; }
 
 # RootHide's package-manager architecture is not the app's Mach-O slice.
-# Match R16.1's RootHide profile: iphoneos-arm64e metadata + rootfs Applications path.
-PACKAGE_ARCH="iphoneos-arm64e"
+# Values come from the external roothide.env profile; the Mach-O slice is
+# validated independently below.
+PACKAGE_ARCH="$DEB_PACKAGE_ARCH"
 DEB_VERSION="${APP_VERSION}-1"
-PACKAGE_ID="cn.yfen.filterkit"
+PACKAGE_ID="$DEB_PACKAGE_ID"
+[[ "$PACKAGE_ID" == "$BUNDLE_ID" ]] || { echo "ERROR: profile package id '$PACKAGE_ID' does not match App bundle id '$BUNDLE_ID'" >&2; exit 44; }
 if command -v lipo >/dev/null 2>&1; then
   APP_ARCHS="$(lipo -archs "$APP/$EXECUTABLE" 2>/dev/null || true)"
   [[ " $APP_ARCHS " == *" arm64 "* || " $APP_ARCHS " == *" arm64e "* ]] || {
@@ -53,7 +71,7 @@ fi
 WORK="$(mktemp -d "${TMPDIR:-/tmp}/filterkit-roothide-deb.XXXXXX")"
 trap 'rm -rf "$WORK"' EXIT
 STAGE="$WORK/package"
-PAYLOAD="$STAGE/Applications/FilterKit.app"
+PAYLOAD="$STAGE/$DEB_PAYLOAD_RELATIVE_PATH"
 mkdir -p "$PAYLOAD" "$STAGE/DEBIAN"
 if command -v ditto >/dev/null 2>&1; then ditto "$APP" "$PAYLOAD"; else cp -R "$APP/." "$PAYLOAD/"; fi
 
@@ -79,21 +97,21 @@ Package: $PACKAGE_ID
 Name: FilterKit
 Version: $DEB_VERSION
 Architecture: $PACKAGE_ARCH
-Maintainer: FilterKit Project
-Section: Utilities
-Priority: optional
-Depends: firmware (>= 15.0), ellekit
-Description: RootHide and ElleKit plugin manager
+Maintainer: $DEB_MAINTAINER
+Section: $DEB_SECTION
+Priority: $DEB_PRIORITY
+Depends: $DEB_DEPENDS
+Description: $DEB_DESCRIPTION
 CONTROL
 
-cat > "$STAGE/DEBIAN/postinst" <<'POSTINST'
+cat > "$STAGE/DEBIAN/postinst" <<POSTINST
 #!/bin/sh
 # RootHide rootfs-layout registration only. No plugin or ElleKit configuration writes.
-if [ "$1" = "configure" ]; then
+if [ "\$1" = "configure" ]; then
     if command -v uicache >/dev/null 2>&1; then
-        uicache -p /Applications/FilterKit.app >/dev/null 2>&1 || true
+        uicache -p "$DEB_REGISTER_PATH" >/dev/null 2>&1 || true
     elif [ -x /usr/bin/uicache ]; then
-        /usr/bin/uicache -p /Applications/FilterKit.app >/dev/null 2>&1 || true
+        /usr/bin/uicache -p "$DEB_REGISTER_PATH" >/dev/null 2>&1 || true
     fi
 fi
 exit 0
@@ -116,7 +134,7 @@ dpkg-deb --info "$DEST" >/dev/null
 [[ "$(dpkg-deb --field "$DEST" Package)" == "$PACKAGE_ID" ]]
 [[ "$(dpkg-deb --field "$DEST" Version)" == "$DEB_VERSION" ]]
 [[ "$(dpkg-deb --field "$DEST" Architecture)" == "$PACKAGE_ARCH" ]]
-dpkg-deb --contents "$DEST" | grep -F 'Applications/FilterKit.app/Info.plist' >/dev/null
+dpkg-deb --contents "$DEST" | grep -F "$DEB_PAYLOAD_RELATIVE_PATH/Info.plist" >/dev/null
 if dpkg-deb --contents "$DEST" | grep -F 'var/jb/Applications/FilterKit.app' >/dev/null; then
   echo "ERROR: RootHide package unexpectedly contains a Rootless /var/jb payload prefix." >&2; rm -f "$DEST"; exit 56
 fi
@@ -127,14 +145,14 @@ if [[ "$SIGNATURE_STATE" == "ldid-signed-static-valid" ]]; then
   EXTRACT="$WORK/extracted"
   mkdir -p "$EXTRACT"
   dpkg-deb --extract "$DEST" "$EXTRACT"
-  APP_PATH="$EXTRACT/Applications/FilterKit.app" ENTITLEMENTS_PATH="$ROOT/Build/Signing/FilterKit.entitlements" \
-    bash "$ROOT/Build/Scripts/sign-app-ldid.sh" verify "$EXTRACT/Applications/FilterKit.app"
+  APP_PATH="$EXTRACT/$DEB_PAYLOAD_RELATIVE_PATH" ENTITLEMENTS_PATH="$ROOT/Build/Signing/FilterKit.entitlements" \
+    bash "$ROOT/Build/Scripts/sign-app-ldid.sh" verify "$EXTRACT/$DEB_PAYLOAD_RELATIVE_PATH"
 fi
 
 printf 'DEB_CREATED=%s\n' "$DEST"
-printf 'DEB_PROFILE=RootHide-rootfs\n'
+printf 'DEB_PROFILE=%s\n' "$DEB_PROFILE_ID"
 printf 'DEB_PACKAGE_ARCH=%s\n' "$PACKAGE_ARCH"
-printf 'DEB_PAYLOAD=Applications/FilterKit.app\n'
+printf 'DEB_PAYLOAD=%s\n' "$DEB_PAYLOAD_RELATIVE_PATH"
 printf 'APP_MACHO_ARCH=%s\n' "$APP_ARCHS"
 printf 'APP_VERSION=%s\nAPP_BUILD=%s\n' "$APP_VERSION" "$BUILD_VERSION"
 printf 'DEB_SIGNATURE_STATE=%s\n' "$SIGNATURE_STATE"

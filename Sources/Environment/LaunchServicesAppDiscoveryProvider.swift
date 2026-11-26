@@ -81,11 +81,10 @@ final class LaunchServicesAppDiscoveryProvider: AppDiscoveryProvider {
                 iconDescriptor: icon, discoverySource: .launchServices)
         }
         guard !apps.isEmpty else { throw AppDiscoveryError.noReadableInventory }
-        // An LS proxy inventory with inaccessible bundle paths is still useful; do not turn it into an empty result.
-        return apps.values.sorted {
-            let order = $0.displayName.localizedStandardCompare($1.displayName)
-            return order == .orderedSame ? $0.bundleIdentifier < $1.bundleIdentifier : order == .orderedAscending
-        }
+        // Ordering is finalized by the cache layer (`deduplicatedAndSorted`) and
+        // the display filter (`AppInventoryQuery`). This fast path returns the
+        // deduplicated inventory without a second per-scan sort.
+        return Array(apps.values)
     }
 
     private static func invokeArray(_ object: NSObject, selectorName: String) -> [NSObject] {

@@ -49,7 +49,6 @@ final class DarwinPeerIdentityProvider: HelperPeerIdentityProviding {
         if let token = beforeToken {
             try validate(token: token, credentials: credentials)
         }
-        let pidVersionBefore = try readPIDVersion(credentials.pid)
 
         var bytes = [UInt8](repeating: 0, count: Self.cdHashLength)
         let result = bytes.withUnsafeMutableBytes { raw in
@@ -59,10 +58,6 @@ final class DarwinPeerIdentityProvider: HelperPeerIdentityProviding {
         guard bytes.count == Self.cdHashLength else { throw IdentityError.invalidHashLength }
         guard bytes.contains(where: { $0 != 0 }) else { throw IdentityError.emptyCDHash }
 
-        let pidVersionAfter = try readPIDVersion(credentials.pid)
-        guard HelperPeerProcessGenerationBindingPolicy.isStable(before: pidVersionBefore, after: pidVersionAfter) else {
-            throw IdentityError.processGenerationChanged
-        }
         let afterToken: [UInt32]? = socketFD >= 0 ? try readAuditToken(socketFD) : nil
         if let beforeToken, let afterToken {
             guard beforeToken == afterToken else { throw IdentityError.auditTokenChanged }
@@ -72,9 +67,13 @@ final class DarwinPeerIdentityProvider: HelperPeerIdentityProviding {
             words.withUnsafeBytes { Data($0) }
         }
         let sessionID = beforeToken.map { $0[6] }
+        // PID generation counters are exposed only through XNU PRIVATE headers
+        // (`proc_uniqidentifierinfo`, flavors PROC_PIDUNIQIDENTIFIERINFO /
+        // PROC_PIDT_BSDINFOWITHUNIQID) that the public iOS SDK does not export. They are
+        // reserved as an optional enhancement evidence; we never fabricate a value.
         return HelperPeerIdentity(uid: credentials.uid, gid: credentials.gid,
                                   pid: credentials.pid, cdHashHex: hex,
-                                  pidVersion: pidVersionBefore, auditSessionID: sessionID,
+                                  pidVersion: nil, auditSessionID: sessionID,
                                   auditTokenDigest: tokenData.map(SHA256Digest.hex))
     }
 
@@ -83,23 +82,6 @@ final class DarwinPeerIdentityProvider: HelperPeerIdentityProviding {
         return try identity(for: credentials).cdHashHex
     }
 
-
-    /// proc_pidinfo(PROC_PIDTBSDINFO) exposes the kernel PID generation counter.
-    /// Exact-size reads are required; inaccessible/partial process records fail closed.
-    private func readPIDVersion(_ pid: Int32) throws -> UInt64 {
-        guard pid > 0 else { throw IdentityError.invalidProcessGeneration }
-        var info = proc_bsdinfo()
-        let expected = Int32(MemoryLayout<proc_bsdinfo>.size)
-        let result = withUnsafeMutablePointer(to: &info) { pointer in
-            pointer.withMemoryRebound(to: UInt8.self, capacity: MemoryLayout<proc_bsdinfo>.size) { bytes in
-                proc_pidinfo(pid_t(pid), PROC_PIDTBSDINFO, 0, bytes, expected)
-            }
-        }
-        guard result == expected else { throw IdentityError.processGenerationReadFailed(result) }
-        let version = UInt64(info.pbi_pidversion)
-        guard version != 0 else { throw IdentityError.invalidProcessGeneration }
-        return version
-    }
 
     private func readAuditToken(_ fd: Int32) throws -> [UInt32] {
         var words = [UInt32](repeating: 0, count: Self.auditTokenWordCount)

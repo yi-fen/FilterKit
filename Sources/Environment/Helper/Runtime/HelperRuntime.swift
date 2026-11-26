@@ -81,8 +81,9 @@ final class FilterKitHelperRuntime {
         let durableLedgerStore = try HelperDeploymentDurableLedgerStore(
             directoryPath: jbRoot + "/Library/FilterKit/Helper")
         let durableDeploymentLedger = HelperDeploymentIdempotencyLedger(durableStore: durableLedgerStore)
-        let dispatcher = HelperRequestDispatcher(manifest: manifest, audit: audit, deploymentPipeline: pipeline,
+        let dispatcher = HelperRequestDispatcher(manifest: manifest, audit: audit,
             deploymentIdempotencyLedger: durableDeploymentLedger, deploymentLedgerStore: durableLedgerStore,
+            deploymentPipeline: pipeline,
             pluginDirectory: manifest.tweakInjectPath, pluginFilterMutationAuthorizer: mutationAuthorizer,
             pluginAssociationTransaction: associationTransaction)
         let server = UnixDomainSocketServer(socketPath: manifest.socketPath,
