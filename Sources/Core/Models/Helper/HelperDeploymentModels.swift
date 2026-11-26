@@ -10,23 +10,25 @@ struct HelperDeploymentManifest: Codable, Equatable {
     let allowedAppCDHashes: [String]
     let allowedHelperCDHashes: [String]
     let allowedClientUIDs: [UInt32]
+    /// GID assigned to the App-facing socket; populated by the trusted installer from the installed App identity.
+    var socketGroupID: UInt32? = nil
     /// Explicit owner of the staging root; it is not inferred from the set of allowed clients.
     var stagingOwnerUID: UInt32? = nil
     let executionEnabled: Bool
 
-    static let currentSchemaVersion = 1
+    static let currentSchemaVersion = 2
 
     /// Safe template: deliberately disabled until on-device validation and explicit release approval.
     static func disabledTemplate(routeIdentifier: String, jbRootPath: String, tweakInjectPath: String,
                                  stagingRootPath: String, socketPath: String,
                                  appCDHashes: [String] = [], helperCDHashes: [String] = [],
                                  allowedClientUIDs: [UInt32] = [501],
-                                 stagingOwnerUID: UInt32? = nil) -> Self {
+                                 stagingOwnerUID: UInt32? = nil, socketGroupID: UInt32 = 501) -> Self {
         Self(schemaVersion: currentSchemaVersion, routeIdentifier: routeIdentifier,
              jbRootPath: jbRootPath, tweakInjectPath: tweakInjectPath,
              stagingRootPath: stagingRootPath, socketPath: socketPath,
              allowedAppCDHashes: appCDHashes, allowedHelperCDHashes: helperCDHashes,
-             allowedClientUIDs: allowedClientUIDs, stagingOwnerUID: stagingOwnerUID, executionEnabled: false)
+             allowedClientUIDs: allowedClientUIDs, socketGroupID: socketGroupID, stagingOwnerUID: stagingOwnerUID, executionEnabled: false)
     }
 }
 
@@ -57,7 +59,9 @@ struct HelperPolicy {
               !manifest.routeIdentifier.isEmpty else { throw HelperPolicyError.unsupportedManifest }
         guard abs(request.createdAt.timeIntervalSinceNow) <= 120 else { throw HelperPolicyError.untrustedPeer }
         guard manifest.executionEnabled else { throw HelperPolicyError.executionDisabled }
-        guard manifest.allowedClientUIDs.contains(peer.uid) else { throw HelperPolicyError.untrustedPeer }
+        guard manifest.allowedClientUIDs.contains(peer.uid),
+              let provisionedSocketGID = manifest.socketGroupID,
+              peer.gid == provisionedSocketGID else { throw HelperPolicyError.untrustedPeer }
         guard Self.isValidCDHash(peer.cdHashHex), manifest.allowedAppCDHashes.contains(where: { $0.caseInsensitiveCompare(peer.cdHashHex) == .orderedSame }) else { throw HelperPolicyError.untrustedPeer }
         guard Self.isValidCDHash(helperCDHashHex), manifest.allowedHelperCDHashes.contains(where: { $0.caseInsensitiveCompare(helperCDHashHex) == .orderedSame }) else { throw HelperPolicyError.helperIdentityMismatch }
         guard Self.isSafeLeafName(request.targetFileName) else { throw HelperPolicyError.invalidFileName }

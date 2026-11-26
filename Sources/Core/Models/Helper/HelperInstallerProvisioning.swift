@@ -11,6 +11,8 @@ struct HelperInstallerProvisioningBundle: Codable, Equatable {
     let appCDHash: String
     let helperCDHash: String
     let allowedClientUID: UInt32
+    /// Group used only for AF_UNIX socket connect permission; resolved from the installed App on-device.
+    var socketGroupID: UInt32 = 501
     let stagingOwnerUID: UInt32
     let routeIdentifier: String
     let tweakInjectPath: String
@@ -18,7 +20,7 @@ struct HelperInstallerProvisioningBundle: Codable, Equatable {
     let socketPath: String
     let helperVersion: String
 
-    static let currentSchemaVersion = 1
+    static let currentSchemaVersion = 2
 
     enum ValidationError: Error, Equatable {
         case unsupportedSchema, invalidGeneration, invalidReleaseIdentifier, invalidBundleIdentifier
@@ -47,7 +49,7 @@ struct HelperInstallerProvisioningBundle: Codable, Equatable {
               socketPath.utf8.count < 100 else { throw ValidationError.invalidRootOrPaths }
         guard HelperPolicy.isValidCDHash(appCDHash), HelperPolicy.isValidCDHash(helperCDHash),
               appCDHash.lowercased() != helperCDHash.lowercased() else { throw ValidationError.invalidCDHash }
-        guard allowedClientUID != 0, stagingOwnerUID != 0 else { throw ValidationError.invalidUID }
+        guard allowedClientUID != 0, socketGroupID != 0, stagingOwnerUID != 0 else { throw ValidationError.invalidUID }
         guard !routeIdentifier.isEmpty, routeIdentifier.count <= 128,
               routeIdentifier.range(of: "^[A-Za-z0-9._+-]+$", options: .regularExpression) != nil else {
             throw ValidationError.invalidRoute
@@ -58,7 +60,8 @@ struct HelperInstallerProvisioningBundle: Codable, Equatable {
     func appTrustConfiguration() throws -> HelperAppTrustConfiguration {
         try validate()
         let config = HelperAppTrustConfiguration(schemaVersion: 1, bundleIdentifier: bundleIdentifier,
-            allowedHelperCDHashes: [helperCDHash.lowercased()], generation: generation)
+            allowedHelperCDHashes: [helperCDHash.lowercased()], generation: generation,
+            allowedHelperUIDs: [0], allowedHelperGIDs: [0])
         try config.validate()
         return config
     }
@@ -71,7 +74,7 @@ struct HelperInstallerProvisioningBundle: Codable, Equatable {
             generation: generation)
         return try pins.makeDisabledManifest(routeIdentifier: routeIdentifier, jbRootPath: jbRootPath,
             tweakInjectPath: tweakInjectPath, stagingRootPath: stagingRootPath, socketPath: socketPath,
-            stagingOwnerUID: stagingOwnerUID)
+            stagingOwnerUID: stagingOwnerUID, socketGroupID: socketGroupID)
     }
 
     /// Conservative launchd artifact. It is intentionally disabled and is not bootstrapped by this code.

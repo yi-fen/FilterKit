@@ -60,6 +60,15 @@ struct HelperSocketPeerCredentials: Equatable {
 
 protocol HelperPeerIdentityProviding {
     func identity(for credentials: HelperSocketPeerCredentials) throws -> HelperPeerIdentity
+    /// Socket-aware identity lookup. Legacy/test providers retain their old behavior;
+    /// Darwin production providers override this to bind identity to LOCAL_PEERTOKEN.
+    func identity(for credentials: HelperSocketPeerCredentials, socketFD: Int32) throws -> HelperPeerIdentity
+}
+
+extension HelperPeerIdentityProviding {
+    func identity(for credentials: HelperSocketPeerCredentials, socketFD: Int32) throws -> HelperPeerIdentity {
+        try identity(for: credentials)
+    }
 }
 
 protocol HelperPeerTrustEvaluating {
@@ -67,13 +76,16 @@ protocol HelperPeerTrustEvaluating {
 }
 
 struct HelperPeerTrustPolicy: HelperPeerTrustEvaluating {
-    enum TrustError: Swift.Error { case uidNotAllowed, invalidCDHash, cdHashNotAllowed, invalidPID }
+    enum TrustError: Swift.Error { case uidNotAllowed, gidNotAllowed, invalidCDHash, cdHashNotAllowed, invalidPID }
     let allowedUIDs: Set<UInt32>
     let allowedCDHashes: Set<String>
+    /// When supplied, the kernel-reported peer GID must also match. Production callers set this.
+    var allowedGIDs: Set<UInt32> = []
 
     func verify(_ identity: HelperPeerIdentity) throws {
         guard identity.pid > 0 else { throw TrustError.invalidPID }
         guard allowedUIDs.contains(identity.uid) else { throw TrustError.uidNotAllowed }
+        if !allowedGIDs.isEmpty && !allowedGIDs.contains(identity.gid) { throw TrustError.gidNotAllowed }
         guard identity.cdHashHex.range(of: "^[0-9a-fA-F]{40}$", options: .regularExpression) != nil else { throw TrustError.invalidCDHash }
         guard allowedCDHashes.contains(where: { $0.caseInsensitiveCompare(identity.cdHashHex) == .orderedSame }) else {
             throw TrustError.cdHashNotAllowed
@@ -132,5 +144,28 @@ final class HelperRequestReplayGuard {
         }
         seen[requestID] = now
         return true
+    }
+}
+
+/// Transport-level request allow-list. Authentication is completed before this policy is
+/// consulted; response-only and handshake-only message types can never reach the dispatcher.
+enum HelperIPCServerRequestPolicy {
+    static let allowedRequestTypes: Set<HelperIPCMessageType> = [
+        .healthRequest,
+        .maintenanceRecoveryRequest,
+        .operationRequest,
+        .deploymentBatchRequest,
+        .pluginFilterMutationPrepareRequest,
+        .pluginFilterMutationCommitRequest
+    ]
+
+    static func allows(_ messageType: HelperIPCMessageType) -> Bool {
+        allowedRequestTypes.contains(messageType)
+    }
+
+    /// Reject stale or implausibly future-dated envelopes before consuming replay-cache capacity.
+    static func isFresh(_ createdAt: Date, now: Date = Date(), tolerance: TimeInterval = 120) -> Bool {
+        let delta = now.timeIntervalSince(createdAt)
+        return delta >= -tolerance && delta <= tolerance
     }
 }

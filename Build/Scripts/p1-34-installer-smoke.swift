@@ -9,7 +9,7 @@ struct P134InstallerSmoke {
     static func main() throws {
         let appHash = String(repeating: "a", count: 40)
         let helperHash = String(repeating: "b", count: 40)
-        let bundle = HelperInstallerProvisioningBundle(schemaVersion: 1, generation: 9,
+        let bundle = HelperInstallerProvisioningBundle(schemaVersion: 2, generation: 9,
             releaseIdentifier: "1.0.0-p134", bundleIdentifier: "cn.yfen.filterkit",
             jbRootPath: "/var/jb", appCDHash: appHash, helperCDHash: helperHash,
             allowedClientUID: 501, stagingOwnerUID: 501, routeIdentifier: "dopamine-roothide",
@@ -40,7 +40,7 @@ struct P134InstallerSmoke {
         let report = try HelperInstallerDryRun().validate(bundle: bundle, artifactDigests: [digest, launchdDigest], action: .install)
         try require134(!report.writesPerformed && !report.launchdInvoked && !report.executionEnabled, "dry run must be side-effect free")
 
-        let invalidPath = HelperInstallerProvisioningBundle(schemaVersion: 1, generation: 1,
+        let invalidPath = HelperInstallerProvisioningBundle(schemaVersion: 2, generation: 1,
             releaseIdentifier: "bad", bundleIdentifier: "cn.yfen.filterkit", jbRootPath: "/var/jb",
             appCDHash: appHash, helperCDHash: helperHash, allowedClientUID: 501, stagingOwnerUID: 501,
             routeIdentifier: "roothide", tweakInjectPath: "/private/var/evil/TweakInject",

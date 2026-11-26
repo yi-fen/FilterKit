@@ -144,3 +144,16 @@ Process completed with exit code 1.
 - `Bundle.main.executableURL` 在裸 root helper 进程下的返回路径待真机复验；warning 清理与 DEB/签名/jbroot/真机注入仍 pending，0.1 未闭环不签署。
 
 
+
+## P2-25 — Authorized Transaction Recovery & Ledger Finalization (2026-11-26)
+
+- Focused Helper/Execution/Runtime Linux `swiftc -typecheck`: PASS.
+- Modified recovery, transaction, dispatcher, and host-smoke Swift source parse: PASS.
+- `Build/Host/run-p225-authorized-recovery-smoke.sh`: PASS (rollback, commit, wrong-Transaction-ID rejection, operator confirmation, audit records, and crash-window retry).
+- P2-24 reconciliation smoke: PASS.
+- P1-31 three-file transaction/recovery hardening smoke: PASS.
+- P2-12 AF_UNIX Health smoke: PASS.
+- P2-15 audit sink smoke: PASS.
+- Static audits P2-16 through P2-25: PASS (11/11, 11/11, 10/10, 12/12, 12/12, 14/14, 11/11, 10/10, 13/13, 18/18 respectively).
+- Apple SDK/Xcode build, XCTest on Apple SDK, and RootHide device recovery tests: NOT RUN in this Linux environment.
+- All production deployment and plugin-association write gates remain disabled.

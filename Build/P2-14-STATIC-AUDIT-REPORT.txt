@@ -1,0 +1,12 @@
+PASS: commit dispatcher gate remains closed
+PASS: deployment coordinator commit gate remains closed
+PASS: general dispatcher execution gate remains closed
+PASS: socket node is checked after chmod
+PASS: socket check occurs before listen
+PASS: socket node uses lstat
+PASS: socket diagnostics are bounded
+PASS: CDHash diagnostics are truncated
+PASS: audit sink receives authentication events
+PASS: no enabled release gate in Sources/Environment/Helper/Runtime/HelperRequestDispatcher.swift
+PASS: no enabled release gate in Sources/Environment/Helper/HelperDeploymentCoordinator.swift
+PASS: no enabled release gate in Sources/Environment/Helper/Execution/HelperProductionDeploymentBackend.swift

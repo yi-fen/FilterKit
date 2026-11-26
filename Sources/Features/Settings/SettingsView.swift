@@ -77,7 +77,7 @@ struct SettingsView: View {
         guard let status = helperStatus else { return "settings.helper.status_unknown" }
         switch status.recoveryStatus {
         case .clean: return "settings.helper.recovery_clean"
-        case .legacyRecoveryRequired, .threeFileRecoveryRequired, .bothRecoveryRequired:
+        case .legacyRecoveryRequired, .threeFileRecoveryRequired, .bothRecoveryRequired, .associationTransactionRecoveryRequired:
             return "settings.helper.recovery_pending"
         case .invalidJournal: return "settings.helper.recovery_invalid"
         case .unavailable: return "settings.helper.status_unknown"

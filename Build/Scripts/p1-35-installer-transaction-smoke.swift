@@ -7,7 +7,7 @@ func require135(_ value: @autoclosure () -> Bool, _ message: String) throws {
 @main
 struct P135InstallerTransactionSmoke {
     static func main() throws {
-        let bundle = HelperInstallerProvisioningBundle(schemaVersion: 1, generation: 10,
+        let bundle = HelperInstallerProvisioningBundle(schemaVersion: 2, generation: 10,
             releaseIdentifier: "1.0.0-p135", bundleIdentifier: "cn.yfen.filterkit",
             jbRootPath: "/var/jb", appCDHash: String(repeating: "a", count: 40),
             helperCDHash: String(repeating: "b", count: 40), allowedClientUID: 501,

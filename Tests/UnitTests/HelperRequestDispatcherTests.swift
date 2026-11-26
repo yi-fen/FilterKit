@@ -14,7 +14,8 @@ final class HelperRequestDispatcherTests: XCTestCase {
     private func fixture() -> (HelperDeploymentManifest, HelperAuthenticatedPeerContext) {
         let peer = HelperSocketPeerCredentials(uid: 501, gid: 501, pid: 123)
         let identity = HelperPeerIdentity(uid: 501, gid: 501, pid: 123,
-            cdHashHex: String(repeating: "a", count: 40), pidVersion: nil, auditSessionID: nil)
+            cdHashHex: String(repeating: "a", count: 40), pidVersion: 7, auditSessionID: 1,
+            auditTokenDigest: String(repeating: "c", count: 64))
         let context = HelperAuthenticatedPeerContext(peer: peer, identity: identity,
             sessionNonce: String(repeating: "b", count: 32), authenticatedAt: Date())
         let manifest = HelperDeploymentManifest.disabledTemplate(routeIdentifier: "test",
@@ -71,16 +72,67 @@ final class HelperRequestDispatcherTests: XCTestCase {
         XCTAssertEqual(inspectResult.result, .inspected)
 
         let recoveryTime = Date()
+        let recoveryRequestID = UUID()
+        let transactionID = UUID()
         let recoveryBody = HelperMaintenanceRecoveryRequest(action: .reconcileThreeFileTransaction,
-            requestNonce: UUID(), requestedAt: recoveryTime)
+            requestNonce: recoveryRequestID, requestedAt: recoveryTime,
+            transactionID: transactionID, operatorConfirmed: true)
         let recoveryEnvelope = HelperIPCEnvelope(messageType: .maintenanceRecoveryRequest,
-            createdAt: recoveryTime, nonce: context.sessionNonce, payload: try encoder.encode(recoveryBody))
+            requestID: recoveryRequestID, createdAt: recoveryTime, nonce: context.sessionNonce,
+            payload: try encoder.encode(recoveryBody))
         let recoveryResponse = dispatcher.dispatch(recoveryEnvelope, context: context, now: recoveryTime)
         XCTAssertEqual(recoveryResponse.messageType, .maintenanceRecoveryResponse)
         let recoveryResult = try decoder.decode(HelperMaintenanceRecoveryResponse.self,
             from: try XCTUnwrap(recoveryResponse.payload))
         XCTAssertEqual(recoveryResult.result, .recoveryNotReleased)
+        XCTAssertEqual(recoveryResult.transactionID, transactionID)
         XCTAssertFalse(HelperRequestDispatcher.executionReleased)
+    }
+
+    func testMaintenanceRecoveryRejectsMissingConfirmationAndTransactionBinding() throws {
+        let (manifest, context) = fixture()
+        let audit = MemoryAudit()
+        let dispatcher = HelperRequestDispatcher(manifest: manifest, audit: audit)
+        let now = Date()
+        let encoder = JSONEncoder(); encoder.dateEncodingStrategy = .iso8601
+        let requestID = UUID()
+        let body = HelperMaintenanceRecoveryRequest(action: .reconcileThreeFileTransaction,
+            requestNonce: requestID, requestedAt: now, transactionID: UUID(), operatorConfirmed: false)
+        let envelope = HelperIPCEnvelope(messageType: .maintenanceRecoveryRequest, requestID: requestID,
+            createdAt: now, nonce: context.sessionNonce, payload: try encoder.encode(body))
+        XCTAssertEqual(dispatcher.dispatch(envelope, context: context, now: now).messageType, .rejected)
+
+        let mismatchedID = UUID()
+        let mismatchBody = HelperMaintenanceRecoveryRequest(action: .reconcileThreeFileTransaction,
+            requestNonce: UUID(), requestedAt: now, transactionID: UUID(), operatorConfirmed: true)
+        let mismatchEnvelope = HelperIPCEnvelope(messageType: .maintenanceRecoveryRequest,
+            requestID: mismatchedID, createdAt: now, nonce: context.sessionNonce,
+            payload: try encoder.encode(mismatchBody))
+        XCTAssertEqual(dispatcher.dispatch(mismatchEnvelope, context: context, now: now).messageType, .rejected)
+    }
+
+    func testRecoveryAuthorizationUsesAuthenticatedUnprivilegedAppPeer() throws {
+        let (_, context) = fixture()
+        XCTAssertNoThrow(try HelperRecoveryAuthorization.authorize(context: context,
+            transactionID: UUID(), requestNonce: UUID(), operatorConfirmed: true))
+        XCTAssertThrowsError(try HelperRecoveryAuthorization.authorize(context: context,
+            transactionID: UUID(), requestNonce: UUID(), operatorConfirmed: false))
+
+        let rootIdentity = HelperPeerIdentity(uid: 0, gid: 0, pid: context.identity.pid,
+            cdHashHex: context.identity.cdHashHex, pidVersion: 7, auditSessionID: 1,
+            auditTokenDigest: String(repeating: "c", count: 64))
+        let rootContext = HelperAuthenticatedPeerContext(
+            peer: HelperSocketPeerCredentials(uid: 0, gid: 0, pid: context.peer.pid),
+            identity: rootIdentity, sessionNonce: context.sessionNonce, authenticatedAt: Date())
+        XCTAssertThrowsError(try HelperRecoveryAuthorization.authorize(context: rootContext,
+            transactionID: UUID(), requestNonce: UUID(), operatorConfirmed: true))
+
+        let incompleteIdentity = HelperPeerIdentity(uid: 501, gid: 501, pid: context.identity.pid,
+            cdHashHex: context.identity.cdHashHex, pidVersion: nil, auditSessionID: nil)
+        let incompleteContext = HelperAuthenticatedPeerContext(peer: context.peer,
+            identity: incompleteIdentity, sessionNonce: context.sessionNonce, authenticatedAt: Date())
+        XCTAssertThrowsError(try HelperRecoveryAuthorization.authorize(context: incompleteContext,
+            transactionID: UUID(), requestNonce: UUID(), operatorConfirmed: true))
     }
 
     func testOperationIsStructurallyValidatedButReleaseGateRemainsClosed() throws {

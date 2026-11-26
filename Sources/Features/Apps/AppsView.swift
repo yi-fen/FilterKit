@@ -13,8 +13,7 @@ private final class AppsViewModel: ObservableObject {
     private let environmentProvider: ReadOnlyEnvironmentProvider
 
     init() {
-        let discovery = LaunchServicesAppDiscoveryProvider()
-        appProvider = CachedAppDiscoveryProvider(source: discovery)
+        appProvider = AppDiscoveryProviderRegistry.shared
         environmentProvider = ReadOnlyEnvironmentProvider()
     }
 

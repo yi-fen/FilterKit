@@ -215,14 +215,17 @@ final class HelperProductionDeploymentBackend: HelperDeploymentPipelineBackend {
             guard prepared.expectedPrevious == nil else { throw BackendError.manifestMismatch }
             expectedPrevious = nil
         }
+        guard let binding = prepared.transactionBinding, binding.validate() else { throw BackendError.stagingPayloadMismatch }
         let executor = try HelperThreeFileTransactionExecutor(directoryPath: configuration.pluginDirectory)
         let receipt = try executor.execute(pluginID: prepared.proof.pluginID,
             dylibName: dylibPlan.destinationRelativePath, plistName: plistPlan.destinationRelativePath,
-            dylib: dylib, plist: plist, manifest: manifest, route: route, expectedPrevious: expectedPrevious)
+            dylib: dylib, plist: plist, manifest: manifest, route: route, expectedPrevious: expectedPrevious,
+            transactionID: binding.transactionID, deploymentBinding: binding)
         return HelperSafeFileExecutor.TransactionReceipt(requestIDs: prepared.plans.map(\.requestID),
             pluginID: receipt.pluginID, changedPaths: prepared.plans.map(\.destinationRelativePath).sorted(),
             dylibSHA256: receipt.dylibSHA256, plistSHA256: receipt.plistSHA256,
-            completedAt: receipt.completedAt, manifestSHA256: receipt.manifestSHA256)
+            completedAt: receipt.completedAt, manifestSHA256: receipt.manifestSHA256,
+            transactionID: receipt.transactionID)
     }
 
     private func readAndValidatePayloads(pair: (pluginID: UUID, dylib: HelperOperationRequest, plist: HelperOperationRequest)) throws -> (dylib: Data, plist: Data, identity: String) {

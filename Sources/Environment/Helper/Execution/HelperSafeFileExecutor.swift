@@ -35,6 +35,7 @@ final class HelperSafeFileExecutor {
         let plistSHA256: String
         let completedAt: Date
         var manifestSHA256: String? = nil
+        var transactionID: UUID? = nil
     }
 
     private let roots: Roots

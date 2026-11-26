@@ -1,7 +1,8 @@
 import Foundation
 
-/// Production runtime shell. It can answer health checks; operation requests remain rejected.
-/// The safe executor is compiled as an isolated module but is deliberately not dispatched here.
+/// Production runtime shell. It serves authenticated health and maintenance inspection, and
+/// routes plugin-association Prepare/Commit requests through the dispatcher. Commit and general
+/// deployment remain fail-closed behind independent release gates.
 /// A valid manifest and a verified Helper CDHash are mandatory before the socket is opened.
 final class FilterKitHelperRuntime {
     enum RuntimeError: Error {
@@ -45,7 +46,8 @@ final class FilterKitHelperRuntime {
             pluginDirectory: manifest.tweakInjectPath)
         _ = startupPreflight // Dispatcher independently rechecks recovery status per request.
         let trust = HelperPeerTrustPolicy(allowedUIDs: Set(manifest.allowedClientUIDs),
-                                          allowedCDHashes: Set(manifest.allowedAppCDHashes))
+                                          allowedCDHashes: Set(manifest.allowedAppCDHashes),
+                                          allowedGIDs: [manifest.socketGroupID ?? 0])
         let audit = HelperAuditFileSink(path: jbRoot + "/Library/FilterKit/Helper/audit.jsonl",
                                         maximumBytes: HelperLifecycleProfile.conservativePersistent.maximumAuditFileBytes,
                                         retainedFiles: HelperLifecycleProfile.conservativePersistent.retainedAuditFiles)
@@ -71,11 +73,32 @@ final class FilterKitHelperRuntime {
             dpkgInfoDirectories: packageInfoDirectories)
         let productionBackend = try HelperProductionDeploymentBackend(configuration: backendConfiguration)
         let pipeline = HelperDeploymentPipeline(backend: productionBackend)
+        let mutationConfiguration = try HelperPluginFilterMutationAuthorizer.Configuration(
+            pluginDirectory: manifest.tweakInjectPath, dpkgInfoDirectories: packageInfoDirectories)
+        let mutationAuthorizer = HelperPluginFilterMutationAuthorizer(configuration: mutationConfiguration)
+        let associationTransaction = try HelperPluginFilterConfigurationTransaction(
+            directoryPath: manifest.tweakInjectPath)
+        let durableLedgerStore = try HelperDeploymentDurableLedgerStore(
+            directoryPath: jbRoot + "/Library/FilterKit/Helper")
+        let durableDeploymentLedger = HelperDeploymentIdempotencyLedger(durableStore: durableLedgerStore)
         let dispatcher = HelperRequestDispatcher(manifest: manifest, audit: audit, deploymentPipeline: pipeline,
-            pluginDirectory: manifest.tweakInjectPath)
+            deploymentIdempotencyLedger: durableDeploymentLedger, deploymentLedgerStore: durableLedgerStore,
+            pluginDirectory: manifest.tweakInjectPath, pluginFilterMutationAuthorizer: mutationAuthorizer,
+            pluginAssociationTransaction: associationTransaction)
         let server = UnixDomainSocketServer(socketPath: manifest.socketPath,
             maximumConnections: HelperLifecycleProfile.conservativePersistent.maximumConcurrentConnections,
-            socketMode: 0o666, identityProvider: identityProvider, trustEvaluator: trust) { envelope, context in
+            socketMode: 0o660, socketGroupID: manifest.socketGroupID ?? 0, identityProvider: identityProvider, trustEvaluator: trust,
+            diagnosticSink: { event in
+                let peer: HelperPeerIdentity? = {
+                    guard let uid = event.peerUID, let gid = event.peerGID, let pid = event.peerPID else { return nil }
+                    return HelperPeerIdentity(uid: uid, gid: gid, pid: pid,
+                        cdHashHex: event.cdHashPrefix ?? "", pidVersion: nil, auditSessionID: nil)
+                }()
+                let outcome: HelperAuditRecord.Outcome = event.outcome == .rejected ? .rejected : .accepted
+                let reason = "auth.\(event.stage.rawValue).\(event.outcome.rawValue).\(event.reasonCode)"
+                try? audit.append(HelperAuditRecord(peer: peer, outcome: outcome,
+                    reasonCode: reason, timestamp: event.timestamp))
+            }) { envelope, context in
                 dispatcher.dispatch(envelope, context: context)
             }
         try server.run()

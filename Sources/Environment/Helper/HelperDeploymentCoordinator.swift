@@ -7,8 +7,9 @@ protocol HelperIPCTransport {
 /// App-side coordinator. The production transport and deployment execution remain unavailable
 /// until the jailbreak-specific socket implementation and on-device identity checks are proven.
 final class HelperDeploymentCoordinator {
-    enum CoordinatorError: Error, Equatable { case transportUnavailable, invalidHandshake, invalidReceipt, invalidBatch, invalidStatus, recoveryNotReleased, executionNotReleased }
+    enum CoordinatorError: Error, Equatable { case transportUnavailable, invalidHandshake, invalidReceipt, invalidBatch, invalidStatus, recoveryNotReleased, executionNotReleased, confirmationRequired, mutationRejected }
     static let executionReleased = false
+    static let pluginAssociationCommitReleased = false
 
     private let transport: HelperIPCTransport
     private let clockSkewLimit: TimeInterval
@@ -40,12 +41,19 @@ final class HelperDeploymentCoordinator {
         try await fetchStatus().helperReachable
     }
 
-    func requestMaintenanceRecovery(_ action: HelperMaintenanceAction) async throws -> HelperMaintenanceRecoveryResponse {
+    func requestMaintenanceRecovery(_ action: HelperMaintenanceAction,
+                                    transactionID: UUID? = nil,
+                                    userConfirmed: Bool = false) async throws -> HelperMaintenanceRecoveryResponse {
+        if action == .reconcileThreeFileTransaction && (!userConfirmed || transactionID == nil) {
+            throw CoordinatorError.confirmationRequired
+        }
         let now = Date()
-        let requestBody = HelperMaintenanceRecoveryRequest(action: action, requestNonce: UUID(), requestedAt: now)
+        let requestID = UUID()
+        let requestBody = HelperMaintenanceRecoveryRequest(action: action, requestNonce: requestID,
+            requestedAt: now, transactionID: transactionID, operatorConfirmed: userConfirmed)
         let encoder = JSONEncoder(); encoder.dateEncodingStrategy = .iso8601
-        let envelope = HelperIPCEnvelope(messageType: .maintenanceRecoveryRequest, createdAt: now,
-                                         payload: try encoder.encode(requestBody))
+        let envelope = HelperIPCEnvelope(messageType: .maintenanceRecoveryRequest, requestID: requestID,
+                                         createdAt: now, payload: try encoder.encode(requestBody))
         let response = try await transport.exchange(envelope)
         guard response.protocolVersion == HelperIPCEnvelope.currentVersion,
               response.messageType == .maintenanceRecoveryResponse,
@@ -56,10 +64,44 @@ final class HelperDeploymentCoordinator {
         guard abs(Date().timeIntervalSince(result.completedAt)) <= clockSkewLimit else {
             throw CoordinatorError.invalidStatus
         }
-        if action == .reconcileThreeFileTransaction && result.result == .recoveryNotReleased {
-            throw CoordinatorError.recoveryNotReleased
+        if action == .reconcileThreeFileTransaction {
+            guard result.transactionID == transactionID else { throw CoordinatorError.invalidStatus }
+            if result.result == .recoveryNotReleased { throw CoordinatorError.recoveryNotReleased }
         }
         return result
+    }
+
+
+    /// Sends a user-confirmed association intent. Helper re-reads ownership and both source files
+    /// immediately before the two-file transaction; no replacement bytes cross IPC.
+    /// This client-side release gate intentionally remains closed until device validation.
+    func commitPluginAssociation(_ request: HelperPluginFilterMutationRequest,
+                                 userConfirmed: Bool) async throws -> HelperPluginFilterMutationCommitReceipt {
+        guard userConfirmed else { throw CoordinatorError.confirmationRequired }
+        guard Self.pluginAssociationCommitReleased else { throw CoordinatorError.executionNotReleased }
+        guard request.validateShape(), request.requestID != UUID(uuidString: "00000000-0000-0000-0000-000000000000") else {
+            throw CoordinatorError.mutationRejected
+        }
+        let encoder = JSONEncoder(); encoder.dateEncodingStrategy = .iso8601
+        let envelope = HelperIPCEnvelope(messageType: .pluginFilterMutationCommitRequest,
+            requestID: request.requestID, createdAt: request.createdAt, payload: try encoder.encode(request))
+        let response = try await transport.exchange(envelope)
+        guard response.protocolVersion == HelperIPCEnvelope.currentVersion,
+              response.messageType == .pluginFilterMutationCommitted,
+              response.requestID == request.requestID, let payload = response.payload else {
+            throw CoordinatorError.invalidReceipt
+        }
+        let decoder = JSONDecoder(); decoder.dateDecodingStrategy = .iso8601
+        let receipt = try decoder.decode(HelperPluginFilterMutationCommitReceipt.self, from: payload)
+        guard receipt.requestID == request.requestID, receipt.pluginID == request.pluginID,
+              receipt.action == request.action, receipt.targetBundleIdentifier == request.targetBundleIdentifier,
+              ((receipt.disposition == .committed && receipt.transactionID != nil) ||
+               (receipt.disposition == .alreadyInRequestedState && receipt.transactionID == nil)),
+              HelperPolicy.isValidHash(receipt.plistSHA256), HelperPolicy.isValidHash(receipt.manifestSHA256),
+              abs(Date().timeIntervalSince(receipt.completedAt)) <= clockSkewLimit else {
+            throw CoordinatorError.invalidReceipt
+        }
+        return receipt
     }
 
     /// Constructs the single-envelope batch protocol. This is also used by offline protocol tests;

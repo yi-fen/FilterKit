@@ -48,3 +48,11 @@ actor CachedAppDiscoveryProvider: AppDiscoveryProvider, AppDiscoveryRefreshing {
         }
     }
 }
+
+/// One short-lived inventory cache shared by the Apps and Plugins screens.
+/// This mirrors R16's shared discovery service and prevents tab navigation from
+/// triggering a second LaunchServices enumeration within the cache window.
+enum AppDiscoveryProviderRegistry {
+    static let shared = CachedAppDiscoveryProvider(
+        source: LaunchServicesAppDiscoveryProvider(), timeToLive: 60)
+}

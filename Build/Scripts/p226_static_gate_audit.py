@@ -1,0 +1,30 @@
+#!/usr/bin/env python3
+from pathlib import Path
+root = Path(__file__).resolve().parents[2]
+checks = []
+def check(name, ok): checks.append((name, bool(ok)))
+models = (root/'Sources/Core/Models/Helper/HelperIPCModels.swift').read_text()
+coordinator = (root/'Sources/Environment/Helper/HelperDeploymentCoordinator.swift').read_text()
+startup = (root/'Sources/Environment/Helper/Runtime/HelperStartupRecoveryCheck.swift').read_text()
+dispatch = (root/'Sources/Environment/Helper/Runtime/HelperRequestDispatcher.swift').read_text()
+smoke = (root/'Build/Scripts/p2-26-maintenance-ipc-smoke.swift').read_text()
+backend = (root/'Sources/Environment/Helper/Execution/HelperProductionDeploymentBackend.swift').read_text()
+check('maintenance request carries transaction ID and explicit confirmation', 'let transactionID: UUID?' in models and 'let operatorConfirmed: Bool' in models)
+check('client requires confirmation and transaction ID before reconcile request', '(!userConfirmed || transactionID == nil)' in coordinator)
+check('client binds request nonce to envelope request ID', 'requestNonce: requestID' in coordinator and 'requestID: requestID' in coordinator)
+check('client verifies echoed transaction ID', 'result.transactionID == transactionID' in coordinator)
+check('helper rejects request nonce/request ID mismatch', 'request.requestNonce == envelope.requestID' in dispatch)
+check('helper requires transaction-scoped explicit confirmation', 'request.operatorConfirmed' in dispatch and 'let transactionID = request.transactionID' in dispatch)
+check('authorization accepts only unprivileged authenticated App peer', 'context.peer.uid != 0' in startup and 'context.identity.uid != 0' in startup)
+check('socket credentials and authenticated identity are matched', 'context.peer.uid == context.identity.uid' in startup and 'context.peer.pid == context.identity.pid' in startup and 'context.peer.gid == context.identity.gid' in startup)
+check('authorization requires complete kernel Audit Token and PID generation', 'hasCompleteDarwinProcessGenerationEvidence(context.identity)' in startup)
+check('authorization requires valid code identity digest and session nonce', 'context.identity.cdHashHex.range' in startup and 'context.sessionNonce.range' in startup)
+check('authorization is time bounded', 'authorizationExpired' in startup and 'authorizedAt' in startup)
+check('privileged recovery coordinator still requires root Helper process', 'guard geteuid() == 0' in startup)
+check('recovery IPC remains fail closed', 'result = .recoveryNotReleased' in dispatch)
+check('production execution gates remain disabled', 'static let executionReleased = false' in dispatch and 'static let executionReleased = false' in backend)
+check('IPC smoke covers confirmation, nonce binding and release gate', 'operatorConfirmed: true' in smoke and 'requestNonce: UUID()' in smoke and 'recovery mutation remains unreleased' in smoke)
+for name, ok in checks:
+    print(('PASS' if ok else 'FAIL') + ' ' + name)
+print(f'{sum(v for _, v in checks)}/{len(checks)} passed')
+raise SystemExit(0 if all(v for _, v in checks) else 1)

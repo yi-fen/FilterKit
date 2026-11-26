@@ -8,7 +8,7 @@ import Glibc
 /// Root-owned JSONL audit sink. It refuses symlinks, non-regular files, foreign owners,
 /// and files whose mode is not exactly 0600. It never logs request payload/file contents.
 final class HelperAuditFileSink: HelperAuditSink {
-    enum SinkError: Error { case invalidPath, openFailed(Int32), unsafeFile, writeFailed(Int32), rotationFailed(Int32) }
+    enum SinkError: Error { case invalidPath, openFailed(Int32), unsafeFile, writeFailed(Int32), rotationFailed(Int32), syncFailed(Int32) }
     private let path: String
     private let maximumBytes: Int
     private let retainedFiles: Int
@@ -37,9 +37,14 @@ final class HelperAuditFileSink: HelperAuditSink {
             guard rotatedFD >= 0 else { throw SinkError.openFailed(errno) }
             defer { _ = close(rotatedFD) }
             try write(record, to: rotatedFD)
+            guard fsync(rotatedFD) == 0 else { throw SinkError.syncFailed(errno) }
+            guard fsync(directoryFD) == 0 else { throw SinkError.syncFailed(errno) }
         } else {
             defer { _ = close(fd) }
             try write(record, to: fd)
+            guard fsync(fd) == 0 else { throw SinkError.syncFailed(errno) }
+            // Persist a newly-created directory entry as well as the JSONL bytes.
+            guard fsync(directoryFD) == 0 else { throw SinkError.syncFailed(errno) }
         }
     }
 
@@ -100,6 +105,7 @@ final class HelperAuditFileSink: HelperAuditSink {
         try validateRotationTarget(directoryFD, leaf)
         let result = leaf.withCString { source in "\(leaf).1".withCString { destination in renameat(directoryFD, source, directoryFD, destination) } }
         guard result == 0 else { throw SinkError.rotationFailed(errno) }
+        guard fsync(directoryFD) == 0 else { throw SinkError.syncFailed(errno) }
     }
 
     private func validateRotationTarget(_ directoryFD: Int32, _ name: String, allowMissing: Bool = false) throws {

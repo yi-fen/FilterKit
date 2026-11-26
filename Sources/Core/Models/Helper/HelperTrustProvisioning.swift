@@ -8,8 +8,12 @@ struct HelperAppTrustConfiguration: Codable, Equatable {
     let bundleIdentifier: String
     let allowedHelperCDHashes: [String]
     let generation: UInt64
+    /// Expected identity of the privileged Helper peer. Optional for decoding older schema-1
+    /// configurations; newly generated provisioning always writes explicit root UID/GID pins.
+    let allowedHelperUIDs: [UInt32]?
+    let allowedHelperGIDs: [UInt32]?
 
-    enum ValidationError: Error, Equatable { case unsupportedSchema, invalidBundleIdentifier, invalidHelperPins, invalidGeneration }
+    enum ValidationError: Error, Equatable { case unsupportedSchema, invalidBundleIdentifier, invalidHelperPins, invalidGeneration, invalidHelperCredentials }
 
     func validate() throws {
         guard schemaVersion == 1 else { throw ValidationError.unsupportedSchema }
@@ -21,6 +25,16 @@ struct HelperAppTrustConfiguration: Codable, Equatable {
         do { try HelperTrustPinSet.validatePins(allowedHelperCDHashes) }
         catch { throw ValidationError.invalidHelperPins }
         guard generation > 0 else { throw ValidationError.invalidGeneration }
+        if let uids = allowedHelperUIDs {
+            guard !uids.isEmpty, uids.allSatisfy({ $0 == 0 }), Set(uids).count == uids.count else {
+                throw ValidationError.invalidHelperCredentials
+            }
+        }
+        if let gids = allowedHelperGIDs {
+            guard !gids.isEmpty, gids.allSatisfy({ $0 == 0 }), Set(gids).count == gids.count else {
+                throw ValidationError.invalidHelperCredentials
+            }
+        }
     }
 }
 
@@ -44,13 +58,13 @@ struct HelperTrustPinSet: Codable, Equatable {
 
     func makeDisabledManifest(routeIdentifier: String, jbRootPath: String, tweakInjectPath: String,
                               stagingRootPath: String, socketPath: String,
-                              stagingOwnerUID: UInt32?) throws -> HelperDeploymentManifest {
+                              stagingOwnerUID: UInt32?, socketGroupID: UInt32 = 501) throws -> HelperDeploymentManifest {
         try validate()
         return HelperDeploymentManifest.disabledTemplate(routeIdentifier: routeIdentifier,
             jbRootPath: jbRootPath, tweakInjectPath: tweakInjectPath,
             stagingRootPath: stagingRootPath, socketPath: socketPath,
             appCDHashes: allowedAppCDHashes, helperCDHashes: allowedHelperCDHashes,
-            allowedClientUIDs: allowedClientUIDs, stagingOwnerUID: stagingOwnerUID)
+            allowedClientUIDs: allowedClientUIDs, stagingOwnerUID: stagingOwnerUID, socketGroupID: socketGroupID)
     }
 
     func validate() throws {
@@ -85,7 +99,8 @@ struct HelperTrustPinSet: Codable, Equatable {
     func makeAppConfiguration() throws -> HelperAppTrustConfiguration {
         try validate()
         return HelperAppTrustConfiguration(schemaVersion: 1, bundleIdentifier: bundleIdentifier,
-            allowedHelperCDHashes: allowedHelperCDHashes, generation: generation)
+            allowedHelperCDHashes: allowedHelperCDHashes, generation: generation,
+            allowedHelperUIDs: [0], allowedHelperGIDs: [0])
     }
 
     /// Checks that the root-owned Helper manifest matches installer-provisioned pins.
@@ -106,11 +121,52 @@ struct HelperTrustPinSet: Codable, Equatable {
     }
 }
 
+/// Cross-checks the post-sign installer record against the App-bundled Helper pins and
+/// independently observed identities/credentials. This is a pure policy: platform code must
+/// obtain observations from codesign/kernel APIs and must not accept them from IPC payloads.
+enum HelperMaintenanceChannelCompatibilityPolicy {
+    enum Failure: Error, Equatable {
+        case invalidProvisioning, appTrustMismatch, appCDHashMismatch, helperCDHashMismatch
+        case clientUIDMismatch, clientGIDMismatch, helperUIDMismatch, helperGIDMismatch
+    }
+
+    static func validate(installer: HelperInstallerProvisioningBundle,
+                         appTrust: HelperAppTrustConfiguration,
+                         observedAppCDHash: String,
+                         observedHelperCDHash: String,
+                         observedClientUID: UInt32,
+                         observedClientGID: UInt32,
+                         observedHelperUID: UInt32,
+                         observedHelperGID: UInt32) throws {
+        do { try installer.validate(); try appTrust.validate() }
+        catch { throw Failure.invalidProvisioning }
+        guard appTrust.bundleIdentifier == installer.bundleIdentifier,
+              appTrust.generation == installer.generation,
+              (appTrust.allowedHelperCDHashes.map { $0.lowercased() }).sorted() == [installer.helperCDHash.lowercased()] else {
+            throw Failure.appTrustMismatch
+        }
+        guard HelperPolicy.isValidCDHash(observedAppCDHash),
+              observedAppCDHash.caseInsensitiveCompare(installer.appCDHash) == .orderedSame else {
+            throw Failure.appCDHashMismatch
+        }
+        guard HelperPolicy.isValidCDHash(observedHelperCDHash),
+              observedHelperCDHash.caseInsensitiveCompare(installer.helperCDHash) == .orderedSame else {
+            throw Failure.helperCDHashMismatch
+        }
+        guard observedClientUID == installer.allowedClientUID else { throw Failure.clientUIDMismatch }
+        guard observedClientGID == installer.socketGroupID else { throw Failure.clientGIDMismatch }
+        let allowedHelperUIDs = appTrust.allowedHelperUIDs ?? [0]
+        let allowedHelperGIDs = appTrust.allowedHelperGIDs ?? [0]
+        guard allowedHelperUIDs.contains(observedHelperUID), observedHelperUID == 0 else { throw Failure.helperUIDMismatch }
+        guard allowedHelperGIDs.contains(observedHelperGID), observedHelperGID == 0 else { throw Failure.helperGIDMismatch }
+    }
+}
+
 #if canImport(Darwin)
-/// App-side factory. The installer must provide the exact Helper pins; the App additionally
-/// verifies its own live CDHash against the provisioned App pins before opening the socket.
+/// App-side factory. The installer supplies the exact Helper pins. The App checks its own
+/// live code identity is readable; the Helper enforces the App's exact CDHash from its root-owned manifest.
 enum HelperProductionTransportFactory {
-    enum FactoryError: Error, Equatable { case wrongBundle, invalidPins }
+    enum FactoryError: Error, Equatable { case wrongBundle, invalidPins, appCodeIdentityUnavailable, invalidAppCodeIdentity }
 
     static func makeCoordinator(socketPath: String, appTrust: HelperAppTrustConfiguration) throws -> HelperDeploymentCoordinator {
         do { try appTrust.validate() } catch { throw FactoryError.invalidPins }
@@ -118,7 +174,16 @@ enum HelperProductionTransportFactory {
         let provider = DarwinPeerIdentityProvider()
         // The App verifies the connected peer (the Helper) by kernel-reported PID/CDHash.
         // The Helper independently verifies this App's CDHash against its root-owned manifest.
-        let helperTrust = HelperPeerTrustPolicy(allowedUIDs: [0], allowedCDHashes: Set(appTrust.allowedHelperCDHashes))
+        // Verify the running App's own code identity is readable before connecting. Its exact
+        // CDHash is pinned by the root-owned Helper manifest (self-pinning inside the signed App
+        // would be circular because embedding the hash changes the App signature).
+        let ownHash: String
+        do { ownHash = try provider.ownCDHash() } catch { throw FactoryError.appCodeIdentityUnavailable }
+        guard HelperPolicy.isValidCDHash(ownHash) else { throw FactoryError.invalidAppCodeIdentity }
+        let helperUIDs = appTrust.allowedHelperUIDs ?? [0]
+        let helperGIDs = appTrust.allowedHelperGIDs ?? [0]
+        let helperTrust = HelperPeerTrustPolicy(allowedUIDs: Set(helperUIDs), allowedCDHashes: Set(appTrust.allowedHelperCDHashes),
+                                                 allowedGIDs: Set(helperGIDs))
         let transport = UnixDomainSocketTransport(socketPath: socketPath,
             identityProvider: provider, trustEvaluator: helperTrust)
         return HelperDeploymentCoordinator(transport: transport)

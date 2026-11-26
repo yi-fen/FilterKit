@@ -86,10 +86,11 @@ final class ReadOnlyPluginScannerTests: XCTestCase {
         let item = ReadOnlyPluginScanner().scan(assessment: assessment(dir)).plugins.first
         XCTAssertNotNil(item, "Fast inventory must keep the plugin visible")
         XCTAssertEqual(item?.ownership, .unknown, "Ownership verification is deferred from the fast inventory")
-        XCTAssertNil(item?.hardBoundBundleIdentifier)
+        XCTAssertEqual(item?.hardBoundBundleIdentifier, "com.example.app", "The list may show the declared hard-bound App without treating the manifest as verified")
         XCTAssertFalse(item?.managementPermission?.canModify ?? false, "No management permission without detail verification")
         XCTAssertEqual(item?.filterConfiguration?.bundles, ["com.example.app"])
         XCTAssertNil(item?.dylibSHA256, "Fast inventory must not hash dylibs")
+        XCTAssertEqual(item?.softAssociatedBundleIdentifiers, [])
         XCTAssertTrue(item?.warnings.contains("plugin_scan.manifest_verification_deferred") == true)
     }
 

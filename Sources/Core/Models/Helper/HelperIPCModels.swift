@@ -2,7 +2,7 @@ import Foundation
 
 /// Versioned, bounded IPC envelope. The transport is intentionally abstract in P1-19.
 enum HelperIPCMessageType: String, Codable {
-    case hello, helloAck, operationRequest, deploymentBatchRequest, deploymentBatchReceipt, operationReceipt, healthRequest, healthResponse, maintenanceRecoveryRequest, maintenanceRecoveryResponse, rejected
+    case hello, helloAck, operationRequest, deploymentBatchRequest, deploymentBatchReceipt, operationReceipt, healthRequest, healthResponse, maintenanceRecoveryRequest, maintenanceRecoveryResponse, pluginFilterMutationPrepareRequest, pluginFilterMutationPrepared, pluginFilterMutationCommitRequest, pluginFilterMutationCommitted, rejected
 }
 
 struct HelperIPCEnvelope: Codable, Equatable {
@@ -34,6 +34,7 @@ enum HelperRecoveryStatus: String, Codable, Equatable {
     case legacyRecoveryRequired
     case threeFileRecoveryRequired
     case bothRecoveryRequired
+    case associationTransactionRecoveryRequired
     case invalidJournal
     case unavailable
 }
@@ -49,8 +50,22 @@ enum HelperMaintenanceAction: String, Codable { case inspect, reconcileThreeFile
 
 struct HelperMaintenanceRecoveryRequest: Codable, Equatable {
     let action: HelperMaintenanceAction
+    /// Must equal the enclosing IPC envelope requestID; the replay guard then protects it.
     let requestNonce: UUID
     let requestedAt: Date
+    /// Required for reconciliation; inspection requests leave it nil.
+    let transactionID: UUID?
+    /// UI confirmation signal. It is not treated as cryptographic proof of a human gesture.
+    let operatorConfirmed: Bool
+
+    init(action: HelperMaintenanceAction, requestNonce: UUID, requestedAt: Date,
+         transactionID: UUID? = nil, operatorConfirmed: Bool = false) {
+        self.action = action
+        self.requestNonce = requestNonce
+        self.requestedAt = requestedAt
+        self.transactionID = transactionID
+        self.operatorConfirmed = operatorConfirmed
+    }
 }
 
 enum HelperMaintenanceResult: String, Codable {
@@ -64,6 +79,15 @@ struct HelperMaintenanceRecoveryResponse: Codable, Equatable {
     let result: HelperMaintenanceResult
     let recoveryStatus: HelperRecoveryStatus
     let completedAt: Date
+    let transactionID: UUID?
+
+    init(result: HelperMaintenanceResult, recoveryStatus: HelperRecoveryStatus,
+         completedAt: Date, transactionID: UUID? = nil) {
+        self.result = result
+        self.recoveryStatus = recoveryStatus
+        self.completedAt = completedAt
+        self.transactionID = transactionID
+    }
 }
 
 enum HelperIPCCodecError: Error, Equatable {
@@ -103,9 +127,23 @@ struct HelperPeerIdentity: Codable, Equatable {
     let gid: UInt32
     let pid: Int32
     let cdHashHex: String
-    /// Optional future-proofing for kernel audit-token pidversion / ASID evidence.
+    /// Reserved for a separately verified process-generation source. Audit-token bytes
+    /// are not mislabeled as a PID version.
     let pidVersion: UInt64?
     let auditSessionID: UInt32?
+    /// SHA-256 of the kernel LOCAL_PEERTOKEN snapshot; never a caller-supplied value.
+    let auditTokenDigest: String?
+
+    init(uid: UInt32, gid: UInt32, pid: Int32, cdHashHex: String,
+         pidVersion: UInt64?, auditSessionID: UInt32?, auditTokenDigest: String? = nil) {
+        self.uid = uid
+        self.gid = gid
+        self.pid = pid
+        self.cdHashHex = cdHashHex
+        self.pidVersion = pidVersion
+        self.auditSessionID = auditSessionID
+        self.auditTokenDigest = auditTokenDigest
+    }
 }
 
 enum HelperOperation: String, Codable, CaseIterable {

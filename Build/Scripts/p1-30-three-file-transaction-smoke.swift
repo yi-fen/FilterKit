@@ -1,12 +1,6 @@
 import Foundation
 import Glibc
 
-enum HelperPolicy {
-    static func isAbsoluteCleanPath(_ value: String) -> Bool { value.hasPrefix("/") && !value.contains("..") && URL(fileURLWithPath: value).standardizedFileURL.path == value }
-    static func isSafeLeafName(_ value: String) -> Bool { !value.isEmpty && value != "." && value != ".." && !value.hasPrefix(".") && !value.contains("/") && !value.contains("\\") && !value.contains("..") }
-    static func isValidHash(_ value: String) -> Bool { value.range(of: "^[0-9a-fA-F]{64}$", options: .regularExpression) != nil }
-}
-
 func check130(_ condition: Bool, _ message: String) throws {
     guard condition else { throw NSError(domain: "P1-30", code: 1, userInfo: [NSLocalizedDescriptionKey: message]) }
 }
@@ -136,8 +130,10 @@ func manifest130(pluginID: UUID, dylibName: String, plistName: String, dylib: Da
                      "startup detail did not classify three-file journal")
         try check130(startup.inspect(pluginDirectory: coordinatorDirectory.path) == .recoveryRequired,
                      "startup compatibility result did not block pending journal")
-        try check130(try HelperAuthorizedRecoveryCoordinator().reconcileThreeFileTransaction(pluginDirectory: coordinatorDirectory.path),
-                     "explicit recovery coordinator did not recover pending journal")
+        let pendingCoordinatorEvidence = try coordinatorExecutor.inspectPendingEvidence()
+        guard let pendingCoordinatorEvidence else { throw NSError(domain: "P1-31", code: 12) }
+        try check130(try coordinatorExecutor.reconcile(expectedTransactionID: pendingCoordinatorEvidence.transactionID) == .rolledBack,
+                     "transaction-ID-bound explicit recovery did not roll back pending journal")
         try check130(startup.inspectDetailed(pluginDirectory: coordinatorDirectory.path) == .clean,
                      "startup inspection did not return clean after explicit recovery")
 

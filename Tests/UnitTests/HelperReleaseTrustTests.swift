@@ -28,7 +28,7 @@ final class HelperReleaseTrustTests: XCTestCase {
 
     func testReleaseVerifierRejectsDigestAndCDHashMismatch() throws {
         let manifest = fixture()
-        let provisioning = HelperInstallerProvisioningBundle(schemaVersion: 1, generation: 41,
+        let provisioning = HelperInstallerProvisioningBundle(schemaVersion: 2, generation: 41,
             releaseIdentifier: "release-p141", bundleIdentifier: "cn.yfen.filterkit.helper",
             jbRootPath: "/var/jb", appCDHash: String(repeating: "d", count: 40),
             helperCDHash: String(repeating: "a", count: 40), allowedClientUID: 501,

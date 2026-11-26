@@ -7,7 +7,7 @@ func require137(_ value: @autoclosure () -> Bool, _ message: String) throws {
 @main
 struct P137ReleaseSetSmoke {
     static func main() throws {
-        let bundle = HelperInstallerProvisioningBundle(schemaVersion: 1, generation: 12,
+        let bundle = HelperInstallerProvisioningBundle(schemaVersion: 2, generation: 12,
             releaseIdentifier: "1.0.0-p137", bundleIdentifier: "cn.yfen.filterkit",
             jbRootPath: "/var/jb", appCDHash: String(repeating: "a", count: 40),
             helperCDHash: String(repeating: "b", count: 40), allowedClientUID: 501,

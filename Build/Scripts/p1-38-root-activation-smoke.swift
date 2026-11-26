@@ -17,7 +17,7 @@ func require138(_ ok: @autoclosure () -> Bool, _ message: String) throws { guard
   for p in ["usr", "usr/libexec", "Library", "Library/FilterKit", "Library/FilterKit/Helper", "Library/LaunchDaemons"] { _ = chmod(base + "/" + p, 0o700) }
   let executor = try HelperRootAtomicActivationExecutor(rootDirectory: base)
   func bundle(_ generation: UInt64) -> HelperInstallerProvisioningBundle {
-   HelperInstallerProvisioningBundle(schemaVersion: 1, generation: generation,
+   HelperInstallerProvisioningBundle(schemaVersion: 2, generation: generation,
     releaseIdentifier: "1.0.0-p138-\(generation)", bundleIdentifier: "cn.yfen.filterkit", jbRootPath: "/var/jb",
     appCDHash: String(repeating: "a", count: 40), helperCDHash: String(repeating: "b", count: 40),
     allowedClientUID: 501, stagingOwnerUID: 501, routeIdentifier: "dopamine-roothide",

@@ -38,7 +38,15 @@ final class UnixDomainSocketTransport: HelperIPCTransport {
         let fd = try connectSocket()
         defer { _ = shutdown(fd, Int32(SHUT_RDWR)); _ = close(fd) }
         let credentials = try readPeerCredentials(fd)
-        let identity = try identityProvider.identity(for: credentials)
+        let identity = try identityProvider.identity(for: credentials, socketFD: fd)
+        // Re-read credentials from the same connected socket after csops. This binds the
+        // code-signature lookup to the socket peer and rejects inconsistent peer snapshots.
+        let confirmedCredentials = try readPeerCredentials(fd)
+        guard HelperPeerIdentityBindingPolicy.credentialsAreStable(before: credentials, after: confirmedCredentials),
+              HelperPeerIdentityBindingPolicy.identity(identity, matches: credentials),
+              Self.auditTokenEvidenceIsSufficient(identity) else {
+            throw SocketError.peerRejected
+        }
         do { try trustEvaluator.verify(identity) } catch { throw SocketError.peerRejected }
 
         var handshake = HelperHandshake()
@@ -83,7 +91,7 @@ final class UnixDomainSocketTransport: HelperIPCTransport {
             raw.initializeMemory(as: UInt8.self, repeating: 0)
             raw.copyBytes(from: pathBytes)
         }
-        var timeoutValue = timeval(tv_sec: Int(timeout), tv_usec: Int32((timeout - floor(timeout)) * 1_000_000))
+        var timeoutValue = timeval(tv_sec: Int(timeout), tv_usec: suseconds_t((timeout - floor(timeout)) * 1_000_000))
         _ = setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &timeoutValue, socklen_t(MemoryLayout<timeval>.size))
         _ = setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &timeoutValue, socklen_t(MemoryLayout<timeval>.size))
         let result = withUnsafePointer(to: &address) { pointer in
@@ -96,6 +104,14 @@ final class UnixDomainSocketTransport: HelperIPCTransport {
     }
 
     private var one: Int32 = 1
+
+    private static func auditTokenEvidenceIsSufficient(_ identity: HelperPeerIdentity) -> Bool {
+        #if canImport(Darwin)
+        return HelperPeerIdentityBindingPolicy.hasCompleteDarwinProcessGenerationEvidence(identity)
+        #else
+        return true
+        #endif
+    }
 
     private func readPeerCredentials(_ fd: Int32) throws -> HelperSocketPeerCredentials {
         #if canImport(Darwin)
@@ -168,28 +184,37 @@ final class UnixDomainSocketTransport: HelperIPCTransport {
 /// This type does not create a launchd job or grant privileges by itself.
 final class UnixDomainSocketServer {
     typealias RequestHandler = (_ envelope: HelperIPCEnvelope, _ context: HelperAuthenticatedPeerContext) throws -> HelperIPCEnvelope
-    enum ServerError: Swift.Error { case invalidPath, socket(Int32), bind(Int32), chmod(Int32), listen(Int32), accept(Int32), handshake, frame }
+    enum ServerError: Swift.Error { case invalidPath, socket(Int32), bind(Int32), chown(Int32), chmod(Int32), listen(Int32), accept(Int32), handshake, frame, peerIdentityChanged, replayedRequest }
 
     private let socketPath: String
     private let maximumConnections: Int
     private let socketMode: mode_t
+    private let socketGroupID: UInt32
     private let handler: RequestHandler
     private let identityProvider: HelperPeerIdentityProviding
     private let trustEvaluator: HelperPeerTrustEvaluating
     private let codec = HelperIPCFrameCodec()
     private var listener: Int32 = -1
     private let slots: DispatchSemaphore
+    private let diagnosticSink: ((HelperPeerAuthenticationDiagnostic) -> Void)?
+    /// Process-local duplicate request-ID defense shared across accepted connections.
+    private let replayGuard: HelperRequestReplayGuard
 
-    init(socketPath: String, maximumConnections: Int = 8, socketMode: mode_t = 0o666,
+    init(socketPath: String, maximumConnections: Int = 8, socketMode: mode_t = 0o660, socketGroupID: UInt32 = 501,
          identityProvider: HelperPeerIdentityProviding = RejectingPeerIdentityProvider(),
          trustEvaluator: HelperPeerTrustEvaluating,
+         diagnosticSink: ((HelperPeerAuthenticationDiagnostic) -> Void)? = nil,
+         replayGuard: HelperRequestReplayGuard = HelperRequestReplayGuard(),
          handler: @escaping RequestHandler) {
         self.socketPath = socketPath
         self.maximumConnections = max(1, maximumConnections)
         self.socketMode = socketMode
+        self.socketGroupID = socketGroupID
         self.identityProvider = identityProvider
         self.trustEvaluator = trustEvaluator
         self.handler = handler
+        self.diagnosticSink = diagnosticSink
+        self.replayGuard = replayGuard
         self.slots = DispatchSemaphore(value: max(1, maximumConnections))
     }
 
@@ -218,7 +243,11 @@ final class UnixDomainSocketServer {
             }
         }
         guard bindResult == 0 else { throw ServerError.bind(errno) }
+        // The trusted installer provisions a root-owned, non-listable parent (0711) and
+        // resolves socketGroupID from the installed App identity. Never use world-writable 0666.
+        guard chown(socketPath, 0, gid_t(socketGroupID)) == 0 else { throw ServerError.chown(errno) }
         guard chmod(socketPath, socketMode) == 0 else { throw ServerError.chmod(errno) }
+        try validateSocketNode()
         guard listen(listener, Int32(maximumConnections)) == 0 else { throw ServerError.listen(errno) }
 
         while true {
@@ -240,6 +269,8 @@ final class UnixDomainSocketServer {
     }
 
     private func serve(_ fd: Int32) {
+        let lifecycle = HelperPeerAuthenticationLifecycle()
+        defer { lifecycle.close() }
         do {
             var timeoutValue = timeval(tv_sec: 5, tv_usec: 0)
             _ = setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &timeoutValue, socklen_t(MemoryLayout<timeval>.size))
@@ -248,27 +279,129 @@ final class UnixDomainSocketServer {
             var noSignal: Int32 = 1
             _ = setsockopt(fd, SOL_SOCKET, SO_NOSIGPIPE, &noSignal, socklen_t(MemoryLayout<Int32>.size))
             #endif
-            let peer = try peerCredentials(fd)
-            let identity = try identityProvider.identity(for: peer)
-            try trustEvaluator.verify(identity)
-            let hello = try readFrame(fd)
-            let ack = try HelperHandshake.acceptHello(hello)
+            let peer: HelperSocketPeerCredentials
+            do {
+                peer = try peerCredentials(fd)
+                try lifecycle.advance(to: .credentialsVerified)
+                emit(.init(stage: .credentials, outcome: .observed, credentials: peer, reasonCode: "peer_credentials_observed"))
+            } catch {
+                emit(.init(stage: .credentials, outcome: .rejected, reasonCode: "peer_credentials_unavailable"))
+                throw error
+            }
+            let identity: HelperPeerIdentity
+            do {
+                identity = try identityProvider.identity(for: peer, socketFD: fd)
+                let confirmedPeer = try peerCredentials(fd)
+                guard HelperPeerIdentityBindingPolicy.credentialsAreStable(before: peer, after: confirmedPeer),
+                      HelperPeerIdentityBindingPolicy.identity(identity, matches: peer),
+                      Self.auditTokenEvidenceIsSufficient(identity) else {
+                    throw ServerError.peerIdentityChanged
+                }
+                try lifecycle.advance(to: .codeIdentityVerified)
+                emit(.init(stage: .codeIdentity, outcome: .accepted, credentials: peer, identity: identity, reasonCode: "peer_code_identity_read_and_reconfirmed"))
+            } catch {
+                emit(.init(stage: .codeIdentity, outcome: .rejected, credentials: peer, reasonCode: Self.identityFailureCode(error)))
+                throw error
+            }
+            do {
+                try trustEvaluator.verify(identity)
+                try lifecycle.advance(to: .trustVerified)
+                emit(.init(stage: .trustPolicy, outcome: .accepted, credentials: peer, identity: identity, reasonCode: "peer_trust_accepted"))
+            } catch {
+                emit(.init(stage: .trustPolicy, outcome: .rejected, credentials: peer, identity: identity, reasonCode: Self.trustFailureCode(error)))
+                throw error
+            }
+            let hello: HelperIPCEnvelope
+            let ack: HelperIPCEnvelope
+            do {
+                hello = try readFrame(fd)
+                ack = try HelperHandshake.acceptHello(hello)
+                try lifecycle.advance(to: .handshakeVerified)
+                emit(.init(stage: .sessionHandshake, outcome: .accepted, credentials: peer,
+                           identity: identity, reasonCode: "nonce_handshake_accepted"))
+            } catch {
+                emit(.init(stage: .sessionHandshake, outcome: .rejected, credentials: peer,
+                           identity: identity, reasonCode: "nonce_handshake_rejected"))
+                throw error
+            }
             try writeFrame(ack, fd)
             guard let nonce = hello.nonce else { throw ServerError.handshake }
+            try lifecycle.advance(to: .authenticated)
             let context = HelperAuthenticatedPeerContext(peer: peer, identity: identity,
                                                          sessionNonce: nonce, authenticatedAt: Date())
             let request = try readFrame(fd)
-            guard request.messageType == .operationRequest || request.messageType == .deploymentBatchRequest || request.messageType == .healthRequest || request.messageType == .maintenanceRecoveryRequest,
+            guard HelperIPCServerRequestPolicy.allows(request.messageType),
                   request.nonce == nonce,
-                  abs(request.createdAt.timeIntervalSinceNow) <= 120 else { throw ServerError.handshake }
+                  HelperIPCServerRequestPolicy.isFresh(request.createdAt) else { throw ServerError.handshake }
+            guard replayGuard.accept(request.requestID) else {
+                emit(.init(stage: .requestValidation, outcome: .rejected, credentials: peer,
+                           identity: identity, reasonCode: "duplicate_request_id_rejected"))
+                throw ServerError.replayedRequest
+            }
+            emit(.init(stage: .requestValidation, outcome: .accepted, credentials: peer,
+                       identity: identity, reasonCode: "request_id_and_session_accepted"))
             let response = try handler(request, context)
             guard response.requestID == request.requestID,
                   response.nonce == context.sessionNonce else { throw ServerError.frame }
             try writeFrame(response, fd)
         } catch {
+            lifecycle.fail()
             let rejected = HelperIPCEnvelope(messageType: .rejected)
             try? writeFrame(rejected, fd)
         }
+    }
+
+    private func emit(_ diagnostic: HelperPeerAuthenticationDiagnostic) {
+        diagnosticSink?(diagnostic)
+    }
+
+    private static func identityFailureCode(_ error: Error) -> String {
+        if let diagnostic = error as? HelperPeerIdentityDiagnosticError {
+            return String(diagnostic.diagnosticCode.prefix(96))
+        }
+        if let serverError = error as? ServerError, case .peerIdentityChanged = serverError {
+            return "peer_identity_evidence_incomplete_or_changed"
+        }
+        return "peer_identity_provider_failed"
+    }
+
+    private static func trustFailureCode(_ error: Error) -> String {
+        guard let value = error as? HelperPeerTrustPolicy.TrustError else { return "peer_trust_rejected" }
+        switch value {
+        case .uidNotAllowed: return "peer_uid_not_allowed"
+        case .gidNotAllowed: return "peer_gid_not_allowed"
+        case .invalidCDHash: return "peer_cdhash_invalid"
+        case .cdHashNotAllowed: return "peer_cdhash_not_pinned"
+        case .invalidPID: return "peer_pid_invalid"
+        }
+    }
+
+    private func validateSocketNode() throws {
+        var info = stat()
+        guard socketPath.withCString({ lstat($0, &info) }) == 0 else { throw ServerError.chmod(errno) }
+        let isSocket = (info.st_mode & mode_t(S_IFMT)) == mode_t(S_IFSOCK)
+        let mode = UInt16(info.st_mode & 0o777)
+        guard HelperSocketRuntimePolicy.isExpectedSocket(ownerUID: UInt32(info.st_uid),
+              groupID: UInt32(info.st_gid), mode: mode, expectedGroupID: socketGroupID,
+              expectedMode: UInt16(socketMode & 0o777), isSocket: isSocket) else {
+            throw ServerError.chmod(EACCES)
+        }
+        let parent = URL(fileURLWithPath: socketPath).deletingLastPathComponent().path
+        let fd = parent.withCString { open($0, O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC) }
+        guard fd >= 0 else { throw ServerError.chmod(errno) }
+        defer { _ = close(fd) }
+        var parentInfo = stat()
+        guard fstat(fd, &parentInfo) == 0,
+              HelperSocketRuntimePolicy.isSafeParent(ownerUID: UInt32(parentInfo.st_uid),
+                  mode: UInt16(parentInfo.st_mode & 0o777)) else { throw ServerError.chmod(EACCES) }
+    }
+
+    private static func auditTokenEvidenceIsSufficient(_ identity: HelperPeerIdentity) -> Bool {
+        #if canImport(Darwin)
+        return HelperPeerIdentityBindingPolicy.hasCompleteDarwinProcessGenerationEvidence(identity)
+        #else
+        return true
+        #endif
     }
 
     private func peerCredentials(_ fd: Int32) throws -> HelperSocketPeerCredentials {

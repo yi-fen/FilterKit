@@ -12,8 +12,10 @@ private final class PluginsViewModel: ObservableObject {
     @Published var restoreErrorKey: String?
     @Published var restoreReview: BackupRestoreReview?
     @Published var restoreNoticeKey: String?
+    @Published private(set) var appNamesByBundleID: [String: String] = [:]
+    @Published private(set) var appNamesByExecutable: [String: String] = [:]
 
-    private let appDiscovery = LaunchServicesAppDiscoveryProvider()
+    private let appDiscovery = AppDiscoveryProviderRegistry.shared
 
     private let environment = ReadOnlyEnvironmentProvider()
 
@@ -89,22 +91,25 @@ private final class PluginsViewModel: ObservableObject {
             result = nil
             return
         }
-        let ownershipProvider: PackageOwnershipProviding
-        if let root = report.resolvedRootPath {
-            ownershipProvider = DpkgFileOwnershipProvider(jbroot: root)
-        } else {
-            ownershipProvider = NoPackageOwnershipEvidenceProvider()
-        }
-        let scanner = ReadOnlyPluginScanner(packageOwnershipProvider: ownershipProvider,
-                                            assessmentProvider: { assessment })
+        // The inventory intentionally does not query DPKG ownership. That work is
+        // reserved for explicit detail verification and must not delay list display.
+        let scanner = ReadOnlyPluginScanner(assessmentProvider: { assessment })
+        let scanned = await Task.detached(priority: .utility) {
+            scanner.scan(assessment: assessment)
+        }.value
+        result = scanned
+        errorKey = nil
         do {
-            let scanned = await Task.detached(priority: .utility) {
-                scanner.scan(assessment: assessment)
-            }.value
-            result = scanned
-            errorKey = nil
+            let apps = try await appDiscovery.scanInstalledApps()
+            appNamesByBundleID = Dictionary(apps.map { ($0.bundleIdentifier, $0.displayName) },
+                                            uniquingKeysWith: { first, _ in first })
+            appNamesByExecutable = Dictionary(apps.compactMap { app in
+                app.executableName.map { ($0.lowercased(), app.displayName) }
+            }, uniquingKeysWith: { first, _ in first })
         } catch {
-            errorKey = "plugin_scan.scan_failed"
+            // Keep the plugin inventory visible if LaunchServices enrichment fails.
+            appNamesByBundleID = [:]
+            appNamesByExecutable = [:]
         }
     }
 }
@@ -183,7 +188,7 @@ struct PluginsView: View {
                         Section {
                             ForEach(visiblePlugins) { plugin in
                                 NavigationLink(destination: PluginScanDetailView(plugin: plugin)) {
-                                    PluginScanRow(plugin: plugin)
+                                    PluginScanRow(plugin: plugin, appNamesByBundleID: model.appNamesByBundleID, appNamesByExecutable: model.appNamesByExecutable)
                                 }
                             }
                         }
@@ -395,19 +400,72 @@ private struct BackupActivityView: UIViewControllerRepresentable {
 
 private struct PluginScanRow: View {
     let plugin: PluginScanItem
+    let appNamesByBundleID: [String: String]
+    let appNamesByExecutable: [String: String]
+
+    private var fileAndPairingText: String {
+        let fileName = plugin.dylibFileName ?? plugin.plistFileName ?? plugin.manifestFileName ?? plugin.id
+        return "\(fileName)  \(pairingText)"
+    }
+
+    private var associationText: String {
+        if let hardBound = plugin.hardBoundBundleIdentifier {
+            let name = appNamesByBundleID[hardBound] ?? hardBound
+            let softNames = plugin.softAssociatedBundleIdentifiers.map { appNamesByBundleID[$0] ?? $0 }
+            let uniqueSoftNames = Array(Set(softNames)).sorted { $0.localizedStandardCompare($1) == .orderedAscending }
+            let hardBoundText = String(format: NSLocalizedString("plugins.row.hard_bound", comment: ""), name)
+            guard !uniqueSoftNames.isEmpty else { return hardBoundText }
+            return hardBoundText + " · " + String(format: NSLocalizedString("plugins.row.associated_apps", comment: ""), uniqueSoftNames.joined(separator: ", "))
+        }
+        guard let filter = plugin.filterConfiguration else {
+            return NSLocalizedString("plugins.row.no_association", comment: "")
+        }
+        if filter.bundles.contains("*") {
+            return NSLocalizedString("plugins.row.global_association", comment: "")
+        }
+        let bundleIDs = Set(filter.bundles)
+        let executableIDs = Set(filter.executables.map { $0.lowercased() })
+        let matchedBundles = bundleIDs.compactMap { appNamesByBundleID[$0] }
+        let matchedExecutables = executableIDs.compactMap { appNamesByExecutable[$0] }
+        let names = Array(Set(matchedBundles + matchedExecutables)).sorted { $0.localizedStandardCompare($1) == .orderedAscending }
+        if !names.isEmpty { return String(format: NSLocalizedString("plugins.row.associated_apps", comment: ""), names.joined(separator: ", ")) }
+        if !executableIDs.isEmpty {
+            return NSLocalizedString("plugins.row.executable_targets", comment: "")
+        }
+        return NSLocalizedString("plugins.row.no_association", comment: "")
+    }
+
+    private var sourceText: String {
+        if plugin.ownership == .filterKit {
+            return NSLocalizedString("plugins.row.source_filterkit", comment: "")
+        }
+        if plugin.manifestFileName != nil {
+            return NSLocalizedString("plugins.row.filterkit_manifest_unverified", comment: "")
+        }
+        switch plugin.ownership {
+        case .filterKit: return NSLocalizedString("plugins.row.source_filterkit", comment: "")
+        case .packageManager: return NSLocalizedString("plugins.row.source_package_manager", comment: "")
+        case .unknown: return NSLocalizedString("plugins.row.source_unknown", comment: "")
+        }
+    }
+
+    private var pairingText: String {
+        switch plugin.pairingState {
+        case .paired: return NSLocalizedString("plugins.pairing.paired", comment: "")
+        case .orphanDylib, .orphanPlist, .unreadable, .invalid:
+            return NSLocalizedString("plugins.pairing.unpaired", comment: "")
+        }
+    }
+
     var body: some View {
         HStack(spacing: 12) {
             Image(systemName: "puzzlepiece.extension.fill")
                 .font(.title2).foregroundStyle(.secondary).frame(width: 36)
             VStack(alignment: .leading, spacing: 4) {
                 Text(plugin.baseName).font(.body.weight(.medium))
-                Text(plugin.dylibFileName ?? plugin.plistFileName ?? plugin.manifestFileName ?? plugin.id)
-                    .font(.caption).foregroundStyle(.secondary)
-                HStack(spacing: 6) {
-                    Text(ownershipKey(plugin.ownership))
-                    Text("·")
-                    Text(pairingKey(plugin.pairingState))
-                }.font(.caption2).foregroundStyle(.secondary)
+                Text(fileAndPairingText).font(.caption).foregroundStyle(.secondary)
+                Text("\(associationText) · \(sourceText)")
+                    .font(.caption2).foregroundStyle(.secondary).lineLimit(2)
             }
             Spacer(minLength: 4)
             if plugin.ownership == .filterKit {
@@ -420,22 +478,203 @@ private struct PluginScanRow: View {
         }
         .padding(.vertical, 3)
     }
+}
 
-    private func ownershipKey(_ ownership: PluginOwnership) -> LocalizedStringKey {
-        switch ownership {
-        case .filterKit: return "plugins.ownership.filterkit"
-        case .packageManager: return "plugins.ownership.package_manager"
-        case .unknown: return "plugins.ownership.unknown"
+private struct PluginAssociationPreviewSection: View {
+    let plugin: PluginScanItem
+
+    @State private var apps: [InstalledApp] = []
+    @State private var selectedBundleIdentifier = ""
+    @State private var isLoadingApps = false
+    @State private var isRootHideEnvironment: Bool?
+    @State private var preview: RootHideFilterPlan?
+    @State private var previewAction: RootHideFilterAction = .enableForApp
+    @State private var previewErrorKey: String?
+    @State private var showingCommitConfirmation = false
+    @State private var commitGateNotice = false
+    @State private var isCommittingAssociation = false
+    @State private var commitStatusKey: String?
+
+    private let appDiscovery = AppDiscoveryProviderRegistry.shared
+
+    private var selectableApps: [InstalledApp] {
+        apps.filter { $0.bundleIdentifier != plugin.hardBoundBundleIdentifier }
+    }
+
+    var body: some View {
+        Group {
+            if plugin.ownership != .filterKit {
+                Label("plugins.association_preview.third_party_read_only", systemImage: "lock.shield")
+                    .font(.footnote).foregroundStyle(.secondary)
+            } else if plugin.managementPermission?.canModify != true {
+                Label("plugins.association_preview.permission_blocked", systemImage: "lock.shield")
+                    .font(.footnote).foregroundStyle(.secondary)
+            } else if plugin.pairingState != .paired {
+                Label("plugins.association_preview.pair_blocked", systemImage: "exclamationmark.triangle")
+                    .font(.footnote).foregroundStyle(.secondary)
+            } else if isRootHideEnvironment != true {
+                Label("plugins.association_preview.roothide_only", systemImage: "info.circle")
+                    .font(.footnote).foregroundStyle(.secondary)
+            } else {
+                if isLoadingApps {
+                    ProgressView("plugins.association_preview.loading_apps")
+                } else if selectableApps.isEmpty {
+                    Text("plugins.association_preview.no_apps")
+                        .font(.footnote).foregroundStyle(.secondary)
+                } else {
+                    Picker("plugins.association_preview.target_app", selection: $selectedBundleIdentifier) {
+                        ForEach(selectableApps) { app in
+                            Text("\(app.displayName) · \(app.bundleIdentifier)")
+                                .tag(app.bundleIdentifier)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    HStack {
+                        Button("plugins.association_preview.preview_enable") {
+                            makePreview(action: .enableForApp)
+                        }
+                        .disabled(selectedBundleIdentifier.isEmpty)
+                        Button("plugins.association_preview.preview_disable") {
+                            makePreview(action: .disableForApp)
+                        }
+                        .disabled(selectedBundleIdentifier.isEmpty)
+                    }
+                    .font(.footnote)
+                }
+            }
+
+            if let previewErrorKey {
+                Text(LocalizedStringKey(previewErrorKey))
+                    .font(.footnote).foregroundStyle(.red)
+            }
+            if let preview {
+                Divider()
+                Text(preview.disposition.rawValue)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(preview.disposition == .blocked ? .red : .secondary)
+                if !preview.blockers.isEmpty {
+                    ForEach(preview.blockers, id: \.rawValue) { blocker in
+                        Text(blocker.rawValue).font(.caption).foregroundStyle(.red)
+                    }
+                }
+                detailPreviewRow("plugins.association_preview.before", preview.beforeBundles)
+                detailPreviewRow("plugins.association_preview.after", preview.afterBundles)
+                if !preview.preservedRootKeys.isEmpty {
+                    Text(String(format: NSLocalizedString("plugins.association_preview.preserved_root_keys", comment: ""), preview.preservedRootKeys.joined(separator: ", ")))
+                        .font(.caption2).foregroundStyle(.secondary)
+                }
+                if !preview.preservedFilterKeys.isEmpty {
+                    Text(String(format: NSLocalizedString("plugins.association_preview.preserved_filter_keys", comment: ""), preview.preservedFilterKeys.joined(separator: ", ")))
+                        .font(.caption2).foregroundStyle(.secondary)
+                }
+                Label("plugins.association_preview.read_only_notice", systemImage: "lock.shield")
+                    .font(.caption).foregroundStyle(.secondary)
+                if preview.isPreviewable && preview.disposition == .previewReady {
+                    Button("plugins.association_preview.confirm_action") { showingCommitConfirmation = true }
+                        .font(.footnote.weight(.semibold))
+                }
+                if isCommittingAssociation { ProgressView("plugins.association_preview.committing") }
+                if let commitStatusKey {
+                    Label(LocalizedStringKey(commitStatusKey), systemImage: commitStatusKey == "plugins.association_preview.commit_success" ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
+                        .font(.caption).foregroundStyle(commitStatusKey == "plugins.association_preview.commit_success" ? .green : .orange)
+                }
+                if commitGateNotice {
+                    Label("plugins.association_preview.commit_locked", systemImage: "lock.fill")
+                        .font(.caption).foregroundStyle(.orange)
+                }
+                Text("plugins.association_preview.semantics_notice")
+                    .font(.caption2).foregroundStyle(.secondary)
+            }
+        }
+        .confirmationDialog("plugins.association_preview.confirm_title", isPresented: $showingCommitConfirmation, titleVisibility: .visible) {
+            Button("plugins.association_preview.confirm_button", role: .destructive) {
+                Task { await commitAssociation(action: previewAction) }
+            }
+            .disabled(isCommittingAssociation)
+            Button("common.cancel", role: .cancel) {}
+        } message: {
+            Text("plugins.association_preview.confirm_message")
+        }
+        .task { await loadApps() }
+    }
+
+    @MainActor
+    private func loadApps() async {
+        guard apps.isEmpty, !isLoadingApps else { return }
+        isLoadingApps = true
+        defer { isLoadingApps = false }
+        let rootHideDetected = await Task.detached(priority: .utility) {
+            ReadOnlyEnvironmentProvider().makeDiagnosticReport().environment.kind == .rootHide
+        }.value
+        isRootHideEnvironment = rootHideDetected
+        guard rootHideDetected else { return }
+        do {
+            apps = try await appDiscovery.scanInstalledApps()
+            if selectedBundleIdentifier.isEmpty {
+                selectedBundleIdentifier = selectableApps.first?.bundleIdentifier ?? ""
+            }
+        } catch {
+            previewErrorKey = "plugins.association_preview.apps_unavailable"
         }
     }
-    private func pairingKey(_ state: PluginPairingState) -> LocalizedStringKey {
-        switch state {
-        case .paired: return "plugins.pairing.paired"
-        case .orphanDylib: return "plugins.pairing.orphan_dylib"
-        case .orphanPlist: return "plugins.pairing.orphan_plist"
-        case .unreadable: return "plugins.pairing.unreadable"
-        case .invalid: return "plugins.pairing.invalid"
+
+    @MainActor
+    private func commitAssociation(action: RootHideFilterAction) async {
+        guard preview?.isPreviewable == true, !selectedBundleIdentifier.isEmpty else { return }
+        isCommittingAssociation = true
+        commitStatusKey = nil
+        defer { isCommittingAssociation = false }
+        do {
+            let service = try HelperPluginAssociationCommitService.production()
+            let intent: HelperPluginFilterMutationAction = action == .enableForApp ? .enableForApp : .disableForApp
+            let receipt = try await service.commit(plugin: plugin, action: intent,
+                targetBundleIdentifier: selectedBundleIdentifier, userConfirmed: true)
+            guard receipt.pluginID == UUID(uuidString: plugin.filterKitPluginID ?? ""),
+                  receipt.targetBundleIdentifier == selectedBundleIdentifier else {
+                commitStatusKey = "plugins.association_preview.commit_invalid_receipt"
+                return
+            }
+            commitStatusKey = "plugins.association_preview.commit_success"
+        } catch HelperDeploymentCoordinator.CoordinatorError.executionNotReleased {
+            commitGateNotice = true
+        } catch HelperPluginAssociationCommitService.ServiceError.trustNotProvisioned {
+            commitStatusKey = "plugins.association_preview.helper_not_provisioned"
+        } catch {
+            commitStatusKey = "plugins.association_preview.commit_failed"
         }
+    }
+
+    private func makePreview(action: RootHideFilterAction) {
+        preview = nil
+        previewErrorKey = nil
+        guard let path = plugin.plistPath, path.hasPrefix("/"),
+              let attributes = try? FileManager.default.attributesOfItem(atPath: path),
+              attributes[.type] as? FileAttributeType == .typeRegular,
+              let data = try? Data(contentsOf: URL(fileURLWithPath: path), options: [.mappedIfSafe]) else {
+            previewErrorKey = "plugins.association_preview.plist_unavailable"
+            return
+        }
+        let eligibility = PluginAssociationPreviewPolicy().evaluate(
+            plugin: plugin, targetBundleIdentifier: selectedBundleIdentifier,
+            installedBundleIdentifiers: Set(apps.map(\.bundleIdentifier)), originalPlistIsReadable: true)
+        guard eligibility.isEligible else {
+            previewErrorKey = "plugins.association_preview.policy_blocked"
+            return
+        }
+        previewAction = action
+        preview = RootHideElleKitFilterStrategy().makePlan(
+            originalData: data, targetBundleIdentifier: selectedBundleIdentifier, action: action)
+    }
+
+    @ViewBuilder
+    private func detailPreviewRow(_ title: LocalizedStringKey, _ values: [String]) -> some View {
+        HStack(alignment: .top) {
+            Text(title)
+            Spacer(minLength: 8)
+            Text(values.isEmpty ? "—" : values.joined(separator: ", "))
+                .foregroundStyle(.secondary).multilineTextAlignment(.trailing).textSelection(.enabled)
+        }
+        .font(.caption)
     }
 }
 
@@ -485,6 +724,9 @@ private struct PluginScanDetailView: View {
                     detailRow("plugins.detail.hard_bound", plugin.hardBoundBundleIdentifier ?? "—")
                     ForEach(plugin.softAssociatedBundleIdentifiers, id: \.self) { Text($0) }
                 }
+            }
+            Section("plugins.association_preview.title") {
+                PluginAssociationPreviewSection(plugin: plugin)
             }
             if !plugin.identityConflictIDs.isEmpty {
                 Section("plugins.identity.conflicts") {

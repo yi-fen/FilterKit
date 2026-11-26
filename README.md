@@ -139,3 +139,17 @@ The Helper's production startup now requires a signed Ed25519 release envelope a
 ### P1-44 Apple platform verification
 
 P1-44 adds CryptoKit Ed25519 known-answer tests, Keychain anti-rollback persistence/concurrency tests, an append-only Keychain generation ledger, and Apple test/provisioning audit scripts. Run `FILTERKIT_TEST_DESTINATION='platform=iOS Simulator,id=<UDID>' Build/Scripts/run-apple-platform-tests.sh` on macOS with XcodeGen/Xcode. The checked-in trust-anchor list remains empty until a reviewed production keyring is supplied; see `Build/P1-44-APPLE-PLATFORM-VERIFICATION.md`.
+
+## P2-26 — Darwin Recovery Authorization Integration
+
+P2-26 corrects the maintenance authorization peer model for the App-to-root-Helper architecture. The FilterKit App remains an unprivileged peer; the Helper process performs privileged operations. Reconciliation requests now require an explicit UI confirmation intent, a Transaction ID, a request nonce equal to the IPC envelope request ID, fresh authenticated session evidence, and complete Darwin Audit Token/PID Generation evidence. The Helper mints a short-lived transaction-scoped capability only after the existing peer trust policy has authenticated the App identity.
+
+Actual recovery mutation remains disabled pending Apple SDK and RootHide device validation. The `operatorConfirmed` field is a UI intent signal, not cryptographic proof of human presence. See `Build/P2-26-DARWIN-RECOVERY-AUTHORIZATION-INTEGRATION.md` for the security boundary and validation limits.
+
+## P2-27 — Darwin App Identity Provisioning & Maintenance Channel Validation
+
+P2-27 adds explicit root Helper UID/GID expectations to newly generated App trust configuration, checks the running App's own kernel-reported CDHash availability before connecting, and wires the App-side peer trust evaluator to provisioned Helper identity constraints. A cross-check policy binds the installer provisioning record, embedded App trust generation and Helper CDHash, final App/Helper CDHashes, measured client UID/GID, and root Helper UID/GID. `Build/scripts/p227_identity_provisioning_audit.py` provides a read-only macOS audit for final signed artifacts; target UID/GID must be measured on the RootHide device and supplied explicitly. This does not perform installation or runtime IPC. See `Build/P2-27-DARWIN-APP-IDENTITY-PROVISIONING.md`.
+
+## Latest development phase
+
+- **P2-28 — Plugin Toggle Release Gate**: adds a fail-closed readiness policy for staged per-App enable/disable and injection rollout. Real mutation remains locked pending signed artifact and RootHide device validation. See `Build/P2-28-PLUGIN-TOGGLE-RELEASE-GATE.md`.

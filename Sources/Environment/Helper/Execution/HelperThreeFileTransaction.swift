@@ -38,6 +38,7 @@ final class HelperThreeFileTransactionExecutor {
         let oldDylibHash: String?
         let oldPlistHash: String?
         let oldManifestHash: String?
+        let deploymentBinding: HelperDeploymentTransactionBinding?
         var phase: Phase
         var tempDylib: String { ".fk-\(transactionID.uuidString.lowercased()).dylib.tmp" }
         var tempPlist: String { ".fk-\(transactionID.uuidString.lowercased()).plist.tmp" }
@@ -46,7 +47,13 @@ final class HelperThreeFileTransactionExecutor {
         var backupPlist: String { ".fk-\(transactionID.uuidString.lowercased()).plist.bak" }
         var backupManifest: String { ".fk-\(transactionID.uuidString.lowercased()).manifest.bak" }
         func validate() throws {
-            guard schemaVersion == 1, HelperPolicy.isSafeLeafName(dylibName), dylibName.lowercased().hasSuffix(".dylib"),
+            guard ((schemaVersion == 1 && deploymentBinding == nil) || (schemaVersion == 2 && deploymentBinding != nil)),
+                  (deploymentBinding == nil || deploymentBinding!.validate()),
+                  deploymentBinding.map({ $0.transactionID == transactionID && $0.pluginID == pluginID &&
+                      $0.dylibSHA256.caseInsensitiveCompare(newDylibHash) == .orderedSame &&
+                      $0.plistSHA256.caseInsensitiveCompare(newPlistHash) == .orderedSame &&
+                      $0.manifestSHA256.caseInsensitiveCompare(newManifestHash) == .orderedSame }) ?? true,
+                  HelperPolicy.isSafeLeafName(dylibName), dylibName.lowercased().hasSuffix(".dylib"),
                   HelperPolicy.isSafeLeafName(plistName), plistName.lowercased().hasSuffix(".plist"),
                   String(dylibName.dropLast(6)).lowercased() == String(plistName.dropLast(6)).lowercased(),
                   manifestName == String(dylibName.dropLast(6)) + ".fk.json",
@@ -67,7 +74,8 @@ final class HelperThreeFileTransactionExecutor {
 
     func execute(pluginID: UUID, dylibName: String, plistName: String, dylib: Data, plist: Data,
                  manifest: Data, route: Route, expectedPrevious: (dylib: String, plist: String, manifest: String)? = nil,
-                 simulateCrashAfter: Phase? = nil) throws -> Receipt {
+                 simulateCrashAfter: Phase? = nil, transactionID: UUID = UUID(),
+                 deploymentBinding: HelperDeploymentTransactionBinding? = nil) throws -> Receipt {
         Self.processLock.lock(); defer { Self.processLock.unlock() }
         guard geteuid() == 0 else { throw TransactionError.notRoot }
         guard HelperPolicy.isSafeLeafName(dylibName), dylibName.lowercased().hasSuffix(".dylib"),
@@ -104,18 +112,26 @@ final class HelperThreeFileTransactionExecutor {
                   oldPlist == expectedPrevious.plist.lowercased(), oldManifest == expectedPrevious.manifest.lowercased(),
                   oldDylib != nil, oldPlist != nil, oldManifest != nil else { throw TransactionError.conflict }
         }
-        let tx = UUID()
+        let tx = transactionID
+        if let binding = deploymentBinding {
+            guard binding.transactionID == tx, binding.pluginID == pluginID,
+                  binding.dylibSHA256.caseInsensitiveCompare(SHA256Digest.hex(dylib)) == .orderedSame,
+                  binding.plistSHA256.caseInsensitiveCompare(SHA256Digest.hex(plist)) == .orderedSame,
+                  binding.manifestSHA256.caseInsensitiveCompare(SHA256Digest.hex(manifest)) == .orderedSame else {
+                throw TransactionError.invalidInput
+            }
+        }
         let reservedLeaves = [
             ".fk-\(tx.uuidString.lowercased()).dylib.tmp", ".fk-\(tx.uuidString.lowercased()).plist.tmp",
             ".fk-\(tx.uuidString.lowercased()).manifest.tmp", ".fk-\(tx.uuidString.lowercased()).dylib.bak",
             ".fk-\(tx.uuidString.lowercased()).plist.bak", ".fk-\(tx.uuidString.lowercased()).manifest.bak"
         ]
         for leaf in reservedLeaves { try requireAbsentLeaf(fd, leaf) }
-        var journal = Journal(schemaVersion: 1, transactionID: tx, pluginID: pluginID,
+        var journal = Journal(schemaVersion: deploymentBinding == nil ? 1 : 2, transactionID: tx, pluginID: pluginID,
             dylibName: dylibName, plistName: plistName, manifestName: manifestName,
             newDylibHash: SHA256Digest.hex(dylib), newPlistHash: SHA256Digest.hex(plist),
             newManifestHash: SHA256Digest.hex(manifest), oldDylibHash: oldDylib,
-            oldPlistHash: oldPlist, oldManifestHash: oldManifest, phase: .prepared)
+            oldPlistHash: oldPlist, oldManifestHash: oldManifest, deploymentBinding: deploymentBinding, phase: .prepared)
         try saveJournal(journal, fd: fd)
         do {
             try crashIfRequested(.prepared, simulateCrashAfter)
@@ -176,6 +192,74 @@ final class HelperThreeFileTransactionExecutor {
         }
     }
 
+    struct PendingTransactionEvidence: Equatable {
+        let transactionID: UUID
+        let pluginID: UUID
+        let phase: Phase
+        let deploymentBinding: HelperDeploymentTransactionBinding?
+        let expectedHashes: (String, String, String)
+        let previousHashes: (String?, String?, String?)
+        let actualHashes: (String?, String?, String?)
+        let backupHashes: (String?, String?, String?)
+        let temporaryHashes: (String?, String?, String?)
+        func validateAuxiliaryArtifacts() -> Bool {
+            let backups = [backupHashes.0, backupHashes.1, backupHashes.2]
+            let previous = [previousHashes.0, previousHashes.1, previousHashes.2]
+            let temporaries = [temporaryHashes.0, temporaryHashes.1, temporaryHashes.2]
+            let expected = [expectedHashes.0, expectedHashes.1, expectedHashes.2]
+            let destinations = [actualHashes.0, actualHashes.1, actualHashes.2]
+            let backupsValid = zip(backups, previous).allSatisfy { actual, old in
+                guard let actual else { return true }
+                return old.map { actual.caseInsensitiveCompare($0) == .orderedSame } == true
+            }
+            let temporariesValid = zip(temporaries, expected).allSatisfy { actual, new in
+                guard let actual else { return true }
+                return actual.caseInsensitiveCompare(new) == .orderedSame
+            }
+            let destinationsValid = zip(destinations, zip(previous, zip(expected, backups))).allSatisfy { current, state in
+                let (old, newAndBackup) = state
+                let (new, backup) = newAndBackup
+                if let current {
+                    return current.caseInsensitiveCompare(new) == .orderedSame ||
+                        old.map { current.caseInsensitiveCompare($0) == .orderedSame } == true
+                }
+                if let old { return backup?.caseInsensitiveCompare(old) == .orderedSame }
+                return true
+            }
+            return backupsValid && temporariesValid && destinationsValid
+        }
+        static func == (lhs: Self, rhs: Self) -> Bool {
+            lhs.transactionID == rhs.transactionID && lhs.pluginID == rhs.pluginID && lhs.phase == rhs.phase &&
+            lhs.deploymentBinding == rhs.deploymentBinding && lhs.expectedHashes.0 == rhs.expectedHashes.0 &&
+            lhs.expectedHashes.1 == rhs.expectedHashes.1 && lhs.expectedHashes.2 == rhs.expectedHashes.2 &&
+            lhs.previousHashes.0 == rhs.previousHashes.0 && lhs.previousHashes.1 == rhs.previousHashes.1 &&
+            lhs.previousHashes.2 == rhs.previousHashes.2 && lhs.actualHashes.0 == rhs.actualHashes.0 &&
+            lhs.actualHashes.1 == rhs.actualHashes.1 && lhs.actualHashes.2 == rhs.actualHashes.2 &&
+            lhs.backupHashes.0 == rhs.backupHashes.0 && lhs.backupHashes.1 == rhs.backupHashes.1 &&
+            lhs.backupHashes.2 == rhs.backupHashes.2 && lhs.temporaryHashes.0 == rhs.temporaryHashes.0 &&
+            lhs.temporaryHashes.1 == rhs.temporaryHashes.1 && lhs.temporaryHashes.2 == rhs.temporaryHashes.2
+        }
+    }
+
+    func inspectPendingEvidence() throws -> PendingTransactionEvidence? {
+        Self.processLock.lock(); defer { Self.processLock.unlock() }
+        guard geteuid() == 0 else { throw TransactionError.notRoot }
+        let fd = try openDirectory(); defer { _ = close(fd) }
+        try validateDirectory(fd)
+        guard let journal = try loadJournal(fd) else { return nil }
+        try journal.validate()
+        return PendingTransactionEvidence(transactionID: journal.transactionID, pluginID: journal.pluginID,
+            phase: journal.phase, deploymentBinding: journal.deploymentBinding,
+            expectedHashes: (journal.newDylibHash, journal.newPlistHash, journal.newManifestHash),
+            previousHashes: (journal.oldDylibHash, journal.oldPlistHash, journal.oldManifestHash),
+            actualHashes: (try hashIfPresent(fd, journal.dylibName), try hashIfPresent(fd, journal.plistName),
+                           try hashIfPresent(fd, journal.manifestName)),
+            backupHashes: (try hashIfPresent(fd, journal.backupDylib), try hashIfPresent(fd, journal.backupPlist),
+                           try hashIfPresent(fd, journal.backupManifest)),
+            temporaryHashes: (try hashIfPresent(fd, journal.tempDylib), try hashIfPresent(fd, journal.tempPlist),
+                              try hashIfPresent(fd, journal.tempManifest)))
+    }
+
     /// Read-only startup probe. A pending journal is reported to the Runtime, which exposes status-only IPC and blocks
     /// deployment requests; this method never mutates target files.
     func inspectPendingJournal() throws -> Bool {
@@ -186,10 +270,65 @@ final class HelperThreeFileTransactionExecutor {
         return try loadJournal(fd) != nil
     }
 
-    /// Explicit, root-only reconciliation. Runtime startup intentionally calls only
-    /// inspectPendingJournal(); this mutating API must be invoked by a separately authorized
-    /// recovery workflow after the operator/device policy permits filesystem repair.
-    /// It never guesses: any foreign hash leaves the journal intact for manual intervention.
+    enum RecoveryDisposition: Equatable { case committed, rolledBack }
+
+    /// Explicit, transaction-ID-bound reconciliation. The caller must first obtain a
+    /// separately authorized recovery capability and verify the Batch Ledger binding.
+    /// The expected ID prevents a stale maintenance request from reconciling another journal.
+    func reconcile(expectedTransactionID: UUID, preserveJournal: Bool = false) throws -> RecoveryDisposition {
+        Self.processLock.lock(); defer { Self.processLock.unlock() }
+        guard geteuid() == 0 else { throw TransactionError.notRoot }
+        let fd = try openDirectory(); defer { _ = close(fd) }
+        try validateDirectory(fd)
+        guard let journal = try loadJournal(fd), journal.transactionID == expectedTransactionID else {
+            throw TransactionError.journalInvalid
+        }
+        let wasCommitted = journal.phase == .committed
+        _ = try reconcileLocked(fd: fd, clearJournalAfter: !preserveJournal)
+        if preserveJournal {
+            guard let retained = try loadJournal(fd), retained.transactionID == expectedTransactionID else {
+                throw TransactionError.manualIntervention
+            }
+        } else {
+            guard try loadJournal(fd) == nil else { throw TransactionError.manualIntervention }
+        }
+        return wasCommitted ? .committed : .rolledBack
+    }
+
+    /// Clears the recovery marker only after the durable Batch Ledger has been finalized.
+    /// The on-disk destination hashes and absence of all transaction auxiliaries are rechecked
+    /// immediately before unlinking the journal. This closes the crash window between file
+    /// reconciliation and ledger finalization: if the process exits, the journal remains and
+    /// the same transaction can be safely reconciled again.
+    func clearReconciledJournal(expectedTransactionID: UUID) throws {
+        Self.processLock.lock(); defer { Self.processLock.unlock() }
+        guard geteuid() == 0 else { throw TransactionError.notRoot }
+        let fd = try openDirectory(); defer { _ = close(fd) }
+        try validateDirectory(fd)
+        guard let journal = try loadJournal(fd), journal.transactionID == expectedTransactionID else {
+            throw TransactionError.journalInvalid
+        }
+        let committed = journal.phase == .committed
+        let expectedD = committed ? journal.newDylibHash : journal.oldDylibHash
+        let expectedP = committed ? journal.newPlistHash : journal.oldPlistHash
+        let expectedM = committed ? journal.newManifestHash : journal.oldManifestHash
+        guard try hashIfPresent(fd, journal.dylibName) == expectedD,
+              try hashIfPresent(fd, journal.plistName) == expectedP,
+              try hashIfPresent(fd, journal.manifestName) == expectedM,
+              try hashIfPresent(fd, journal.backupDylib) == nil,
+              try hashIfPresent(fd, journal.backupPlist) == nil,
+              try hashIfPresent(fd, journal.backupManifest) == nil,
+              try hashIfPresent(fd, journal.tempDylib) == nil,
+              try hashIfPresent(fd, journal.tempPlist) == nil,
+              try hashIfPresent(fd, journal.tempManifest) == nil else {
+            throw TransactionError.manualIntervention
+        }
+        try clearJournal(fd)
+        guard fsync(fd) == 0 else { throw TransactionError.io(errno) }
+    }
+
+    /// Legacy root-only primitive retained for host transaction smoke tests. Production
+    /// maintenance must use the transaction-ID-bound overload above.
     func reconcile() throws -> Bool {
         Self.processLock.lock(); defer { Self.processLock.unlock() }
         guard geteuid() == 0 else { throw TransactionError.notRoot }
@@ -198,7 +337,7 @@ final class HelperThreeFileTransactionExecutor {
         return try reconcileLocked(fd: fd)
     }
 
-    private func reconcileLocked(fd: Int32) throws -> Bool {
+    private func reconcileLocked(fd: Int32, clearJournalAfter: Bool = true) throws -> Bool {
         guard let j = try loadJournal(fd) else { return false }
         try j.validate()
         let committed = j.phase == .committed
@@ -232,7 +371,7 @@ final class HelperThreeFileTransactionExecutor {
         try removeIfHash(fd, j.tempPlist, j.newPlistHash)
         try removeIfHash(fd, j.tempManifest, j.newManifestHash)
         guard fsync(fd) == 0 else { throw TransactionError.io(errno) }
-        try clearJournal(fd)
+        if clearJournalAfter { try clearJournal(fd) }
         return true
     }
 

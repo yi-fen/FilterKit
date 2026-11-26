@@ -154,11 +154,7 @@ final class LaunchServicesAppDiscoveryProvider: AppDiscoveryProvider {
         return !trimmed.isEmpty && trimmed.count <= 255
     }
 
-    private static func merge(primary: [InstalledApp], secondary: [InstalledApp]) -> [InstalledApp] {
-        var byID = Dictionary(uniqueKeysWithValues: secondary.map { ($0.bundleIdentifier, $0) })
-        for app in primary { byID[app.bundleIdentifier] = app }
-        return byID.values.sorted { $0.displayName.localizedStandardCompare($1.displayName) == .orderedAscending }
-    }
+
 }
 
 

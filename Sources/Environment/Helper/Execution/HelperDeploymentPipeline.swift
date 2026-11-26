@@ -12,6 +12,7 @@ struct HelperDeploymentBatchReceipt: Codable, Equatable {
     let plistSHA256: String
     let completedAt: Date
     let manifestSHA256: String?
+    let transactionID: UUID?
 }
 
 /// Root-side evidence used to select one authorization path. `manifestExists` and `ownership`
@@ -38,6 +39,7 @@ struct HelperAuthorizedDeployment {
     let plistData: Data?
     let manifestData: Data?
     let expectedPrevious: HelperExpectedPreviousDeployment?
+    var transactionBinding: HelperDeploymentTransactionBinding? = nil
 
     init(proof: HelperOwnershipProof, plans: [HelperClosedExecutionPlan],
          dylibData: Data? = nil, plistData: Data? = nil, manifestData: Data? = nil,
@@ -70,7 +72,7 @@ struct HelperDeploymentPipeline {
 
     func execute(_ batch: HelperDeploymentBatchRequest,
                  context: HelperAuthenticatedPeerContext,
-                 now: Date = Date()) throws -> HelperDeploymentBatchReceipt {
+                 now: Date = Date(), transactionID: UUID = UUID()) throws -> HelperDeploymentBatchReceipt {
         try batch.validate(now: now)
         let pair: (pluginID: UUID, dylib: HelperOperationRequest, plist: HelperOperationRequest)
         do { pair = try HelperDeploymentBatchValidator().validate(batch.operations) }
@@ -86,7 +88,7 @@ struct HelperDeploymentPipeline {
                 manifestExists: evidence.manifestExists, ownership: evidence.ownership)
         } catch { throw PipelineError.authorizationFailed }
 
-        let prepared: HelperAuthorizedDeployment
+        var prepared: HelperAuthorizedDeployment
         do {
             switch route {
             case .firstInstall:
@@ -97,11 +99,21 @@ struct HelperDeploymentPipeline {
         } catch { throw PipelineError.authorizationFailed }
 
         try validate(prepared, pair: pair, expectedFirstInstall: route == .firstInstall)
+        let dylibHash = prepared.proof.dylibSHA256
+        let plistHash = prepared.proof.plistSHA256
+        let manifestHash = prepared.proof.manifestSHA256
+        prepared.transactionBinding = HelperDeploymentTransactionBinding(batchID: batch.batchID,
+            batchDigest: batch.batchSHA256, transactionID: transactionID,
+            requestIDs: batch.operations.map(\.requestID), pluginID: batch.pluginID,
+            dylibSHA256: dylibHash.lowercased(), plistSHA256: plistHash.lowercased(),
+            manifestSHA256: manifestHash.lowercased())
+        guard prepared.transactionBinding?.validate() == true else { throw PipelineError.proofMismatch }
         let transaction: HelperSafeFileExecutor.TransactionReceipt
         do { transaction = try backend.execute(prepared) }
         catch { throw PipelineError.executionFailed }
 
         guard transaction.pluginID == pair.pluginID,
+              transaction.transactionID == transactionID,
               Set(transaction.requestIDs) == Set(batch.operations.map(\.requestID)),
               Set(transaction.changedPaths) == Set([pair.dylib.targetFileName, pair.plist.targetFileName]),
               transaction.dylibSHA256.caseInsensitiveCompare(pair.dylib.expectedSHA256 ?? "") == .orderedSame,
@@ -116,7 +128,8 @@ struct HelperDeploymentPipeline {
             requestIDs: transaction.requestIDs,
             changedPaths: transaction.changedPaths.sorted(),
             dylibSHA256: transaction.dylibSHA256, plistSHA256: transaction.plistSHA256,
-            completedAt: transaction.completedAt, manifestSHA256: transaction.manifestSHA256)
+            completedAt: transaction.completedAt, manifestSHA256: transaction.manifestSHA256,
+            transactionID: transaction.transactionID)
     }
 
     private func validate(_ prepared: HelperAuthorizedDeployment,

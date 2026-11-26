@@ -6,11 +6,17 @@ import Foundation
 /// verified ownership/deployment pipeline.
 final class HelperRequestDispatcher {
     static let executionReleased = false
+    /// Association writes remain independently locked pending RootHide device validation.
+    static let pluginAssociationCommitReleased = false
 
     enum RejectionCode: String, Codable {
         case invalidSession = "invalid_session"
         case staleRequest = "stale_request"
         case replayedRequest = "replayed_request"
+        case deploymentBatchInProgress = "deployment_batch_in_progress"
+        case deploymentBatchOutcomeUnknown = "deployment_batch_outcome_unknown"
+        case deploymentBatchRolledBack = "deployment_batch_rolled_back"
+        case deploymentBatchConflict = "deployment_batch_id_conflict"
         case malformedOperation = "malformed_operation"
         case malformedBatch = "malformed_batch"
         case executionDisabled = "execution_disabled"
@@ -22,6 +28,10 @@ final class HelperRequestDispatcher {
         case recoveryRequired = "recovery_required"
         case invalidTransactionJournal = "invalid_transaction_journal"
         case messageNotAllowed = "message_not_allowed"
+        case malformedPluginMutation = "malformed_plugin_mutation"
+        case pluginMutationAuthorizationFailed = "plugin_mutation_authorization_failed"
+        case pluginMutationRecoveryRequired = "plugin_mutation_recovery_required"
+        case pluginMutationAuditUnavailable = "plugin_mutation_audit_unavailable"
     }
 
     struct Rejection: Codable, Equatable {
@@ -32,22 +42,34 @@ final class HelperRequestDispatcher {
     private let manifest: HelperDeploymentManifest
     private let audit: HelperAuditSink
     private let replayGuard: HelperRequestReplayGuard
+    private let deploymentIdempotencyLedger: HelperDeploymentIdempotencyLedger
+    private let deploymentLedgerStore: HelperDeploymentDurableLedgerStore?
     private let clockSkewLimit: TimeInterval
     private let deploymentPipeline: HelperDeploymentPipeline?
     private let pluginDirectory: String?
+    private let pluginFilterMutationAuthorizer: HelperPluginFilterMutationAuthorizer?
+    private let pluginAssociationTransaction: HelperPluginFilterConfigurationTransaction?
 
     init(manifest: HelperDeploymentManifest,
          audit: HelperAuditSink,
          replayGuard: HelperRequestReplayGuard = HelperRequestReplayGuard(),
+         deploymentIdempotencyLedger: HelperDeploymentIdempotencyLedger = HelperDeploymentIdempotencyLedger(),
+         deploymentLedgerStore: HelperDeploymentDurableLedgerStore? = nil,
          clockSkewLimit: TimeInterval = 120,
          deploymentPipeline: HelperDeploymentPipeline? = nil,
-         pluginDirectory: String? = nil) {
+         pluginDirectory: String? = nil,
+         pluginFilterMutationAuthorizer: HelperPluginFilterMutationAuthorizer? = nil,
+         pluginAssociationTransaction: HelperPluginFilterConfigurationTransaction? = nil) {
         self.manifest = manifest
         self.audit = audit
         self.replayGuard = replayGuard
+        self.deploymentIdempotencyLedger = deploymentIdempotencyLedger
+        self.deploymentLedgerStore = deploymentLedgerStore
         self.clockSkewLimit = max(1, clockSkewLimit)
         self.deploymentPipeline = deploymentPipeline
         self.pluginDirectory = pluginDirectory
+        self.pluginFilterMutationAuthorizer = pluginFilterMutationAuthorizer
+        self.pluginAssociationTransaction = pluginAssociationTransaction
     }
 
     func dispatch(_ envelope: HelperIPCEnvelope,
@@ -65,8 +87,10 @@ final class HelperRequestDispatcher {
         guard abs(now.timeIntervalSince(envelope.createdAt)) <= clockSkewLimit else {
             return reject(envelope, code: .staleRequest, operation: nil, peer: context.identity)
         }
-        guard replayGuard.accept(envelope.requestID, now: now) else {
-            return reject(envelope, code: .replayedRequest, operation: nil, peer: context.identity)
+        if envelope.messageType != .deploymentBatchRequest {
+            guard replayGuard.accept(envelope.requestID, now: now) else {
+                return reject(envelope, code: .replayedRequest, operation: nil, peer: context.identity)
+            }
         }
 
         switch envelope.messageType {
@@ -88,6 +112,7 @@ final class HelperRequestDispatcher {
         case .maintenanceRecoveryRequest:
             guard let payload = envelope.payload,
                   let request = Self.decodeMaintenanceRequest(payload),
+                  request.requestNonce == envelope.requestID,
                   request.requestNonce != UUID(uuidString: "00000000-0000-0000-0000-000000000000"),
                   abs(request.requestedAt.timeIntervalSince(envelope.createdAt)) <= 5,
                   abs(now.timeIntervalSince(request.requestedAt)) <= clockSkewLimit else {
@@ -95,27 +120,134 @@ final class HelperRequestDispatcher {
             }
             let currentStatus = recoveryStatus()
             let result: HelperMaintenanceResult
+            var boundTransactionID: UUID? = nil
             switch request.action {
             case .inspect:
                 result = .inspected
             case .reconcileThreeFileTransaction:
-                // P1-32 exposes the authenticated maintenance protocol but deliberately does not
-                // execute recovery mutations until Darwin/device validation and release approval.
-                result = .recoveryNotReleased
+                guard request.operatorConfirmed,
+                      let transactionID = request.transactionID,
+                      transactionID != UUID(uuidString: "00000000-0000-0000-0000-000000000000") else {
+                    return reject(envelope, code: .malformedOperation, operation: nil, peer: context.identity)
+                }
+                do {
+                    _ = try HelperRecoveryAuthorization.authorize(context: context,
+                        transactionID: transactionID, requestNonce: request.requestNonce,
+                        operatorConfirmed: request.operatorConfirmed, now: now,
+                        clockSkewLimit: clockSkewLimit)
+                    boundTransactionID = transactionID
+                    // Authorization is integrated end-to-end, but recovery mutation remains
+                    // disabled pending Darwin/Xcode and RootHide device validation.
+                    result = .recoveryNotReleased
+                } catch {
+                    return reject(envelope, code: .malformedOperation, operation: nil, peer: context.identity)
+                }
             }
             do {
                 try audit.append(HelperAuditRecord(requestID: envelope.requestID, peer: context.identity,
                     outcome: request.action == .inspect ? .accepted : .rejected,
-                    reasonCode: request.action == .inspect ? "maintenance_inspect" : RejectionCode.maintenanceRecoveryNotReleased.rawValue))
+                    reasonCode: request.action == .inspect ? "maintenance_inspect" :
+                        (boundTransactionID == nil ? "maintenance_authorization_rejected" : RejectionCode.maintenanceRecoveryNotReleased.rawValue)))
             } catch {
                 return reject(envelope, code: .auditUnavailable, operation: nil, peer: context.identity)
             }
             let response = HelperMaintenanceRecoveryResponse(result: result, recoveryStatus: currentStatus,
-                                                             completedAt: now)
+                completedAt: now, transactionID: boundTransactionID)
             let encoder = JSONEncoder(); encoder.dateEncodingStrategy = .iso8601
             return HelperIPCEnvelope(messageType: .maintenanceRecoveryResponse, requestID: envelope.requestID,
                                      createdAt: now, nonce: context.sessionNonce,
                                      payload: try? encoder.encode(response))
+
+        case .pluginFilterMutationPrepareRequest:
+            guard let payload = envelope.payload,
+                  let request = Self.decodePluginFilterMutation(payload),
+                  request.requestID == envelope.requestID,
+                  abs(request.createdAt.timeIntervalSince(envelope.createdAt)) <= 5,
+                  request.validateShape(now: now, clockSkewLimit: clockSkewLimit) else {
+                return reject(envelope, code: .malformedPluginMutation, operation: nil, peer: context.identity)
+            }
+            guard recoveryStatus() == .clean else {
+                return reject(envelope, code: .pluginMutationRecoveryRequired, operation: nil, peer: context.identity)
+            }
+            guard let authorizer = pluginFilterMutationAuthorizer else {
+                return reject(envelope, code: .dispatchNotConfigured, operation: nil, peer: context.identity)
+            }
+            do {
+                let prepared = try authorizer.prepare(request, now: now)
+                let encoder = JSONEncoder(); encoder.dateEncodingStrategy = .iso8601
+                let responseData = try encoder.encode(prepared.response)
+                do {
+                    try audit.append(HelperAuditRecord(requestID: envelope.requestID, peer: context.identity,
+                        outcome: .accepted, reasonCode: prepared.disposition == .alreadyInRequestedState
+                            ? "plugin_mutation_already_current" : "plugin_mutation_prepared_read_only"))
+                } catch {
+                    return reject(envelope, code: .pluginMutationAuditUnavailable, operation: nil, peer: context.identity)
+                }
+                return HelperIPCEnvelope(messageType: .pluginFilterMutationPrepared, requestID: envelope.requestID,
+                    createdAt: now, nonce: context.sessionNonce, payload: responseData)
+            } catch {
+                return reject(envelope, code: .pluginMutationAuthorizationFailed, operation: nil, peer: context.identity)
+            }
+
+        case .pluginFilterMutationCommitRequest:
+            guard let payload = envelope.payload,
+                  let request = Self.decodePluginFilterMutation(payload),
+                  request.requestID == envelope.requestID,
+                  abs(request.createdAt.timeIntervalSince(envelope.createdAt)) <= 5,
+                  request.validateShape(now: now, clockSkewLimit: clockSkewLimit) else {
+                return reject(envelope, code: .malformedPluginMutation, operation: nil, peer: context.identity)
+            }
+            guard recoveryStatus() == .clean else {
+                return reject(envelope, code: .pluginMutationRecoveryRequired, operation: nil, peer: context.identity)
+            }
+            guard Self.pluginAssociationCommitReleased else {
+                return reject(envelope, code: .executionDisabled, operation: nil, peer: context.identity)
+            }
+            guard let authorizer = pluginFilterMutationAuthorizer,
+                  let transaction = pluginAssociationTransaction else {
+                return reject(envelope, code: .dispatchNotConfigured, operation: nil, peer: context.identity)
+            }
+            do {
+                // Re-authorize at commit time. No prepare result or App-supplied replacement bytes
+                // are trusted across the confirmation boundary.
+                let prepared = try authorizer.prepare(request, now: now)
+                // A durable audit acceptance is required before any write. A later completion-audit
+                // failure must never turn an already-committed transaction into a rejection.
+                do {
+                    try audit.append(HelperAuditRecord(requestID: envelope.requestID, peer: context.identity,
+                        outcome: .accepted, reasonCode: "plugin_association_commit_authorized"))
+                } catch {
+                    return reject(envelope, code: .pluginMutationAuditUnavailable, operation: nil, peer: context.identity)
+                }
+                let receipt: HelperPluginFilterMutationCommitReceipt
+                if prepared.disposition == .alreadyInRequestedState {
+                    receipt = HelperPluginFilterMutationCommitReceipt(requestID: request.requestID,
+                        pluginID: request.pluginID, action: request.action,
+                        targetBundleIdentifier: request.targetBundleIdentifier, transactionID: nil,
+                        disposition: .alreadyInRequestedState,
+                        plistSHA256: prepared.response.previousPlistSHA256 ?? "",
+                        manifestSHA256: prepared.response.previousManifestSHA256 ?? "",
+                        completedAt: now)
+                } else {
+                    let committed = try transaction.execute(prepared)
+                    receipt = HelperPluginFilterMutationCommitReceipt(requestID: request.requestID,
+                        pluginID: request.pluginID, action: request.action,
+                        targetBundleIdentifier: request.targetBundleIdentifier, transactionID: committed.transactionID,
+                        disposition: .committed, plistSHA256: committed.plistSHA256,
+                        manifestSHA256: committed.manifestSHA256, completedAt: committed.completedAt)
+                }
+                let encoder = JSONEncoder(); encoder.dateEncodingStrategy = .iso8601
+                let responseData = try encoder.encode(receipt)
+                // Best-effort completion event only. The pre-commit authorization event is the
+                // fail-closed audit barrier; do not report failure after a successful disk commit.
+                try? audit.append(HelperAuditRecord(requestID: envelope.requestID, peer: context.identity,
+                    outcome: .accepted, reasonCode: receipt.transactionID == nil
+                        ? "plugin_association_already_current" : "plugin_association_committed"))
+                return HelperIPCEnvelope(messageType: .pluginFilterMutationCommitted, requestID: envelope.requestID,
+                    createdAt: now, nonce: context.sessionNonce, payload: responseData)
+            } catch {
+                return reject(envelope, code: .pluginMutationAuthorizationFailed, operation: nil, peer: context.identity)
+            }
 
         case .deploymentBatchRequest:
             guard let payload = envelope.payload,
@@ -125,14 +257,9 @@ final class HelperRequestDispatcher {
                   (try? batch.validate(now: now, clockSkewLimit: clockSkewLimit)) != nil else {
                 return reject(envelope, code: .malformedBatch, operation: nil, peer: context.identity)
             }
-            // Protect both the batch envelope ID and each operation ID. A caller cannot evade
-            // replay protection by wrapping previously seen operations in a fresh batch UUID.
-            guard batch.operations.allSatisfy({ replayGuard.accept($0.requestID, now: now) }) else {
-                return reject(envelope, code: .replayedRequest, operation: nil, peer: context.identity)
-            }
             switch recoveryStatus() {
             case .clean: break
-            case .legacyRecoveryRequired, .threeFileRecoveryRequired, .bothRecoveryRequired:
+            case .legacyRecoveryRequired, .threeFileRecoveryRequired, .bothRecoveryRequired, .associationTransactionRecoveryRequired:
                 return reject(envelope, code: .recoveryRequired, operation: nil, peer: context.identity)
             case .invalidJournal, .unavailable:
                 return reject(envelope, code: .invalidTransactionJournal, operation: nil, peer: context.identity)
@@ -143,21 +270,46 @@ final class HelperRequestDispatcher {
             guard let deploymentPipeline else {
                 return reject(envelope, code: .dispatchNotConfigured, operation: nil, peer: context.identity)
             }
+            // Persist the immutable batch binding only after all read-only gates pass. A process
+            // restart converts an in-flight record to indeterminate and blocks automatic replay.
+            let transactionID = UUID()
+            switch deploymentIdempotencyLedger.begin(batchID: batch.batchID, digest: batch.batchSHA256,
+                requestIDs: batch.operations.map(\.requestID), transactionID: transactionID) {
+            case .accepted: break
+            case .existing(.inProgress):
+                return reject(envelope, code: .deploymentBatchInProgress, operation: nil, peer: context.identity)
+            case .existing(.indeterminate):
+                return reject(envelope, code: .deploymentBatchOutcomeUnknown, operation: nil, peer: context.identity)
+            case .existing(.completed):
+                return reject(envelope, code: .replayedRequest, operation: nil, peer: context.identity)
+            case .existing(.rolledBack):
+                return reject(envelope, code: .deploymentBatchRolledBack, operation: nil, peer: context.identity)
+            case .conflict:
+                return reject(envelope, code: .deploymentBatchConflict, operation: nil, peer: context.identity)
+            }
             do {
-                let receipt = try deploymentPipeline.execute(batch, context: context, now: now)
+                let receipt = try deploymentPipeline.execute(batch, context: context, now: now, transactionID: transactionID)
                 let encoder = JSONEncoder(); encoder.dateEncodingStrategy = .iso8601
                 let payload = try encoder.encode(receipt)
-                try audit.append(HelperAuditRecord(requestID: envelope.requestID, peer: context.identity,
+                guard deploymentIdempotencyLedger.finish(batchID: batch.batchID, digest: batch.batchSHA256, state: .completed) else {
+                    return reject(envelope, code: .deploymentBatchOutcomeUnknown, operation: nil, peer: context.identity)
+                }
+                // The durable completed record is authoritative. Completion audit is best-effort
+                // and must not downgrade a committed batch if the audit sink is unavailable.
+                try? audit.append(HelperAuditRecord(requestID: envelope.requestID, peer: context.identity,
                     outcome: .accepted, reasonCode: "deployment_batch_committed"))
                 return HelperIPCEnvelope(messageType: .deploymentBatchReceipt, requestID: envelope.requestID,
                     createdAt: now, nonce: context.sessionNonce, payload: payload)
             } catch HelperDeploymentPipeline.PipelineError.authorizationFailed {
+                _ = deploymentIdempotencyLedger.finish(batchID: batch.batchID, digest: batch.batchSHA256, state: .indeterminate)
                 return reject(envelope, code: .authorizationFailed, operation: nil, peer: context.identity)
             } catch HelperDeploymentPipeline.PipelineError.invalidBatch,
                     HelperDeploymentPipeline.PipelineError.proofMismatch,
                     HelperDeploymentPipeline.PipelineError.planMismatch {
+                _ = deploymentIdempotencyLedger.finish(batchID: batch.batchID, digest: batch.batchSHA256, state: .indeterminate)
                 return reject(envelope, code: .malformedBatch, operation: nil, peer: context.identity)
             } catch {
+                _ = deploymentIdempotencyLedger.finish(batchID: batch.batchID, digest: batch.batchSHA256, state: .indeterminate)
                 return reject(envelope, code: .deploymentFailed, operation: nil, peer: context.identity)
             }
 
@@ -176,7 +328,7 @@ final class HelperRequestDispatcher {
             // on-disk manifest cannot activate deployment until a separately reviewed release.
             switch recoveryStatus() {
             case .clean: break
-            case .legacyRecoveryRequired, .threeFileRecoveryRequired, .bothRecoveryRequired:
+            case .legacyRecoveryRequired, .threeFileRecoveryRequired, .bothRecoveryRequired, .associationTransactionRecoveryRequired:
                 return reject(envelope, code: .recoveryRequired, operation: request.operation, peer: context.identity)
             case .invalidJournal, .unavailable:
                 return reject(envelope, code: .invalidTransactionJournal, operation: request.operation, peer: context.identity)
@@ -209,14 +361,21 @@ final class HelperRequestDispatcher {
     private func recoveryStatus() -> HelperRecoveryStatus {
         let detail: HelperStartupRecoveryCheck.Detail
         guard let pluginDirectory else { return .unavailable }
-        detail = HelperStartupRecoveryCheck().inspectDetailed(pluginDirectory: pluginDirectory)
+        detail = HelperStartupRecoveryCheck().inspectDetailed(pluginDirectory: pluginDirectory, deploymentLedgerStore: deploymentLedgerStore)
         switch detail {
         case .clean: return .clean
         case .legacyRecoveryRequired: return .legacyRecoveryRequired
         case .threeFileRecoveryRequired: return .threeFileRecoveryRequired
         case .bothRecoveryRequired: return .bothRecoveryRequired
+        case .associationTransactionRecoveryRequired: return .associationTransactionRecoveryRequired
         case .invalidJournal: return .invalidJournal
         }
+    }
+
+    private static func decodePluginFilterMutation(_ data: Data) -> HelperPluginFilterMutationRequest? {
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        return try? decoder.decode(HelperPluginFilterMutationRequest.self, from: data)
     }
 
     private static func decodeMaintenanceRequest(_ data: Data) -> HelperMaintenanceRecoveryRequest? {

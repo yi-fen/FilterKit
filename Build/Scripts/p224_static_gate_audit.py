@@ -1,0 +1,28 @@
+#!/usr/bin/env python3
+from pathlib import Path
+root = Path(__file__).resolve().parents[2]
+checks=[]
+def check(name, ok): checks.append((name, bool(ok)))
+binding=(root/'Sources/Environment/Helper/Execution/HelperDeploymentTransactionBinding.swift').read_text()
+ledger=(root/'Sources/Environment/Helper/Execution/HelperDeploymentIdempotencyLedger.swift').read_text()
+pipe=(root/'Sources/Environment/Helper/Execution/HelperDeploymentPipeline.swift').read_text()
+backend=(root/'Sources/Environment/Helper/Execution/HelperProductionDeploymentBackend.swift').read_text()
+tx=(root/'Sources/Environment/Helper/Execution/HelperThreeFileTransaction.swift').read_text()
+dispatch=(root/'Sources/Environment/Helper/Runtime/HelperRequestDispatcher.swift').read_text()
+check('batch digest and transaction identity model', all(x in binding for x in ['batchID','batchDigest','transactionID','requestIDs','pluginID']))
+check('three artifact hashes bound', all(x in binding for x in ['dylibSHA256','plistSHA256','manifestSHA256']))
+check('dispatcher persists transaction id before pipeline', 'let transactionID = UUID()' in dispatch and 'transactionID: transactionID' in dispatch and dispatch.index('deploymentIdempotencyLedger.begin') < dispatch.index('deploymentPipeline.execute'))
+check('ledger preserves transaction id across states', 'transactionID: entry.transactionID' in ledger and 'transactionID: transactionID' in ledger)
+check('pipeline derives binding from validated batch and proof', 'HelperDeploymentTransactionBinding(batchID: batch.batchID' in pipe and 'prepared.transactionBinding?.validate()' in pipe)
+check('backend requires binding and passes to transaction', 'prepared.transactionBinding' in backend and 'deploymentBinding: binding' in backend)
+check('transaction journal persists binding', 'let deploymentBinding: HelperDeploymentTransactionBinding?' in tx and 'deploymentBinding: deploymentBinding' in tx)
+check('journal schema remains backward compatible', 'schemaVersion == 1 && deploymentBinding == nil' in tx and 'schemaVersion == 2 && deploymentBinding != nil' in tx)
+check('transaction receipt id is checked', 'transaction.transactionID == transactionID' in pipe and 'transactionID: receipt.transactionID' in backend)
+check('reconciliation rejects identity and artifact mismatch', 'identityMismatch' in binding and 'artifactMismatch' in binding and 'actualHashes' in binding)
+startup = (root/'Sources/Environment/Helper/Runtime/HelperStartupRecoveryCheck.swift').read_text()
+check('startup cross-checks durable ledger and transaction journal', 'deploymentLedgerStore.load()' in startup and 'HelperDeploymentJournalReconciliation.compare' in startup and 'validateAuxiliaryArtifacts()' in startup)
+check('startup recovery remains read-only', 'inspectPendingEvidence' in startup.split('/// Explicit recovery entry point')[0] and '.reconcile()' not in startup.split('/// Explicit recovery entry point')[0])
+check('production execution gates remain closed', 'static let executionReleased = false' in backend and 'static let executionReleased = false' in dispatch)
+for name,ok in checks: print(('PASS' if ok else 'FAIL')+' '+name)
+print(f'{sum(v for _,v in checks)}/{len(checks)} passed')
+raise SystemExit(0 if all(v for _,v in checks) else 1)

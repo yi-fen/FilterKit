@@ -133,7 +133,8 @@
 "plugins.ownership.filterkit" = "由 FilterKit 管理";
 "plugins.ownership.package_manager" = "由其他包管理器管理";
 "plugins.ownership.unknown" = "来源未知";
-"plugins.pairing.paired" = "dylib + plist 已配对";
+"plugins.pairing.paired" = "已配对";
+"plugins.pairing.unpaired" = "未配对";
 "plugins.pairing.orphan_dylib" = "缺少 plist";
 "plugins.pairing.orphan_plist" = "缺少 dylib";
 "plugins.pairing.unreadable" = "无法读取";
@@ -261,3 +262,46 @@
 "settings.helper.recovery_invalid" = "事务日志异常";
 
 "settings.helper.not_configured" = "尚未配置";
+
+"plugins.row.hard_bound" = "硬绑定：%@";
+"plugins.row.associated_apps" = "关联：%@";
+"plugins.row.global_association" = "关联：全局（*）";
+"plugins.row.executable_targets" = "关联：按 Executable 匹配";
+"plugins.row.no_association" = "关联：未识别到目标 App";
+"plugins.row.filterkit_manifest_unverified" = "来源：FilterKit 清单（身份待验证）";
+
+"plugins.row.source_filterkit" = "来源：FilterKit";
+"plugins.row.source_package_manager" = "来源：包管理器";
+"plugins.row.source_unknown" = "来源：未知 / 待验证";
+
+/* P2-03 只读关联预览 */
+"plugins.association_preview.title" = "App 关联预览";
+"plugins.association_preview.third_party_read_only" = "第三方插件为只读。FilterKit 不会修改其过滤配置。";
+"plugins.association_preview.permission_blocked" = "此插件尚未通过 FilterKit 管理权限验证。";
+"plugins.association_preview.pair_blocked" = "需要有效配对的 dylib 和 plist 才能生成预览。";
+"plugins.association_preview.loading_apps" = "正在读取已安装 App…";
+"plugins.association_preview.no_apps" = "没有可选的已安装 App；硬绑定 App 不允许修改。";
+"plugins.association_preview.target_app" = "目标 App";
+"plugins.association_preview.preview_enable" = "预览启用";
+"plugins.association_preview.preview_disable" = "预览停用";
+"plugins.association_preview.apps_unavailable" = "无法读取已安装 App 清单。";
+"plugins.association_preview.plist_unavailable" = "原始插件 plist 不可读取，或不是普通文件。";
+"plugins.association_preview.policy_blocked" = "所选目标不符合只读预览策略。";
+"plugins.association_preview.before" = "修改前 Bundles";
+"plugins.association_preview.after" = "修改后 Bundles";
+"plugins.association_preview.preserved_root_keys" = "保留的根字段：%@";
+"plugins.association_preview.preserved_filter_keys" = "保留的 Filter 字段：%@";
+"plugins.association_preview.read_only_notice" = "仅生成预览，不写入任何文件，也不改变注入状态。";
+"plugins.association_preview.roothide_only" = "此预览仅依据已审阅的 RootHide ElleKit 过滤规则；此处尚未确认设备安装的 ElleKit 源码版本。";
+"plugins.association_preview.semantics_notice" = "Bundles、Classes 和 Executables 可能采用 OR 匹配。预览不代表注入或运行时加载成功。";
+
+"plugins.association_preview.confirm_action" = "继续并确认操作";
+"plugins.association_preview.confirm_title" = "确认关联变更";
+"plugins.association_preview.confirm_button" = "确认变更";
+"plugins.association_preview.confirm_message" = "此操作将修改所选 App 对应的 ElleKit 注入过滤规则。在 Helper 提交链路完成真机验证并正式开放前，操作仍会被阻止。";
+"plugins.association_preview.commit_locked" = "已确认，但 Helper 提交功能仍处于锁定状态；没有修改任何文件。";
+"plugins.association_preview.committing" = "正在通过 Helper 提交关联变更…";
+"plugins.association_preview.commit_success" = "Helper 已确认提交；请重新扫描以刷新插件状态。";
+"plugins.association_preview.commit_failed" = "提交未完成。请检查 Helper 状态和事务恢复提示；不要重复操作。";
+"plugins.association_preview.commit_invalid_receipt" = "Helper 回执与当前插件或目标 App 不匹配，状态未更新。";
+"plugins.association_preview.helper_not_provisioned" = "尚未安装经过签名信任配置的 Helper，无法建立安全连接。";

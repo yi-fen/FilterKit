@@ -8,6 +8,7 @@ struct HelperAuditRecord: Codable, Equatable {
     let requestID: UUID?
     let operation: HelperOperation?
     let peerUID: UInt32?
+    let peerGID: UInt32?
     let peerPID: Int32?
     let peerCDHash: String?
     let outcome: Outcome
@@ -25,6 +26,7 @@ struct HelperAuditRecord: Codable, Equatable {
         self.requestID = requestID
         self.operation = operation
         self.peerUID = peer?.uid
+        self.peerGID = peer?.gid
         self.peerPID = peer?.pid
         self.peerCDHash = peer?.cdHashHex
         self.outcome = outcome
@@ -54,7 +56,7 @@ struct HelperLifecycleProfile: Codable, Equatable {
     static let conservativePersistent = HelperLifecycleProfile(
         runAtLoad: true, keepAlive: true, throttleIntervalSeconds: 10,
         maximumConcurrentConnections: 8, idleConnectionTimeoutSeconds: 5,
-        socketModeOctal: "0666", auditFileModeOctal: "0600",
+        socketModeOctal: "0660", auditFileModeOctal: "0600",
         maximumAuditFileBytes: 1_048_576, retainedAuditFiles: 3
     )
 }

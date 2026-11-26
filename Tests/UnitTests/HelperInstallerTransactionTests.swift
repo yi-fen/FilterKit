@@ -3,7 +3,7 @@ import XCTest
 
 final class HelperInstallerTransactionTests: XCTestCase {
     private func bundle() throws -> HelperInstallerProvisioningBundle {
-        let value = HelperInstallerProvisioningBundle(schemaVersion: 1, generation: 10,
+        let value = HelperInstallerProvisioningBundle(schemaVersion: 2, generation: 10,
             releaseIdentifier: "1.0.0-p135", bundleIdentifier: "cn.yfen.filterkit",
             jbRootPath: "/var/jb", appCDHash: String(repeating: "a", count: 40),
             helperCDHash: String(repeating: "b", count: 40), allowedClientUID: 501,

@@ -1,0 +1,32 @@
+#!/usr/bin/env python3
+from pathlib import Path
+root = Path(__file__).resolve().parents[2]
+checks = []
+def check(name, ok): checks.append((name, bool(ok)))
+trust = (root/'Sources/Core/Models/Helper/HelperTrustProvisioning.swift').read_text()
+installer = (root/'Sources/Core/Models/Helper/HelperInstallerProvisioning.swift').read_text()
+script = (root/'Build/scripts/p209_provision_helper_trust.py').read_text()
+audit = (root/'Build/scripts/p227_identity_provisioning_audit.py').read_text()
+tests = (root/'Tests/UnitTests/HelperMaintenanceChannelCompatibilityTests.swift').read_text()
+smoke = (root/'Build/Scripts/p2-27-compatibility-smoke.swift').read_text()
+transport = (root/'Sources/Core/Models/Helper/HelperTrustProvisioning.swift').read_text()
+check('App trust carries explicit root Helper UID/GID expectations', 'allowedHelperUIDs: [UInt32]?' in trust and 'allowedHelperGIDs: [UInt32]?' in trust)
+check('new App trust configurations pin Helper UID/GID to root', 'allowedHelperUIDs: [0], allowedHelperGIDs: [0]' in trust and 'allowedHelperUIDs: [0], allowedHelperGIDs: [0]' in installer)
+check('legacy schema-1 trust configuration remains decodable with root defaults', 'allowedHelperUIDs ?? [0]' in trust and 'allowedHelperGIDs ?? [0]' in trust)
+check('App factory checks live App CDHash is readable and well-formed', 'provider.ownCDHash()' in trust and 'invalidAppCodeIdentity' in trust)
+check('App factory uses provisioned Helper UID/GID policy', 'Set(helperUIDs)' in trust and 'Set(helperGIDs)' in trust)
+check('cross-check policy binds App bundle and generation', 'appTrust.bundleIdentifier == installer.bundleIdentifier' in trust and 'appTrust.generation == installer.generation' in trust)
+check('cross-check policy binds observed App and Helper CDHashes', 'observedAppCDHash.caseInsensitiveCompare(installer.appCDHash)' in trust and 'observedHelperCDHash.caseInsensitiveCompare(installer.helperCDHash)' in trust)
+check('cross-check policy binds measured client UID and socket GID', 'observedClientUID == installer.allowedClientUID' in trust and 'observedClientGID == installer.socketGroupID' in trust)
+check('cross-check policy rejects non-root Helper identity', 'observedHelperUID == 0' in trust and 'observedHelperGID == 0' in trust)
+check('provisioning generator emits Helper root UID/GID pins', script.count('"allowedHelperUIDs": [0]') >= 2 and script.count('"allowedHelperGIDs": [0]') >= 2)
+check('final identity audit verifies signatures using codesign strict mode', 'codesign", "--verify", "--strict", "--deep"' in audit)
+check('final identity audit compares App and Helper CDHashes', 'app_sig["cdhash"]' in audit and 'helper_sig["cdhash"]' in audit)
+check('final identity audit checks embedded App trust generation and Helper pin', 'app_trust.get("generation")' in audit and 'allowedHelperCDHashes' in audit)
+check('compatibility tests cover identity and credential mismatch paths', 'testAppCDHashMismatchIsRejected' in tests and 'testHelperCDHashMismatchIsRejected' in tests and 'testUIDAndGIDMismatchesAreRejected' in tests)
+check('compiled host smoke covers positive, mismatch, and legacy decoding cases', 'HelperMaintenanceChannelCompatibilityPolicy.validate' in smoke and 'legacy schema-1 trust remains decodable' in smoke)
+check('all production execution gates remain disabled', 'executionReleased = false' in (root/'Sources/Environment/Helper/Runtime/HelperRequestDispatcher.swift').read_text() and 'executionReleased = false' in (root/'Sources/Environment/Helper/Execution/HelperProductionDeploymentBackend.swift').read_text())
+for name, ok in checks:
+    print(('PASS' if ok else 'FAIL') + ' ' + name)
+print(f'{sum(v for _, v in checks)}/{len(checks)} passed')
+raise SystemExit(0 if all(v for _, v in checks) else 1)

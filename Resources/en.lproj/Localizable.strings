@@ -133,7 +133,8 @@
 "plugins.ownership.filterkit" = "Managed by FilterKit";
 "plugins.ownership.package_manager" = "Managed by package manager";
 "plugins.ownership.unknown" = "Source unknown";
-"plugins.pairing.paired" = "Dylib + plist paired";
+"plugins.pairing.paired" = "Paired";
+"plugins.pairing.unpaired" = "Unpaired";
 "plugins.pairing.orphan_dylib" = "Missing plist";
 "plugins.pairing.orphan_plist" = "Missing dylib";
 "plugins.pairing.unreadable" = "Unreadable";
@@ -261,3 +262,46 @@
 "settings.helper.recovery_invalid" = "Recovery journal invalid";
 
 "settings.helper.not_configured" = "Not configured";
+
+"plugins.row.hard_bound" = "Hard-bound: %@";
+"plugins.row.associated_apps" = "Apps: %@";
+"plugins.row.global_association" = "Apps: Global (*)";
+"plugins.row.executable_targets" = "Apps: Executable targets";
+"plugins.row.no_association" = "Apps: No target App identified";
+"plugins.row.filterkit_manifest_unverified" = "Source: FilterKit manifest (unverified)";
+
+"plugins.row.source_filterkit" = "Source: FilterKit";
+"plugins.row.source_package_manager" = "Source: package manager";
+"plugins.row.source_unknown" = "Source: unknown / unverified";
+
+/* P2-03 read-only association preview */
+"plugins.association_preview.title" = "App Association Preview";
+"plugins.association_preview.third_party_read_only" = "Third-party plugins are read-only. FilterKit will not modify their filters.";
+"plugins.association_preview.permission_blocked" = "This plugin has not passed FilterKit management authorization.";
+"plugins.association_preview.pair_blocked" = "A valid dylib and plist pair is required for a preview.";
+"plugins.association_preview.loading_apps" = "Loading installed apps…";
+"plugins.association_preview.no_apps" = "No eligible installed apps are available. The hard-bound app cannot be changed.";
+"plugins.association_preview.target_app" = "Target App";
+"plugins.association_preview.preview_enable" = "Preview Enable";
+"plugins.association_preview.preview_disable" = "Preview Disable";
+"plugins.association_preview.apps_unavailable" = "Installed app inventory is unavailable.";
+"plugins.association_preview.plist_unavailable" = "The original plugin plist is unavailable or is not a regular file.";
+"plugins.association_preview.policy_blocked" = "The selected target does not satisfy the read-only preview policy.";
+"plugins.association_preview.before" = "Bundles before";
+"plugins.association_preview.after" = "Bundles after";
+"plugins.association_preview.preserved_root_keys" = "Preserved root keys: %@";
+"plugins.association_preview.preserved_filter_keys" = "Preserved Filter keys: %@";
+"plugins.association_preview.read_only_notice" = "Preview only. No files are written and no injection state is changed.";
+"plugins.association_preview.roothide_only" = "This preview models the reviewed RootHide ElleKit filter profile only. The installed ElleKit revision is not confirmed here.";
+"plugins.association_preview.semantics_notice" = "Bundles, Classes and Executables may be OR match dimensions. A preview is not proof of injection or runtime loading.";
+
+"plugins.association_preview.confirm_action" = "Continue to confirmation";
+"plugins.association_preview.confirm_title" = "Confirm association change";
+"plugins.association_preview.confirm_button" = "Confirm change";
+"plugins.association_preview.confirm_message" = "This changes the ElleKit app filter for the selected app. The operation will remain blocked until the Helper commit path is device-validated and released.";
+"plugins.association_preview.commit_locked" = "Confirmed, but Helper commit is still locked. No files were changed.";
+"plugins.association_preview.committing" = "Submitting association change through Helper…";
+"plugins.association_preview.commit_success" = "Helper confirmed the commit. Rescan to refresh plugin state.";
+"plugins.association_preview.commit_failed" = "The commit did not complete. Check Helper status and transaction recovery before retrying.";
+"plugins.association_preview.commit_invalid_receipt" = "The Helper receipt does not match this plugin or target app. State was not updated.";
+"plugins.association_preview.helper_not_provisioned" = "A Helper with a signed trust configuration is not provisioned; a secure connection cannot be established.";
