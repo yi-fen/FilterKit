@@ -87,22 +87,7 @@ final class ReadOnlyEnvironmentProvider: EnvironmentProvider {
         }
         let selectedLibraries = pluginDirectoryAssessment?.selectedPath
 
-        let elleKitPaths = selectedRoots.flatMap { root in
-            [
-                root + "/Library/TweakInject/ellekit.dylib",
-                root + "/Library/TweakInject/libellekit.dylib",
-                root + "/usr/lib/libellekit.dylib",
-                root + "/Library/TweakInject/pspawn.dylib",
-                root + "/usr/lib/TweakInject/pspawn.dylib",
-                root + "/usr/local/lib/libsubstrate.dylib",
-                root + "/Library/Frameworks/libsubstrate.dylib",
-                root + "/Library/Frameworks/ellekit.dylib",
-                root + "/usr/local/bin/loader",
-                root + "/usr/libexec/ellekit/loader",
-                root + "/Library/LaunchDaemons/com.evln.ellekit.startup.plist",
-                root + "/var/lib/dpkg/info/ellekit.list"
-            ]
-        }
+        let elleKitPaths = selectedRoots.flatMap { Self.elleKitCandidatePaths(for: $0) }
         let assessment = selectedRoot.map {
             elleKitInspector.inspect(rootPath: $0, environment: kind, binaryCandidates: elleKitPaths)
         }
@@ -144,5 +129,22 @@ final class ReadOnlyEnvironmentProvider: EnvironmentProvider {
                                status: readable ? .found : .inaccessible,
                                isDirectory: isDirectory.boolValue,
                                detailCode: readable ? "path.readable" : "path.not_readable")
+    }
+
+    private static func elleKitCandidatePaths(for root: String) -> [String] {
+        [
+            root + "/Library/TweakInject/ellekit.dylib",
+            root + "/Library/TweakInject/libellekit.dylib",
+            root + "/usr/lib/libellekit.dylib",
+            root + "/Library/TweakInject/pspawn.dylib",
+            root + "/usr/lib/TweakInject/pspawn.dylib",
+            root + "/usr/local/lib/libsubstrate.dylib",
+            root + "/Library/Frameworks/libsubstrate.dylib",
+            root + "/Library/Frameworks/ellekit.dylib",
+            root + "/usr/local/bin/loader",
+            root + "/usr/libexec/ellekit/loader",
+            root + "/Library/LaunchDaemons/com.evln.ellekit.startup.plist",
+            root + "/var/lib/dpkg/info/ellekit.list"
+        ]
     }
 }
