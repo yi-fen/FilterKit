@@ -305,3 +305,20 @@
 "plugins.association_preview.commit_failed" = "提交未完成。请检查 Helper 状态和事务恢复提示；不要重复操作。";
 "plugins.association_preview.commit_invalid_receipt" = "Helper 回执与当前插件或目标 App 不匹配，状态未更新。";
 "plugins.association_preview.helper_not_provisioned" = "尚未安装经过签名信任配置的 Helper，无法建立安全连接。";
+
+// P2-31 plugin management surface
+"common.ok" = "好";
+"common.done" = "完成";
+"plugins.import.button" = "导入插件";
+"plugins.import.review.title" = "插件导入预检";
+"plugins.import.review.message" = "已选择以下文件：\n%@\n当前版本只完成文件选择与导入预览，不会复制或安装插件。正式导入将在部署事务和签名校验完成后开放。";
+"plugins.selection.manage" = "管理";
+"plugins.selection.toggle" = "选择插件";
+"plugins.selection.count" = "已选择 %d 个可管理插件";
+"plugins.uninstall.selected" = "卸载所选";
+"plugins.uninstall.title" = "卸载尚未开放";
+"plugins.uninstall.disabled" = "卸载插件";
+"plugins.uninstall.locked_message" = "卸载执行链路尚未完成真机验证，当前不会删除任何 dylib、plist 或 manifest。硬绑定插件不会出现在批量选择中。";
+"plugins.management.actions" = "管理操作";
+"plugins.management.hard_bound_protected" = "硬绑定插件受保护，不能通过批量操作选择。";
+"plugins.management.read_only" = "此插件不是 FilterKit 可管理插件，保持只读。";

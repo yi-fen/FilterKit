@@ -305,3 +305,20 @@
 "plugins.association_preview.commit_failed" = "The commit did not complete. Check Helper status and transaction recovery before retrying.";
 "plugins.association_preview.commit_invalid_receipt" = "The Helper receipt does not match this plugin or target app. State was not updated.";
 "plugins.association_preview.helper_not_provisioned" = "A Helper with a signed trust configuration is not provisioned; a secure connection cannot be established.";
+
+// P2-31 plugin management surface
+"common.ok" = "OK";
+"common.done" = "Done";
+"plugins.import.button" = "Import Plugin";
+"plugins.import.review.title" = "Plugin import preflight";
+"plugins.import.review.message" = "Selected files:\n%@\nThis build only provides file selection and an import preview. It does not copy or install plugins. Import will be enabled after deployment transactions and signature validation are complete.";
+"plugins.selection.manage" = "Manage";
+"plugins.selection.toggle" = "Select plugin";
+"plugins.selection.count" = "%d manageable plugins selected";
+"plugins.uninstall.selected" = "Uninstall selected";
+"plugins.uninstall.title" = "Uninstall is locked";
+"plugins.uninstall.disabled" = "Uninstall Plugin";
+"plugins.uninstall.locked_message" = "The uninstall execution path has not passed device validation. No dylib, plist, or manifest will be deleted. Hard-bound plugins are excluded from bulk selection.";
+"plugins.management.actions" = "Management Actions";
+"plugins.management.hard_bound_protected" = "Hard-bound plugins are protected and cannot be selected for bulk operations.";
+"plugins.management.read_only" = "This plugin is not managed by FilterKit and remains read-only.";

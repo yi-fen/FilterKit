@@ -124,6 +124,12 @@ struct PluginsView: View {
     @State private var showingFilterKitOnly = false
     @State private var searchText = ""
     @State private var isImportingBackup = false
+    @State private var isImportingPlugin = false
+    @State private var isManagingSelection = false
+    @State private var selectedPluginIDs: Set<String> = []
+    @State private var importedPluginFiles: [String] = []
+    @State private var showingPluginImportReview = false
+    @State private var showingUninstallGate = false
 
     private var visiblePlugins: [PluginScanItem] {
         let items = model.registry.result?.plugins ?? []
@@ -206,9 +212,21 @@ struct PluginsView: View {
                         }
                         Section {
                             ForEach(visiblePlugins) { plugin in
-                                NavigationLink(destination: PluginScanDetailView(plugin: plugin)) {
-                                    PluginScanRow(plugin: plugin, appNamesByBundleID: model.appNamesByBundleID, appNamesByExecutable: model.appNamesByExecutable)
+                                HStack(spacing: 10) {
+                                    if isManagingSelection {
+                                        Button { togglePluginSelection(plugin) } label: {
+                                            Image(systemName: selectedPluginIDs.contains(plugin.id) ? "checkmark.circle.fill" : "circle")
+                                                .font(.title3)
+                                        }
+                                        .buttonStyle(.plain)
+                                        .disabled(!isBulkSelectable(plugin))
+                                        .accessibilityLabel("plugins.selection.toggle")
+                                    }
+                                    NavigationLink(destination: PluginScanDetailView(plugin: plugin)) {
+                                        PluginScanRow(plugin: plugin, appNamesByBundleID: model.appNamesByBundleID, appNamesByExecutable: model.appNamesByExecutable)
+                                    }
                                 }
+                                .opacity(isManagingSelection && !isBulkSelectable(plugin) ? 0.55 : 1)
                             }
                         }
                     }
@@ -219,20 +237,32 @@ struct PluginsView: View {
             .navigationTitle("tab.plugins")
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
+                ToolbarItemGroup(placement: .navigationBarLeading) {
+                    Button { isImportingPlugin = true } label: {
+                        Image(systemName: "square.and.arrow.down")
+                    }
+                    .accessibilityLabel("plugins.import.button")
+                    .accessibilityIdentifier("plugins.import.button")
                     Menu {
                         Button { model.exportAllManageable() } label: {
                             Label("backup.export.manageable", systemImage: "square.and.arrow.up")
                         }
                         Button { isImportingBackup = true } label: {
-                            Label("backup.restore.import", systemImage: "square.and.arrow.down")
+                            Label("backup.restore.import", systemImage: "doc.badge.arrow.up")
                         }
                     } label: {
                         Image(systemName: "ellipsis.circle")
                     }
                     .accessibilityLabel("backup.actions")
                 }
-                ToolbarItem(placement: .navigationBarTrailing) {
+                ToolbarItemGroup(placement: .navigationBarTrailing) {
+                    Button {
+                        isManagingSelection.toggle()
+                        if !isManagingSelection { selectedPluginIDs.removeAll() }
+                    } label: {
+                        Text(isManagingSelection ? "common.done" : "plugins.selection.manage")
+                    }
+                    .accessibilityIdentifier("plugins.selection.manage")
                     Button { showingFilterKitOnly.toggle() } label: {
                         Image(systemName: showingFilterKitOnly ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle")
                     }
@@ -242,6 +272,21 @@ struct PluginsView: View {
                 }
             }
             .searchable(text: $searchText, prompt: "plugins.search.prompt")
+            .safeAreaInset(edge: .bottom) {
+                if isManagingSelection {
+                    HStack {
+                        Text(String(format: NSLocalizedString("plugins.selection.count", comment: ""), selectedPluginIDs.count))
+                            .font(.footnote).foregroundStyle(.secondary)
+                        Spacer()
+                        Button(role: .destructive) { showingUninstallGate = true } label: {
+                            Label("plugins.uninstall.selected", systemImage: "trash")
+                        }
+                        .disabled(selectedPluginIDs.isEmpty)
+                    }
+                    .padding(.horizontal, 16).padding(.vertical, 10)
+                    .background(.regularMaterial)
+                }
+            }
             .task { await model.load() }
         }
         .navigationViewStyle(StackNavigationViewStyle())
@@ -252,6 +297,28 @@ struct PluginsView: View {
             BackupRestoreReviewView(review: review) { selectedIDs in
                 model.confirmRestoreSelection(selectedIDs)
             }
+        }
+        .fileImporter(isPresented: $isImportingPlugin,
+                      allowedContentTypes: [UTType(filenameExtension: "dylib", conformingTo: .data) ?? .data,
+                                            UTType(filenameExtension: "plist", conformingTo: .xml) ?? .xml],
+                      allowsMultipleSelection: true) { result in
+            switch result {
+            case .success(let urls):
+                importedPluginFiles = urls.map(\.lastPathComponent)
+                showingPluginImportReview = true
+            case .failure:
+                importedPluginFiles = []
+            }
+        }
+        .alert("plugins.import.review.title", isPresented: $showingPluginImportReview) {
+            Button("common.ok", role: .cancel) { importedPluginFiles = [] }
+        } message: {
+            Text(String(format: NSLocalizedString("plugins.import.review.message", comment: ""), importedPluginFiles.joined(separator: "\n")))
+        }
+        .alert("plugins.uninstall.title", isPresented: $showingUninstallGate) {
+            Button("common.ok", role: .cancel) { }
+        } message: {
+            Text("plugins.uninstall.locked_message")
         }
         .fileImporter(isPresented: $isImportingBackup,
                       allowedContentTypes: [UTType(filenameExtension: "filterkitbackup", conformingTo: .data) ?? .data],
@@ -279,6 +346,17 @@ struct PluginsView: View {
         } message: {
             Text(LocalizedStringKey(model.restoreNoticeKey ?? "backup.restore.confirmed_read_only"))
         }
+    }
+
+    private func isBulkSelectable(_ plugin: PluginScanItem) -> Bool {
+        plugin.ownership == .filterKit && plugin.managementPermission?.canModify == true
+            && plugin.hardBoundBundleIdentifier == nil && plugin.pairingState == .paired
+    }
+
+    private func togglePluginSelection(_ plugin: PluginScanItem) {
+        guard isBulkSelectable(plugin) else { return }
+        if selectedPluginIDs.contains(plugin.id) { selectedPluginIDs.remove(plugin.id) }
+        else { selectedPluginIDs.insert(plugin.id) }
     }
 }
 
@@ -746,6 +824,21 @@ private struct PluginScanDetailView: View {
             }
             Section("plugins.association_preview.title") {
                 PluginAssociationPreviewSection(plugin: plugin)
+            }
+            Section("plugins.management.actions") {
+                if plugin.hardBoundBundleIdentifier != nil {
+                    Label("plugins.management.hard_bound_protected", systemImage: "lock.shield")
+                        .font(.footnote).foregroundStyle(.secondary)
+                } else if plugin.ownership == .filterKit && plugin.managementPermission?.canModify == true {
+                    Button(role: .destructive) { } label: {
+                        Label("plugins.uninstall.disabled", systemImage: "trash")
+                    }
+                    .disabled(true)
+                    Text("plugins.uninstall.locked_message").font(.caption).foregroundStyle(.secondary)
+                } else {
+                    Label("plugins.management.read_only", systemImage: "lock.shield")
+                        .font(.footnote).foregroundStyle(.secondary)
+                }
             }
             if !plugin.identityConflictIDs.isEmpty {
                 Section("plugins.identity.conflicts") {
