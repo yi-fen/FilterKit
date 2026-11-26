@@ -85,23 +85,37 @@ private final class PluginsViewModel: ObservableObject {
         // any, stays visible while it runs. Environment probing is off the main
         // actor there, so this does not block the first frame.
         registry.loadIfNeeded()
-        await enrichAppNames()
+        // App display-name enrichment is a background complement: it must not hold
+        // the plugin list's first paint. Snapshot names fill in immediately when
+        // available; the refreshed inventory back-fills the dictionaries later.
+        enrichAppNames()
     }
 
-    private func enrichAppNames() async {
+    private func enrichAppNames() {
         guard registry.result != nil else { return }
-        do {
-            let apps = try await appDiscovery.scanInstalledApps()
-            appNamesByBundleID = Dictionary(apps.map { ($0.bundleIdentifier, $0.displayName) },
-                                            uniquingKeysWith: { first, _ in first })
-            appNamesByExecutable = Dictionary(apps.compactMap { app in
-                app.executableName.map { ($0.lowercased(), app.displayName) }
-            }, uniquingKeysWith: { first, _ in first })
-        } catch {
-            // Keep the plugin inventory visible if LaunchServices enrichment fails.
-            appNamesByBundleID = [:]
-            appNamesByExecutable = [:]
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            let snapshot = await self.appDiscovery.currentSnapshot()
+            if let snapshot { self.applyAppNames(snapshot) }
+            do {
+                let apps = try await self.appDiscovery.scanInstalledApps()
+                self.applyAppNames(apps)
+            } catch {
+                // Keep any snapshot-derived names; only clear when there was no snapshot.
+                if snapshot == nil {
+                    self.appNamesByBundleID = [:]
+                    self.appNamesByExecutable = [:]
+                }
+            }
         }
+    }
+
+    private func applyAppNames(_ apps: [InstalledApp]) {
+        appNamesByBundleID = Dictionary(apps.map { ($0.bundleIdentifier, $0.displayName) },
+                                        uniquingKeysWith: { first, _ in first })
+        appNamesByExecutable = Dictionary(apps.compactMap { app in
+            app.executableName.map { ($0.lowercased(), app.displayName) }
+        }, uniquingKeysWith: { first, _ in first })
     }
 }
 

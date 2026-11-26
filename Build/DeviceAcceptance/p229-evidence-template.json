@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "evidence_kind": "manual-device-capture",
+  "captured_at": "REPLACE_WITH_ISO8601_TIMESTAMP_WITH_TIMEZONE",
+  "operator": "REPLACE_WITH_OPERATOR_ID",
+  "device": {
+    "model": "",
+    "os_version": "",
+    "jailbreak_version": "",
+    "ellekit_version": "",
+    "build_id": ""
+  },
+  "artifacts": {
+    "app_bundle_id": "",
+    "app_cdhash": "",
+    "helper_cdhash": "",
+    "generation": ""
+  },
+  "plugin": {
+    "bundle_id": "",
+    "dylib_sha256": "",
+    "filter_plist_sha256": ""
+  },
+  "target": { "bundle_id": "" },
+  "checks": {
+    "codesign_app_verified": false,
+    "codesign_helper_verified": false,
+    "app_helper_cdhash_crosscheck": false,
+    "helper_peer_uid_gid_verified": false,
+    "live_ipc_health_roundtrip": false,
+    "ellekit_enable_mechanism_observed": false,
+    "ellekit_disable_mechanism_observed": false,
+    "target_injection_observed": false,
+    "disable_prevents_injection_after_restart": false,
+    "recovery_after_interruption": false,
+    "audit_record_persisted": false,
+    "backup_restore_verified": false,
+    "tested_non_system_target": false,
+    "no_system_or_hard_bound_target_modified": false
+  }
+}

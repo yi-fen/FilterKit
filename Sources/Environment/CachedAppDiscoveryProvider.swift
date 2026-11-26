@@ -12,6 +12,12 @@ actor CachedAppDiscoveryProvider: AppDiscoveryProvider, AppDiscoveryRefreshing {
     /// R16's `isLoading` + completion-waiters. Prewarm, Apps, and Plugins all
     /// await the same task instead of each launching a separate LaunchServices scan.
     private var inFlight: Task<[InstalledApp], Error>?
+    /// Thread-safe mirror of the last successful inventory so a SwiftUI view model
+    /// can read a warm snapshot synchronously from its initializer (mirroring R16's
+    /// `currentResult()` in the view `init`), without awaiting the actor. The actor
+    /// remains the single writer; the lock only protects the nonisolated read side.
+    private let mirrorLock = NSLock()
+    private nonisolated(unsafe) var mirror: [InstalledApp]?
 
     init(source: AppDiscoveryProvider, timeToLive: TimeInterval = 60,
          now: @escaping () -> Date = Date.init) {
@@ -38,6 +44,7 @@ actor CachedAppDiscoveryProvider: AppDiscoveryProvider, AppDiscoveryRefreshing {
     func invalidateCache() async {
         cachedApps = nil
         cachedAt = nil
+        mirrorLock.lock(); mirror = nil; mirrorLock.unlock()
     }
 
     /// Non-scanning snapshot of the cached inventory, if present. Used to render
@@ -45,6 +52,14 @@ actor CachedAppDiscoveryProvider: AppDiscoveryProvider, AppDiscoveryRefreshing {
     /// LaunchServices enumeration.
     func currentSnapshot() -> [InstalledApp]? {
         cachedApps
+    }
+
+    /// Synchronous, non-scanning read of the last successful inventory. Usable from
+    /// a view-model initializer before any `await` resumes; returns nil when no warm
+    /// inventory exists yet (first cold launch). Never triggers an enumeration.
+    nonisolated func currentSnapshotSync() -> [InstalledApp]? {
+        mirrorLock.lock(); defer { mirrorLock.unlock() }
+        return mirror
     }
 
     /// Warm the inventory off the foreground path. The scan runs detached and
@@ -80,8 +95,10 @@ actor CachedAppDiscoveryProvider: AppDiscoveryProvider, AppDiscoveryRefreshing {
     private func finalizeRefresh(result: Result<[InstalledApp], Error>) {
         inFlight = nil
         guard case .success(let apps) = result else { return }
-        cachedApps = Self.deduplicatedAndSorted(apps)
+        let sorted = Self.deduplicatedAndSorted(apps)
+        cachedApps = sorted
         cachedAt = now()
+        mirrorLock.lock(); mirror = sorted; mirrorLock.unlock()
     }
 
     private static func deduplicatedAndSorted(_ apps: [InstalledApp]) -> [InstalledApp] {

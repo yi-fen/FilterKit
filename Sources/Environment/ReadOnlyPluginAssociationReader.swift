@@ -4,13 +4,23 @@ import Foundation
 /// This service is deliberately read-only: it does not rewrite manifests or migrate hard bindings.
 final class ReadOnlyPluginAssociationReader: PluginAssociationReadingProvider {
     private let appDiscoveryProvider: AppDiscoveryProvider
+    /// Warm inventory snapshot reused when the caller already holds one. When nil,
+    /// the reader falls back to a fresh provider scan. This keeps association
+    /// resolution from launching a second LaunchServices enumeration on a warm cache.
+    private let snapshotApps: [InstalledApp]?
 
-    init(appDiscoveryProvider: AppDiscoveryProvider) {
+    init(appDiscoveryProvider: AppDiscoveryProvider, snapshotApps: [InstalledApp]? = nil) {
         self.appDiscoveryProvider = appDiscoveryProvider
+        self.snapshotApps = snapshotApps
     }
 
     func readAssociations(from scanResult: PluginScanResult) async throws -> PluginAssociationReadResult {
-        let installedApps = try await appDiscoveryProvider.scanInstalledApps()
+        let installedApps: [InstalledApp]
+        if let snapshotApps {
+            installedApps = snapshotApps
+        } else {
+            installedApps = try await appDiscoveryProvider.scanInstalledApps()
+        }
         let appsByBundleID = Dictionary(installedApps.map { ($0.bundleIdentifier, $0) },
                                         uniquingKeysWith: { first, _ in first })
         var snapshots: [PluginAssociationSnapshot] = []

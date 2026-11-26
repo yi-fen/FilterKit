@@ -15,6 +15,10 @@ private final class AppsViewModel: ObservableObject {
     init() {
         appProvider = AppDiscoveryProviderRegistry.shared
         environmentProvider = ReadOnlyEnvironmentProvider()
+        // R16-aligned: read any warm inventory synchronously from the initializer so
+        // the first frame can render the list before `.task` resumes the load. Nil on
+        // a first cold launch; the inline loading row stays the honest fallback then.
+        apps = appProvider.currentSnapshotSync() ?? []
     }
 
     func load(forceRefresh: Bool = false) async {
@@ -34,7 +38,12 @@ private final class AppsViewModel: ObservableObject {
             apps = inventory
             scannedAt = Date()
             errorKey = nil
-            await loadAssociations(using: appProvider)
+            // Association resolution is a background complement: the app list stays
+            // visible once the inventory lands; matched bundle IDs back-fill later.
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                await self.loadAssociations(using: self.appProvider)
+            }
         } catch let error as AppDiscoveryError {
             errorKey = Self.localizationKey(for: error)
         } catch {
@@ -42,7 +51,7 @@ private final class AppsViewModel: ObservableObject {
         }
     }
 
-    private func loadAssociations(using discovery: AppDiscoveryProvider) async {
+    private func loadAssociations(using discovery: CachedAppDiscoveryProvider) async {
         do {
             let report = environmentProvider.makeDiagnosticReport()
             guard let assessment = report.pluginDirectoryAssessment else {
@@ -51,7 +60,8 @@ private final class AppsViewModel: ObservableObject {
             }
             let scanner = ReadOnlyPluginScanner(assessmentProvider: { assessment })
             let scan = try await scanner.scanPlugins()
-            let reader = ReadOnlyPluginAssociationReader(appDiscoveryProvider: discovery)
+            let snapshot = await discovery.currentSnapshot()
+            let reader = ReadOnlyPluginAssociationReader(appDiscoveryProvider: discovery, snapshotApps: snapshot)
             let associations = try await reader.readAssociations(from: scan)
             associatedBundleIDs = Set(associations.snapshots.flatMap { snapshot in
                 snapshot.effectiveBundleIdentifiers

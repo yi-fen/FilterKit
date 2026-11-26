@@ -43,9 +43,14 @@ final class PluginScanRegistry: ObservableObject {
             // Environment probing and plugin enumeration both run off the main
             // actor; this must not block the first foreground frame.
             let report = environment.makeDiagnosticReport()
-            let scanner = ReadOnlyPluginScanner(
-                assessmentProvider: { report.pluginDirectoryAssessment }
-            )
+            let scanner: ReadOnlyPluginScanner
+            if let assessment = report.pluginDirectoryAssessment {
+                scanner = ReadOnlyPluginScanner(assessmentProvider: { assessment })
+            } else {
+                // No resolved directory assessment: the scanner falls back to its
+                // unresolved-directory path instead of injecting a fabricated one.
+                scanner = ReadOnlyPluginScanner()
+            }
             return try await scanner.scanPlugins()
         }
         inFlight = task

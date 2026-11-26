@@ -337,3 +337,45 @@ Process completed with exit code 1.
 
 - `FilterKit-NEW-0.1.0-source.zip`：513 条目 / 726,931 B，SHA256 `82f5ed59c8e67bbcebf3a01178e0264ca58b2c69f817cb2bef5366aeccfedfd6`（回填前一版；文档自引用，覆盖重打包后哈希差一版，以最终文件为准）。
 - 包内含 P2-36 规格、更新后的 `build.yml` 与 `ci-build.sh`；无根目录残留 Swift，版本号仍 1.0.0。
+
+### P2-37 — run 124047030764 编译错误修复（PluginScanRegistry 可选解包）
+
+- 环境：macOS 15.8.2 / macos-15-arm64 / Xcode 16.4 (16F6)，仓库 yi-fen/FilterKit@main，RootHide + DEB。
+- 失败：`Build and package` 步骤 exit 65，唯一编译错误 `Sources/Environment/PluginScanRegistry.swift:47:46: error: value of optional type 'PluginDirectoryAssessment?' must be unwrapped to a value of type 'PluginDirectoryAssessment'`。
+- 根因：`ReadOnlyPluginScanner(assessmentProvider:)` 闭包返回非可选 `PluginDirectoryAssessment`，而 `report.pluginDirectoryAssessment` 为 `PluginDirectoryAssessment?`；P2-35 registry 直接把可选值传入闭包，类型不匹配。
+- 修复：先 `if let assessment = report.pluginDirectoryAssessment` 解包；有值才注入 provider；为 nil 时构造无 provider 的 `ReadOnlyPluginScanner()`，走既有 unresolved-directory 通路（不凭空造兜底 assessment）。口径与 `Sources/Features/Apps/AppsView.swift:48-52` 既有解包一致。
+- 核对：`PluginDirectoryAssessment` 为 struct 值类型，闭包捕获安全；registry 括号配平通过；PluginsView 无旧 environment 属性/自建 scanner 残留；管线自测 `test-deb-packaging.sh` 在本轮日志 PASS。
+- 待 Runner 复验：`xcodegen generate` / `xcodebuild` Release device 编译通过、XCTest、ldid 签名；本机无 Xcode 未实编。
+
+### 交付包（P2-37 registry 可选解包修复态）
+
+- `FilterKit-NEW-0.1.0-source.zip`：513 条目 / 727,601 B，SHA256 `779da57829f07f0c2ecad892435303e0449c2380783b0065f13342072b61bfe1`（回填前一版；文档自引用，覆盖重打包后哈希差一版，以最终文件为准）。
+- 本轮仅改 `Sources/Environment/PluginScanRegistry.swift`；版本号仍 1.0.0。
+
+### P2-38 — App/插件扫描装配时序后置（A1–A3）
+
+- 口径：只调装配时序，不改扫描算法/协议/模型/配对归属。
+- A1 `PluginsView.swift`：`enrichAppNames()` 不再 `await` 阻塞 `load()`；后台 `@MainActor [weak self]` 先填 `currentSnapshot()` 名字，扫描刷新后覆盖回填；抽出 `applyAppNames`。
+- A2 `ReadOnlyPluginAssociationReader.swift`：新增可选 `snapshotApps` 注入，有快照直接用，为 nil 才回退扫描；协议未改，stub 测试走原路径。
+- A3 `AppsView.swift`：`loadAssociations` 后台后置，`associatedBundleIDs` 就绪补全；参数类型收窄为 `CachedAppDiscoveryProvider` 以取快照传给 reader。
+- 静态核对：三文件括号配平；无旧 `await enrichAppNames` 残留；后台任务均 weak self；测试不引用 ViewModel 私有方法。
+- 待 Runner/真机复验：编译与 XCTest 通过；冷启动主库存先上屏、辅助信息后台补全；warm 缓存不触发二次 LS 枚举。
+
+### 交付包（P2-38 装配时序后置态）
+
+- `FilterKit-NEW-0.1.0-source.zip`：514 条目 / 730,844 B，SHA256 `39d3ced898532470210743809370a191e51fc681c41be5333fb6d5f70de75da6`（回填前一版；文档自引用，覆盖重打包后哈希差一版，以最终文件为准）。
+- 本轮改 `PluginsView.swift`、`ReadOnlyPluginAssociationReader.swift`、`AppsView.swift`；版本号仍 1.0.0。
+
+### P2-39 — init 同步快照时机对齐 R16
+
+- 口径：只调首帧装配时机，不改扫描算法/协议/模型/枚举口径。
+- `CachedAppDiscoveryProvider.swift`：新增 NSLock 保护的 `mirror` 同步只读镜像与 `nonisolated currentSnapshotSync()`；`finalizeRefresh` 成功写镜像、`invalidateCache` 清镜像；原 actor 隔离 `currentSnapshot()` 保留。
+- `AppsView.swift`：`AppsViewModel.init()` 同步读 `currentSnapshotSync()` 填 `apps`，预热命中时首帧直接出列表；预热未完成仍走行内进度兜底。
+- `AppDiscoveryTests.swift`：增补同步镜像扫描后有值、失效后为 nil 断言。
+- 静态核对：三文件括号配平；`currentSnapshotSync()` 仅定义/init 调用/测试引用；插件页由 registry 单例持有快照，未改。
+- 待 Runner/真机复验：编译与 XCTest 通过；预热命中不闪壳；首次冷启动无快照仍显行内进度；镜像与 actor 缓存刷新/失效/失败保留一致性。
+
+### 交付包（P2-39 init 同步快照态）
+
+- `FilterKit-NEW-0.1.0-source.zip`：515 条目 / 733,771 B，SHA256 `03988eab434c04831a0a0aa9c393c6ba9846671a19c51df76a08defdd6bd0bd1`（回填前一版；文档自引用，覆盖重打包后哈希差一版，以最终文件为准）。
+- 本轮改 `CachedAppDiscoveryProvider.swift`、`AppsView.swift`、`AppDiscoveryTests.swift`；版本号仍 1.0.0。

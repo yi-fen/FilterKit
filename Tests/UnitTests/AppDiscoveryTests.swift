@@ -91,8 +91,10 @@ final class AppDiscoveryTests: XCTestCase {
         XCTAssertNil(await cache.currentSnapshot())
         _ = try await cache.scanInstalledApps()
         XCTAssertEqual(await cache.currentSnapshot()?.map(\.bundleIdentifier), ["com.example.app"])
+        XCTAssertEqual(cache.currentSnapshotSync()?.map(\.bundleIdentifier), ["com.example.app"])
         await cache.invalidateCache()
         XCTAssertNil(await cache.currentSnapshot())
+        XCTAssertNil(cache.currentSnapshotSync())
     }
 }
 
