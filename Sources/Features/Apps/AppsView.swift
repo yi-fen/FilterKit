@@ -91,8 +91,22 @@ struct AppsView: View {
         NavigationView {
             Group {
                 if model.isLoading && model.apps.isEmpty {
-                    FKStateView(kind: .loading, systemImage: "square.grid.2x2",
-                                title: "apps.loading.title", message: "apps.loading.message")
+                    // First scan: list frame renders first with an inline progress
+                    // row instead of a full-screen loading transition.
+                    List {
+                        Section {
+                            HStack(spacing: 12) {
+                                ProgressView()
+                                VStack(alignment: .leading, spacing: 3) {
+                                    Text("apps.loading.title").font(.headline)
+                                    Text("apps.loading.message").font(.caption).foregroundStyle(.secondary)
+                                }
+                            }
+                            .padding(.vertical, 4)
+                        }
+                    }
+                    .listStyle(InsetGroupedListStyle())
+                    .refreshable { await model.load(forceRefresh: true) }
                 } else if let error = model.errorKey, model.apps.isEmpty {
                     FKStateView(kind: .error, systemImage: "exclamationmark.triangle",
                                 title: "apps.error.title", message: LocalizedStringKey(error),

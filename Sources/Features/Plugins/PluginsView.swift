@@ -4,8 +4,9 @@ import UniformTypeIdentifiers
 
 @MainActor
 private final class PluginsViewModel: ObservableObject {
-    @Published private(set) var result: PluginScanResult?
-    @Published private(set) var isLoading = false
+    /// Shared inventory registry: holds the most recent snapshot and runs the
+    /// background scan. The view observes this registry directly.
+    let registry = PluginScanRegistry.shared
     @Published private(set) var errorKey: String?
     @Published var backupShareItem: ShareableBackup?
     @Published var backupErrorKey: String?
@@ -17,10 +18,8 @@ private final class PluginsViewModel: ObservableObject {
 
     private let appDiscovery = AppDiscoveryProviderRegistry.shared
 
-    private let environment = ReadOnlyEnvironmentProvider()
-
     func exportAllManageable() {
-        guard let result else { backupErrorKey = "backup.export.scan_required"; return }
+        guard let result = registry.result else { backupErrorKey = "backup.export.scan_required"; return }
         let ids = result.plugins.compactMap { item -> UUID? in
             guard item.managementPermission?.canModify == true,
                   item.ownership == .filterKit,
@@ -48,7 +47,7 @@ private final class PluginsViewModel: ObservableObject {
             let inspected = try service.inspectBackup(at: url)
             let installedApps = try await appDiscovery.scanInstalledApps()
             let installedIDs = Set(installedApps.map(\.bundleIdentifier))
-            let currentScan = result
+            let currentScan = registry.result
             let existingNames: Set<String>
             let conflictingIDs: Set<UUID>
             if let currentScan, currentScan.directoryState == .resolved {
@@ -82,23 +81,15 @@ private final class PluginsViewModel: ObservableObject {
     }
 
     func load() async {
-        guard !isLoading else { return }
-        isLoading = true
-        defer { isLoading = false }
-        let report = environment.makeDiagnosticReport()
-        guard let assessment = report.pluginDirectoryAssessment else {
-            errorKey = "plugin_scan.directory_not_resolved"
-            result = nil
-            return
-        }
-        // The inventory intentionally does not query DPKG ownership. That work is
-        // reserved for explicit detail verification and must not delay list display.
-        let scanner = ReadOnlyPluginScanner(assessmentProvider: { assessment })
-        let scanned = await Task.detached(priority: .utility) {
-            scanner.scan(assessment: assessment)
-        }.value
-        result = scanned
-        errorKey = nil
+        // Background scan runs in the shared registry; the existing snapshot, if
+        // any, stays visible while it runs. Environment probing is off the main
+        // actor there, so this does not block the first frame.
+        registry.loadIfNeeded()
+        await enrichAppNames()
+    }
+
+    private func enrichAppNames() async {
+        guard registry.result != nil else { return }
         do {
             let apps = try await appDiscovery.scanInstalledApps()
             appNamesByBundleID = Dictionary(apps.map { ($0.bundleIdentifier, $0.displayName) },
@@ -121,7 +112,7 @@ struct PluginsView: View {
     @State private var isImportingBackup = false
 
     private var visiblePlugins: [PluginScanItem] {
-        let items = model.result?.plugins ?? []
+        let items = model.registry.result?.plugins ?? []
         return items.filter { item in
             let scopeMatches = PluginListScope.includes(item, filterKitOnly: showingFilterKitOnly)
             let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -135,16 +126,13 @@ struct PluginsView: View {
     var body: some View {
         NavigationView {
             Group {
-                if model.isLoading && model.result == nil {
-                    FKStateView(kind: .loading, systemImage: "puzzlepiece",
-                                title: "plugins.loading.title", message: "plugins.loading.message")
-                } else if let error = model.errorKey, model.result == nil {
+                if let error = model.errorKey, model.registry.result == nil {
                     FKStateView(kind: .error, systemImage: "exclamationmark.triangle",
                                 title: "plugins.error.title", message: LocalizedStringKey(error),
                                 actionTitle: "plugins.refresh") {
                         Task { await model.load() }
                     }
-                } else if let result = model.result, result.directoryState != .resolved {
+                } else if let result = model.registry.result, result.directoryState != .resolved {
                     FKStateView(kind: .empty, systemImage: "folder.badge.questionmark",
                                 title: "plugins.directory_unavailable.title",
                                 message: result.directoryState == .ambiguous
@@ -152,6 +140,23 @@ struct PluginsView: View {
                                 actionTitle: "plugins.refresh") {
                         Task { await model.load() }
                     }
+                } else if model.registry.isLoading && model.registry.result == nil {
+                    // First scan: list frame renders first with an inline progress
+                    // row instead of a full-screen loading transition.
+                    List {
+                        Section {
+                            HStack(spacing: 12) {
+                                ProgressView()
+                                VStack(alignment: .leading, spacing: 3) {
+                                    Text("plugins.loading.title").font(.headline)
+                                    Text("plugins.loading.message").font(.caption).foregroundStyle(.secondary)
+                                }
+                            }
+                            .padding(.vertical, 4)
+                        }
+                    }
+                    .listStyle(.insetGrouped)
+                    .refreshable { await model.load() }
                 } else if visiblePlugins.isEmpty {
                     FKStateView(kind: .empty, systemImage: "puzzlepiece",
                                 title: searchText.isEmpty ? "plugins.empty.title" : "plugins.empty.search_title",
@@ -161,7 +166,7 @@ struct PluginsView: View {
                     }
                 } else {
                     List {
-                        if let result = model.result {
+                        if let result = model.registry.result {
                             Section {
                                 HStack {
                                     Label("plugins.scan.read_only", systemImage: "lock.shield")

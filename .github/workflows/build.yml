@@ -4,13 +4,13 @@ on:
   workflow_dispatch:
     inputs:
       environment:
-        description: Target jailbreak environment (Rootless DEB packaging remains unverified; use IPA/None for Rootless)
+        description: Target jailbreak environment. Only RootHide is closed-loop; Rootless/Both profiles are not registered and that route remains unverified.
         required: true
         type: choice
         options: [RootHide, Rootless, Both]
         default: RootHide
       profile:
-        description: Registered ElleKit reference profile (not a device compatibility certification)
+        description: Registered ElleKit reference profile (not a device compatibility certification). Only the RootHide profile is registered.
         required: true
         type: choice
         options: [Auto, roothide-dopamine-ellekit-1.2-3-16e3e7e]
@@ -34,7 +34,7 @@ on:
         options: [Yes, No]
         default: No
       package:
-        description: Output package format (DEB/Both is supported for RootHide only)
+        description: Output package format. DEB/Both are supported for RootHide only; the Rootless route (including IPA/None) is not yet closed-loop.
         required: true
         type: choice
         options: [DEB, IPA, Both, None]
@@ -52,6 +52,18 @@ jobs:
     outputs:
       matrix: ${{ steps.set.outputs.matrix }}
     steps:
+      - id: check
+        shell: bash
+        run: |
+          set -euo pipefail
+          env_in="${{ inputs.environment }}"
+          pkg="${{ inputs.package }}"
+          if [[ "$pkg" == "DEB" || "$pkg" == "Both" ]]; then
+            if [[ "$env_in" != "RootHide" ]]; then
+              echo "ERROR: package '$pkg' supports RootHide only; the '$env_in' DEB layout is unverified and no Rootless profile is registered. Select RootHide for DEB/Both; the Rootless route (any package format) remains pending." >&2
+              exit 30
+            fi
+          fi
       - id: set
         shell: bash
         run: |
@@ -65,6 +77,14 @@ jobs:
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
+      - name: Validate package/environment compatibility
+        if: inputs.package == 'DEB' || inputs.package == 'Both'
+        shell: bash
+        run: |
+          if [[ "${{ matrix.environment }}" != "RootHide" ]]; then
+            echo "ERROR: package '${{ inputs.package }}' supports RootHide only; the '${{ matrix.environment }}' DEB layout is unverified and no Rootless profile is registered. Select RootHide for DEB/Both; the Rootless route (any package format) remains pending." >&2
+            exit 30
+          fi
       - name: Select Xcode
         run: xcode-select -p && xcodebuild -version
       - name: Install XcodeGen
@@ -78,14 +98,6 @@ jobs:
       - name: Verify Debian packaging pipeline
         if: inputs.package == 'DEB' || inputs.package == 'Both'
         run: bash Build/Scripts/test-deb-packaging.sh
-      - name: Validate package/environment compatibility
-        if: inputs.package == 'DEB' || inputs.package == 'Both'
-        shell: bash
-        run: |
-          if [[ "${{ matrix.environment }}" != "RootHide" ]]; then
-            echo "ERROR: package '${{ inputs.package }}' is supported only for RootHide; the '${{ matrix.environment }}' DEB layout is unverified. Use IPA/None for Rootless." >&2
-            exit 30
-          fi
       - name: Build and package
         env:
           ENVIRONMENT: ${{ matrix.environment }}

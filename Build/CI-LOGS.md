@@ -308,3 +308,32 @@ Process completed with exit code 1.
 
 - `FilterKit-NEW-0.1.0-source.zip`：509 条目 / 717,797 B，SHA256 `cb4fc9008445c4b3f8555aa014a7b1ac9ee70c5b8ab6c5ebc58dc7b01bc86d60`（回填前一版；文档自引用，覆盖重打包后哈希差一版，以最终文件为准）。
 - 包内仅含 `Sources/Environment/CachedAppDiscoveryProvider.swift` 现行版，无根目录旧副本。
+
+### P2-35 — 预热 / 共享快照 / 行内进度（对齐 R16 首屏体验）
+
+- 口径：不删加载态代码；状态标志与加载/错误/空/失败分支全部保留，仅调整扫描时机、快照持有与壳摆放。扫描算法仍用 NEW 自有通路。
+- 新增 `Sources/Environment/PluginScanRegistry.swift`：单例持最近成功快照、复用在飞后台扫描、失败保留旧快照；探测与枚举在 detached utility 任务内。
+- `PluginsViewModel` 改读 registry，移除页面内自建 scanner 与主线程同步 `makeDiagnosticReport()`；App 名映射后置 enrich。
+- `MainTabView.task` 启动预热 App 库存与插件 registry。
+- Apps/Plugins 两页首次扫描的整页 loading 壳改为 List 先行 + 行内 ProgressView Section；终态分支保留。
+- 静态核对：改动文件括号配平；registry 在飞任务泛型 `Task<PluginScanResult, Error>`；无旧 `model.result/isLoading` 残留；测试未引用新接口。版本号仍 1.0.0。
+- 待 Runner/真机复验：编译通过、预热命中、在飞复用、首屏到列表实际耗时；单次枚举重量优化待真机剖面后再定。
+
+### 交付包（P2-35 预热/快照/行内进度态）
+
+- `FilterKit-NEW-0.1.0-source.zip`：512 条目 / 723,558 B，SHA256 `71c313882e450d60a776565f258bfa9f2423361c23dea93676257fdb67fcfe5f`（回填前一版；文档自引用，覆盖重打包后哈希差一版，以最终文件为准）。
+- 包内仅含 `Sources/Environment/` 现行源文件，无根目录旧副本；版本号仍 1.0.0。
+
+### P2-36 — DEB 打包 / CI 一致性修复（B1）
+
+- 口径：只修 CI 入口与脚本一致性；不改 DEB 布局、不造 Rootless 路线、不接签名闭环、不动 App/Helper 源码。
+- `select-environments` job 新增输入级兼容校验：`package ∈ {DEB, Both}` 且 `environment ≠ RootHide` → exit 30，在生成 matrix 前拦截 `Rootless+DEB/Both` 与 `Both+DEB/Both` 矛盾组合。
+- `build` job 节点级兼容校验从装依赖/管线自测之后前移到 `checkout` 之后；作为 matrix 展开后的第二道防线，口径与输入级一致。
+- 表单 `environment`/`profile`/`package` 描述如实标注：仅 RootHide 闭环，Rootless/Both profile 未注册；拒绝文案统一，不再暗示 Rootless 可走 IPA/None。`ci-build.sh` DEB 门禁文案对齐 workflow，退出码 30 不变。
+- 刻意未改：Rootless DEB 布局、Helper target 进 CI 编译、IPA 签名、arm64e 真切片、Rootless profile 容错（`verify-local-build.sh` 断言要求 Rootless 必须被拒）。
+- 静态核对：`bash -n` 三个打包脚本通过；`build.yml` PyYAML 解析通过。Runner `xcodegen`/`xcodebuild`/XCTest/ldid 结论待下轮复验。
+
+### 交付包（P2-36 DEB/CI 一致性修复态）
+
+- `FilterKit-NEW-0.1.0-source.zip`：513 条目 / 726,931 B，SHA256 `82f5ed59c8e67bbcebf3a01178e0264ca58b2c69f817cb2bef5366aeccfedfd6`（回填前一版；文档自引用，覆盖重打包后哈希差一版，以最终文件为准）。
+- 包内含 P2-36 规格、更新后的 `build.yml` 与 `ci-build.sh`；无根目录残留 Swift，版本号仍 1.0.0。

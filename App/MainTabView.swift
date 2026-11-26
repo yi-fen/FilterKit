@@ -35,10 +35,13 @@ struct MainTabView: View {
         }
         .accentColor(FilterKitTheme.ColorToken.accent)
         .task {
-            // Warm the installed-app inventory in the background at launch so the
-            // Apps/Plugins screens can read a warm cache instead of blocking on
-            // the first LaunchServices enumeration. Non-blocking and failure-tolerant.
+            // Warm both inventories in the background at launch, mirroring R16's
+            // root-tab prewarm chain. App enumeration and plugin-directory
+            // inspection run off the main actor; the Apps/Plugins screens read a
+            // warm snapshot instead of blocking on the first scan. Non-blocking
+            // and failure-tolerant.
             AppDiscoveryProviderRegistry.shared.prewarm()
+            PluginScanRegistry.shared.prewarm()
         }
     }
 }
