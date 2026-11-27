@@ -127,7 +127,7 @@ struct SettingsView: View {
 
     @MainActor
     private func refreshFilterAndIdentityStatus() async {
-        appBinaryIdentity = AppBinaryIdentityInspector.inspectMainBundle()
+        appBinaryIdentity = AppBinaryIdentitySnapshot.inspectMainBundle()
         let provider = ReadOnlyEnvironmentProvider()
         let report = await Task.detached(priority: .utility) { provider.makeDiagnosticReport() }.value
         if let assessment = report.elleKitAssessment {
