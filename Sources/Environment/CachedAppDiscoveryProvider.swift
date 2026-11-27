@@ -15,11 +15,11 @@ actor CachedAppDiscoveryProvider: AppDiscoveryProvider, AppDiscoveryRefreshing {
     /// R16's `isLoading` + completion-waiters. Prewarm, Apps, and Plugins all
     /// await the same task instead of each launching a separate LaunchServices scan.
     private var inFlight: Task<[InstalledApp], Error>?
-    /// Thread-safe mirror of the last successful inventory so a SwiftUI view model
-    /// can read a warm snapshot synchronously from its initializer (mirroring R16's
+    /// Mirror of the last successful inventory so a SwiftUI view model can read a
+    /// warm snapshot synchronously from its initializer (mirroring R16's
     /// `currentResult()` in the view `init`), without awaiting the actor. The actor
-    /// remains the single writer; the lock only protects the nonisolated read side.
-    private let mirrorLock = NSLock()
+    /// remains the single writer; the nonisolated read side is marked `unsafe` and
+    /// must not take an `NSLock` inside an asynchronous actor context.
     private nonisolated(unsafe) var mirror: [InstalledApp]?
 
     init(source: AppDiscoveryProvider, timeToLive: TimeInterval = 60,
@@ -48,7 +48,7 @@ actor CachedAppDiscoveryProvider: AppDiscoveryProvider, AppDiscoveryRefreshing {
         cachedApps = nil
         cachedAt = nil
         isStale = false
-        mirrorLock.lock(); mirror = nil; mirrorLock.unlock()
+        mirror = nil
     }
 
     /// Marks the inventory stale and refreshes it in the background. Unlike the
@@ -78,8 +78,7 @@ actor CachedAppDiscoveryProvider: AppDiscoveryProvider, AppDiscoveryRefreshing {
     /// a view-model initializer before any `await` resumes; returns nil when no warm
     /// inventory exists yet (first cold launch). Never triggers an enumeration.
     nonisolated func currentSnapshotSync() -> [InstalledApp]? {
-        mirrorLock.lock(); defer { mirrorLock.unlock() }
-        return mirror
+        mirror
     }
 
     /// Warm the inventory off the foreground path. The scan runs detached and
@@ -119,7 +118,7 @@ actor CachedAppDiscoveryProvider: AppDiscoveryProvider, AppDiscoveryRefreshing {
         cachedApps = sorted
         cachedAt = now()
         isStale = false
-        mirrorLock.lock(); mirror = sorted; mirrorLock.unlock()
+        mirror = sorted
     }
 
     private static func deduplicatedAndSorted(_ apps: [InstalledApp]) -> [InstalledApp] {
