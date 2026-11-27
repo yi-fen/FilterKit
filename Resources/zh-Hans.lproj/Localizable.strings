@@ -469,3 +469,44 @@
 "apps.detail.activation_operation_release_closed" = "生产 Release Gate 已锁定提交，未修改任何文件。";
 "apps.detail.activation_operation_unknown" = "无法确认提交结果。必须重新扫描，不会自动重试。";
 "apps.detail.activation_operation_failed" = "启停请求失败或扫描快照已过期。请刷新后重试。";
+
+
+/* P2-39-R3 Runtime Diagnostics */
+"diagnostics.title" = "运行诊断";
+"diagnostics.open" = "查看运行诊断";
+"diagnostics.app_inventory" = "应用清单";
+"diagnostics.plugin_inventory" = "插件清单";
+"diagnostics.association" = "关联快照";
+"diagnostics.attestation" = "Helper 身份验证";
+"diagnostics.local_logs" = "本地日志";
+"diagnostics.local_only_note" = "日志仅保存在本机，不会遥测或上传网络。详细计数仅在当前进程内统计，应用重启后会重置。";
+"diagnostics.app_entries" = "应用页进入次数";
+"diagnostics.warm_entries" = "命中热缓存次数";
+"diagnostics.plist_reads" = "Info.plist 读取次数";
+"diagnostics.plugin_snapshot_hits" = "插件快照命中次数";
+"diagnostics.plugin_snapshot_misses" = "插件快照未命中次数";
+"diagnostics.icon_file_reads" = "图标文件读取次数";
+"diagnostics.inventory_scans" = "插件清单扫描次数";
+"diagnostics.directory_enumerations" = "目录枚举次数";
+"diagnostics.directory_listing_reuses" = "目录列表复用次数";
+"diagnostics.environment_assessment_ms" = "环境评估耗时（毫秒）";
+"diagnostics.plugin_scan_ms" = "插件目录扫描耗时（毫秒）";
+"diagnostics.changed_file_refreshes" = "文件变化触发的刷新次数";
+"diagnostics.snapshot_consumptions" = "快照消费次数";
+"diagnostics.reader_fallbacks" = "关联读取回退次数";
+"diagnostics.deferred_associations" = "等待应用快照的关联次数";
+"diagnostics.attestation_attempts" = "身份验证次数";
+"diagnostics.attestation_verified" = "验证通过";
+"diagnostics.attestation_unavailable" = "不可用";
+"diagnostics.attestation_rejected" = "拒绝";
+"diagnostics.attestation_errors" = "错误";
+"diagnostics.attestation_ms" = "身份验证耗时（毫秒）";
+"diagnostics.attestation_only_retries" = "仅身份验证重试次数";
+"diagnostics.export" = "导出日志";
+"diagnostics.refresh" = "刷新计数";
+"diagnostics.clear" = "清空日志";
+"diagnostics.clear_confirm" = "确定清空 FilterKit 本地诊断日志吗？";
+"diagnostics.plugin_plist_reads" = "插件 plist 读取次数";
+"diagnostics.manifest_reads" = "Manifest 读取次数";
+"diagnostics.identity_analysis_count" = "插件身份分析次数";
+"diagnostics.identity_analysis_ms" = "插件身份分析耗时（毫秒）";

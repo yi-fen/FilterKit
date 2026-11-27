@@ -198,6 +198,7 @@ final class ReadOnlyPluginScanner: PluginDiscoveryProvider {
                     let size = (attributes[.size] as? NSNumber)?.uint64Value ?? 0
                     plistObservation = Self.fileObservation(attributes)
                     guard size > 0, size <= maximumPlistBytes else { throw CocoaError(.fileReadTooLarge) }
+                    PluginInventoryPerformanceDiagnostics.recordPluginPlistRead()
                     let data = try Data(contentsOf: plist, options: .mappedIfSafe)
                     guard let afterAttributes = try? fileManager.attributesOfItem(atPath: plist.path),
                           Self.fileObservation(afterAttributes) == plistObservation else {
@@ -272,7 +273,10 @@ final class ReadOnlyPluginScanner: PluginDiscoveryProvider {
                 manifestFileObservation: manifestObservation, softAssociationStates: softStates,
                 dylibPath: dylib?.path, plistPath: plist?.path, manifestPath: manifest?.path))
         }
+        let identityAnalysisStart = DispatchTime.now().uptimeNanoseconds
         let identityAnalysis = PluginIdentityAnalyzer().analyze(items)
+        PluginInventoryPerformanceDiagnostics.recordIdentityAnalysis(
+            milliseconds: PluginInventoryPerformanceDiagnostics.elapsedMilliseconds(since: identityAnalysisStart))
         let authorizedItems = identityAnalysis.items.map { item -> PluginScanItem in
             var adjusted = item
             if let permission = adjusted.managementPermission {
@@ -293,6 +297,7 @@ final class ReadOnlyPluginScanner: PluginDiscoveryProvider {
         guard let attributes = try? fileManager.attributesOfItem(atPath: url.path),
               let size = attributes[.size] as? NSNumber,
               size.intValue > 0, size.intValue <= maximumManifestBytes else { return nil }
+        PluginInventoryPerformanceDiagnostics.recordManifestRead()
         return try? Data(contentsOf: url, options: [.mappedIfSafe])
     }
 

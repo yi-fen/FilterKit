@@ -379,3 +379,21 @@ Process completed with exit code 1.
 
 - `FilterKit-NEW-0.1.0-source.zip`：515 条目 / 733,771 B，SHA256 `03988eab434c04831a0a0aa9c393c6ba9846671a19c51df76a08defdd6bd0bd1`（回填前一版；文档自引用，覆盖重打包后哈希差一版，以最终文件为准）。
 - 本轮改 `CachedAppDiscoveryProvider.swift`、`AppsView.swift`、`AppDiscoveryTests.swift`；版本号仍 1.0.0。
+
+### P2-42 — R2 Runner 编译修复（4 error + 2 warning）
+
+- Runner：`macos-26-arm64` / Xcode 26.6 / iPhoneOS 26.5 SDK / `-swift-version 5` / arm64 Release / `CODE_SIGNING_ALLOWED=NO`，exit 65 `BUILD FAILED`。
+- 口径：只修日志点名的编译错误，不改扫描算法/协议/模型/配对归属/Helper 身份规则/生产写入 Gate。
+- 改动文件与目录：
+  1. `Sources/Features/Apps/AppIconPrivateAPI.swift`：`FKLookupApplicationIcon` 去掉 `as NSString`，按桥接签名传 `String`。
+  2. `Sources/Environment/CachedAppDiscoveryProvider.swift`：删除 actor 内 `NSLock` 与全部 `lock/unlock`；镜像保留 `nonisolated(unsafe) var mirror`，actor 单写、`currentSnapshotSync()` 直读；TTL/在飞/预热/失败保留不变。
+  3. `Sources/Features/Plugins/PluginsView.swift`：`save()` guard 局部常量改名 `baseline`，消除对 `@State original` 的 let 遮蔽；保存成功仍写回属性。
+  4. `Sources/Environment/ReadOnlyEnvironmentProvider.swift`：12 条候选路径抽私有静态模板 `elleKitRelativePaths`，`flatMap` 拆为轻量 `map`，消除类型检查超时。
+  5. `Sources/Features/Settings/SettingsView.swift`：类型名更正 `AppBinaryIdentityInspector` → `AppBinaryIdentitySnapshot`，与属性类型及 `inspectMainBundle()` 返回值对齐。
+- 静态核对：全仓无 `mirrorLock` / 旧类型名残留；桥接头引入 ObjC 图标头；测试仅调 `currentSnapshotSync()`，API 未变；本机 Linux 无 Xcode，编译与 XCTest 以下次 Runner 为准。
+- 待 Runner/真机复验：Swift 5 编译通过，无 NSString 转换 / async 加锁 / let 遮蔽 / 表达式超时告警；关联保存后基线快照正确更新。
+
+### 交付包（P2-42 R2 编译修复态）
+
+- `FilterKit-NEW-0.1.0-source.zip`：663 条目 / 939,104 B，SHA256 `211190279d4724a5b3cb1d6baf942c00837293e071097500c7fe67b2bc8e106b`（回填前一版；文档自引用，覆盖重打包后哈希差一版，以最终文件为准）。
+- 本轮改 `AppIconPrivateAPI.swift`、`CachedAppDiscoveryProvider.swift`、`PluginsView.swift`、`ReadOnlyEnvironmentProvider.swift`、`SettingsView.swift`；新增 `Build/P2-42-R2-COMPILE-FIX.md`；版本号仍 1.0.0。

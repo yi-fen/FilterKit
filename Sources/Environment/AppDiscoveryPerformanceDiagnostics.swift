@@ -56,17 +56,16 @@ enum AppDiscoveryPerformanceDiagnostics {
     }
 
     static func logSummaryIfNeeded() {
-        #if DEBUG
         let s = snapshot()
         let methods = s.proxyCalls.keys.sorted().map { key in
             let count = s.proxyCalls[key, default: 0]
             let hit = s.proxyHits[key, default: 0]
             return "\(key)=\(hit)/\(count)"
         }.joined(separator: ",")
-        NSLog("[FilterKit][AppDiscovery][R4] proxy_methods={%@} plist_reads=%d app_entries=%d warm_inventory_entries=%d plugin_snapshot_hits=%d plugin_snapshot_misses=%d icon_file_reads=%d icon_asset_reads=%d second_entry_icon_file_reads=%d",
-              methods, s.plistReads, s.appPageEntries, s.warmInventoryEntries,
-              s.pluginSnapshotHits, s.pluginSnapshotMisses, s.iconFileReads, s.iconAssetReads,
-              s.secondEntryIconFileReads)
+        let line = "[AppDiscovery][P2-39-R3] proxy_methods={\(methods)} plist_reads=\(s.plistReads) app_entries=\(s.appPageEntries) warm_inventory_entries=\(s.warmInventoryEntries) plugin_snapshot_hits=\(s.pluginSnapshotHits) plugin_snapshot_misses=\(s.pluginSnapshotMisses) icon_file_reads=\(s.iconFileReads) icon_asset_reads=\(s.iconAssetReads) second_entry_icon_file_reads=\(s.secondEntryIconFileReads)"
+        RuntimeDiagnosticsStore.append(line)
+        #if DEBUG
+        NSLog("[FilterKit] %@", line)
         #endif
     }
 }

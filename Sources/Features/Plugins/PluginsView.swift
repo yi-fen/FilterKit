@@ -722,7 +722,7 @@ private struct PluginSoftAssociationManagerSection: View {
 
     @MainActor
     private func save() async {
-        guard let draft, let original, let hardBoundID, draft != original else { return }
+        guard let draft, let baseline = original, let hardBoundID, draft != baseline else { return }
         isSaving = true
         defer { isSaving = false }
         do {

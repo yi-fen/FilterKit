@@ -469,3 +469,44 @@
 "apps.detail.activation_operation_release_closed" = "Commit is locked by the production release gate. No files were changed.";
 "apps.detail.activation_operation_unknown" = "Commit outcome could not be confirmed. A fresh scan is required; do not retry automatically.";
 "apps.detail.activation_operation_failed" = "Activation request failed or its scan snapshot became stale. Refresh and try again.";
+
+
+/* P2-39-R3 Runtime Diagnostics */
+"diagnostics.title" = "Runtime Diagnostics";
+"diagnostics.open" = "View runtime diagnostics";
+"diagnostics.app_inventory" = "App Inventory";
+"diagnostics.plugin_inventory" = "Plugin Inventory";
+"diagnostics.association" = "Association Snapshot";
+"diagnostics.attestation" = "Helper Attestation";
+"diagnostics.local_logs" = "Local Logs";
+"diagnostics.local_only_note" = "Logs stay on this device. No telemetry or network upload. Detailed counters are process-local and reset when the app restarts.";
+"diagnostics.app_entries" = "App page entries";
+"diagnostics.warm_entries" = "Warm inventory entries";
+"diagnostics.plist_reads" = "Info.plist reads";
+"diagnostics.plugin_snapshot_hits" = "Plugin snapshot hits";
+"diagnostics.plugin_snapshot_misses" = "Plugin snapshot misses";
+"diagnostics.icon_file_reads" = "Icon file reads";
+"diagnostics.inventory_scans" = "Inventory scans";
+"diagnostics.directory_enumerations" = "Directory enumerations";
+"diagnostics.directory_listing_reuses" = "Directory listing reuses";
+"diagnostics.environment_assessment_ms" = "Environment assessment (ms)";
+"diagnostics.plugin_scan_ms" = "Plugin directory scan (ms)";
+"diagnostics.changed_file_refreshes" = "Changed-file refreshes";
+"diagnostics.snapshot_consumptions" = "Snapshot consumptions";
+"diagnostics.reader_fallbacks" = "Association reader fallbacks";
+"diagnostics.deferred_associations" = "Deferred associations";
+"diagnostics.attestation_attempts" = "Attestation attempts";
+"diagnostics.attestation_verified" = "Verified";
+"diagnostics.attestation_unavailable" = "Unavailable";
+"diagnostics.attestation_rejected" = "Rejected";
+"diagnostics.attestation_errors" = "Errors";
+"diagnostics.attestation_ms" = "Attestation time (ms)";
+"diagnostics.attestation_only_retries" = "Attestation-only retries";
+"diagnostics.export" = "Export logs";
+"diagnostics.refresh" = "Refresh counters";
+"diagnostics.clear" = "Clear logs";
+"diagnostics.clear_confirm" = "Clear local FilterKit diagnostic logs?";
+"diagnostics.plugin_plist_reads" = "Plugin plist reads";
+"diagnostics.manifest_reads" = "Manifest reads";
+"diagnostics.identity_analysis_count" = "Identity analysis runs";
+"diagnostics.identity_analysis_ms" = "Identity analysis time (ms)";

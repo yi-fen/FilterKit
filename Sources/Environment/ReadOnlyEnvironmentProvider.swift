@@ -17,6 +17,24 @@ final class ReadOnlyEnvironmentProvider: EnvironmentProvider {
         self.pluginDirectoryLocator = pluginDirectoryLocator ?? PluginDirectoryLocator(fileManager: fileManager)
     }
 
+    /// Relative ElleKit/substrate probe paths under each resolved jbroot. Kept as a
+    /// static template so the per-root `flatMap` stays a simple inference-friendly
+    /// expression instead of a large inline array literal.
+    private static let elleKitRelativePaths: [String] = [
+        "/Library/TweakInject/ellekit.dylib",
+        "/Library/TweakInject/libellekit.dylib",
+        "/usr/lib/libellekit.dylib",
+        "/Library/TweakInject/pspawn.dylib",
+        "/usr/lib/TweakInject/pspawn.dylib",
+        "/usr/local/lib/libsubstrate.dylib",
+        "/Library/Frameworks/libsubstrate.dylib",
+        "/Library/Frameworks/ellekit.dylib",
+        "/usr/local/bin/loader",
+        "/usr/libexec/ellekit/loader",
+        "/Library/LaunchDaemons/com.evln.ellekit.startup.plist",
+        "/var/lib/dpkg/info/ellekit.list"
+    ]
+
     func detectEnvironment() async throws -> JailbreakEnvironment {
         let report = makeDiagnosticReport()
         return report.environment
@@ -88,20 +106,7 @@ final class ReadOnlyEnvironmentProvider: EnvironmentProvider {
         let selectedLibraries = pluginDirectoryAssessment?.selectedPath
 
         let elleKitPaths = selectedRoots.flatMap { root in
-            [
-                root + "/Library/TweakInject/ellekit.dylib",
-                root + "/Library/TweakInject/libellekit.dylib",
-                root + "/usr/lib/libellekit.dylib",
-                root + "/Library/TweakInject/pspawn.dylib",
-                root + "/usr/lib/TweakInject/pspawn.dylib",
-                root + "/usr/local/lib/libsubstrate.dylib",
-                root + "/Library/Frameworks/libsubstrate.dylib",
-                root + "/Library/Frameworks/ellekit.dylib",
-                root + "/usr/local/bin/loader",
-                root + "/usr/libexec/ellekit/loader",
-                root + "/Library/LaunchDaemons/com.evln.ellekit.startup.plist",
-                root + "/var/lib/dpkg/info/ellekit.list"
-            ]
+            Self.elleKitRelativePaths.map { root + $0 }
         }
         let assessment = selectedRoot.map {
             elleKitInspector.inspect(rootPath: $0, environment: kind, binaryCandidates: elleKitPaths)

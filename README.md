@@ -208,3 +208,7 @@ P2-37-R6 binds Commit to the exact Helper-authored Prepare plan, uses a fresh tr
 ## Current development stage: P2-37-R7
 
 APP Detail now orchestrates Helper Prepare, explicit confirmation, fail-closed Commit coordination, proof validation, and authoritative read-only scan refresh. The APP and Helper production Commit gates remain closed pending Apple-platform and RootHide/ElleKit device acceptance. See `Build/P2-37-R7-VALIDATION-REPORT.md`.
+
+## P2-39-R3 Runtime Diagnostics
+
+P2-39-R3 adds a Settings → Runtime Diagnostics screen and bounded local log persistence for the existing App Discovery and Plugin Inventory performance summaries. Logs are stored under the app sandbox's `Library/Application Support/FilterKit/Logs/`, rotated at approximately 1 MiB with one previous file retained, and can be exported or cleared from Settings. The diagnostics path is observational only and does not initiate scans or alter the Helper/Release Gate policies. See `Build/DeviceAcceptance/P2-39-R3-RUNTIME-DIAGNOSTICS.md` for device acceptance steps.

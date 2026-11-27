@@ -87,6 +87,12 @@ struct SettingsView: View {
                     .disabled(helperCoordinator == nil || isRefreshingHelper)
                 }
 
+                Section(header: Text("diagnostics.title")) {
+                    NavigationLink(destination: RuntimeDiagnosticsView()) {
+                        Label("diagnostics.open", systemImage: "waveform.path.ecg")
+                    }
+                }
+
                 Section(header: Text("settings.storage")) {
                     Text("settings.storage.placeholder")
                         .foregroundColor(.secondary)
@@ -127,7 +133,7 @@ struct SettingsView: View {
 
     @MainActor
     private func refreshFilterAndIdentityStatus() async {
-        appBinaryIdentity = AppBinaryIdentityInspector.inspectMainBundle()
+        appBinaryIdentity = AppBinaryIdentitySnapshot.inspectMainBundle()
         let provider = ReadOnlyEnvironmentProvider()
         let report = await Task.detached(priority: .utility) { provider.makeDiagnosticReport() }.value
         if let assessment = report.elleKitAssessment {

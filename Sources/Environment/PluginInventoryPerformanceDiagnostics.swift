@@ -9,6 +9,10 @@ enum PluginInventoryPerformanceDiagnostics {
         let pluginDirectoryScanMilliseconds: UInt64
         let directoryEnumerationCount: Int
         let directoryListingReuseCount: Int
+        let pluginPlistReadCount: Int
+        let manifestReadCount: Int
+        let identityAnalysisCount: Int
+        let identityAnalysisMilliseconds: UInt64
         let attestationOnlyRetryCount: Int
         let inventoryRefreshForChangedFilesCount: Int
         let associationSnapshotConsumptions: Int
@@ -28,6 +32,10 @@ enum PluginInventoryPerformanceDiagnostics {
     private static var pluginDirectoryScanMilliseconds: UInt64 = 0
     private static var directoryEnumerationCount = 0
     private static var directoryListingReuseCount = 0
+    private static var pluginPlistReadCount = 0
+    private static var manifestReadCount = 0
+    private static var identityAnalysisCount = 0
+    private static var identityAnalysisMilliseconds: UInt64 = 0
     private static var attestationOnlyRetryCount = 0
     private static var inventoryRefreshForChangedFilesCount = 0
     private static var associationSnapshotConsumptions = 0
@@ -45,6 +53,11 @@ enum PluginInventoryPerformanceDiagnostics {
     static func recordPluginDirectoryScan(milliseconds: UInt64) { lock.lock(); pluginDirectoryScanMilliseconds += milliseconds; lock.unlock() }
     static func recordDirectoryEnumeration() { lock.lock(); directoryEnumerationCount += 1; lock.unlock() }
     static func recordDirectoryListingReuse() { lock.lock(); directoryListingReuseCount += 1; lock.unlock() }
+    static func recordPluginPlistRead() { lock.lock(); pluginPlistReadCount += 1; lock.unlock() }
+    static func recordManifestRead() { lock.lock(); manifestReadCount += 1; lock.unlock() }
+    static func recordIdentityAnalysis(milliseconds: UInt64) {
+        lock.lock(); identityAnalysisCount += 1; identityAnalysisMilliseconds += milliseconds; lock.unlock()
+    }
     static func recordAttestationOnlyRetry() { lock.lock(); attestationOnlyRetryCount += 1; lock.unlock() }
     static func recordInventoryRefreshForChangedFiles() { lock.lock(); inventoryRefreshForChangedFilesCount += 1; lock.unlock() }
     static func recordAssociationSnapshotConsumption() { lock.lock(); associationSnapshotConsumptions += 1; lock.unlock() }
@@ -70,6 +83,10 @@ enum PluginInventoryPerformanceDiagnostics {
             pluginDirectoryScanMilliseconds: pluginDirectoryScanMilliseconds,
             directoryEnumerationCount: directoryEnumerationCount,
             directoryListingReuseCount: directoryListingReuseCount,
+            pluginPlistReadCount: pluginPlistReadCount,
+            manifestReadCount: manifestReadCount,
+            identityAnalysisCount: identityAnalysisCount,
+            identityAnalysisMilliseconds: identityAnalysisMilliseconds,
             attestationOnlyRetryCount: attestationOnlyRetryCount,
             inventoryRefreshForChangedFilesCount: inventoryRefreshForChangedFilesCount,
             associationSnapshotConsumptions: associationSnapshotConsumptions,
@@ -80,15 +97,11 @@ enum PluginInventoryPerformanceDiagnostics {
             attestationErrors: attestationErrors, attestationMilliseconds: attestationMilliseconds)
     }
     static func logSummaryIfNeeded() {
-        #if DEBUG
         let v = snapshot()
-        NSLog("[FilterKit][PluginInventory][P2-39-R1] scans=%d environment_assessment_ms=%llu plugin_directory_scan_ms=%llu directory_enumerations=%d directory_listing_reuses=%d attestation_only_retries=%d inventory_refresh_file_changes=%d association_snapshot_consumptions=%d association_reader_fallbacks=%d association_deferred_no_app_snapshot=%d attestation_attempts=%d attestation_verified=%d attestation_unavailable=%d attestation_rejected=%d attestation_errors=%d attestation_ms=%llu",
-              v.inventoryScanCount, v.environmentAssessmentMilliseconds, v.pluginDirectoryScanMilliseconds,
-              v.directoryEnumerationCount, v.directoryListingReuseCount, v.attestationOnlyRetryCount,
-              v.inventoryRefreshForChangedFilesCount, v.associationSnapshotConsumptions,
-              v.associationReaderFallbacks, v.associationDeferredForAppSnapshot, v.attestationAttempts,
-              v.attestationVerified, v.attestationUnavailable, v.attestationRejected,
-              v.attestationErrors, v.attestationMilliseconds)
+        let line = "[PluginInventory][P2-39-R3] scans=\(v.inventoryScanCount) environment_assessment_ms=\(v.environmentAssessmentMilliseconds) plugin_directory_scan_ms=\(v.pluginDirectoryScanMilliseconds) directory_enumerations=\(v.directoryEnumerationCount) directory_listing_reuses=\(v.directoryListingReuseCount) plugin_plist_reads=\(v.pluginPlistReadCount) manifest_reads=\(v.manifestReadCount) identity_analysis_count=\(v.identityAnalysisCount) identity_analysis_ms=\(v.identityAnalysisMilliseconds) attestation_only_retries=\(v.attestationOnlyRetryCount) inventory_refresh_file_changes=\(v.inventoryRefreshForChangedFilesCount) association_snapshot_consumptions=\(v.associationSnapshotConsumptions) association_reader_fallbacks=\(v.associationReaderFallbacks) association_deferred_no_app_snapshot=\(v.associationDeferredForAppSnapshot) attestation_attempts=\(v.attestationAttempts) attestation_verified=\(v.attestationVerified) attestation_unavailable=\(v.attestationUnavailable) attestation_rejected=\(v.attestationRejected) attestation_errors=\(v.attestationErrors) attestation_ms=\(v.attestationMilliseconds)"
+        RuntimeDiagnosticsStore.append(line)
+        #if DEBUG
+        NSLog("[FilterKit] %@", line)
         #endif
     }
 }
