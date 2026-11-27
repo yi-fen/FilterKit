@@ -487,7 +487,8 @@
 "diagnostics.plugin_snapshot_misses" = "Plugin snapshot misses";
 "diagnostics.icon_file_reads" = "Icon file reads";
 "diagnostics.inventory_scans" = "Inventory scans";
-"diagnostics.directory_enumerations" = "Directory enumerations";
+"diagnostics.inventory_directory_enumerations" = "Inventory directory enumerations";
+"diagnostics.environment_probe_directory_enumerations" = "Environment probe directory enumerations";
 "diagnostics.directory_listing_reuses" = "Directory listing reuses";
 "diagnostics.environment_assessment_ms" = "Environment assessment (ms)";
 "diagnostics.plugin_scan_ms" = "Plugin directory scan (ms)";

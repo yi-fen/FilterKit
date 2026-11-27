@@ -28,7 +28,8 @@ struct RuntimeDiagnosticsView: View {
             }
             Section(header: Text("diagnostics.plugin_inventory")) {
                 metric("diagnostics.inventory_scans", value: "\(plugin.inventoryScanCount)")
-                metric("diagnostics.directory_enumerations", value: "\(plugin.directoryEnumerationCount)")
+                metric("diagnostics.inventory_directory_enumerations", value: "\(plugin.directoryEnumerationCount)")
+                metric("diagnostics.environment_probe_directory_enumerations", value: "\(plugin.environmentProbeEnumerationCount)")
                 metric("diagnostics.directory_listing_reuses", value: "\(plugin.directoryListingReuseCount)")
                 metric("diagnostics.plugin_plist_reads", value: "\(plugin.pluginPlistReadCount)")
                 metric("diagnostics.manifest_reads", value: "\(plugin.manifestReadCount)")
@@ -80,10 +81,17 @@ struct RuntimeDiagnosticsView: View {
     }
 
     private func prepareExport() {
+        // Snapshot current counters at tap time. The store serializes append and
+        // export on the same queue, so these lines are flushed before reading.
+        AppDiscoveryPerformanceDiagnostics.logSummaryIfNeeded()
+        PluginInventoryPerformanceDiagnostics.logSummaryIfNeeded()
         let contents = RuntimeDiagnosticsStore.exportText()
         let url = FileManager.default.temporaryDirectory.appendingPathComponent("FilterKit-Diagnostics-\(Int(Date().timeIntervalSince1970)).log")
         do {
-            try contents.write(to: url, atomically: true, encoding: .utf8)
+            let exportContents = contents.isEmpty
+                ? "FilterKit Runtime Diagnostics\nNo persisted runtime events were recorded before export.\n"
+                : contents
+            try exportContents.write(to: url, atomically: true, encoding: .utf8)
             exportURL = url
             showingShare = true
         } catch { }

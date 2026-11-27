@@ -7,7 +7,10 @@ enum PluginInventoryPerformanceDiagnostics {
         let inventoryScanCount: Int
         let environmentAssessmentMilliseconds: UInt64
         let pluginDirectoryScanMilliseconds: UInt64
+        /// Actual fallback enumerations performed by ReadOnlyPluginScanner.
         let directoryEnumerationCount: Int
+        /// Candidate-directory listings performed during environment assessment.
+        let environmentProbeEnumerationCount: Int
         let directoryListingReuseCount: Int
         let pluginPlistReadCount: Int
         let manifestReadCount: Int
@@ -31,6 +34,7 @@ enum PluginInventoryPerformanceDiagnostics {
     private static var environmentAssessmentMilliseconds: UInt64 = 0
     private static var pluginDirectoryScanMilliseconds: UInt64 = 0
     private static var directoryEnumerationCount = 0
+    private static var environmentProbeEnumerationCount = 0
     private static var directoryListingReuseCount = 0
     private static var pluginPlistReadCount = 0
     private static var manifestReadCount = 0
@@ -51,7 +55,11 @@ enum PluginInventoryPerformanceDiagnostics {
     static func recordInventoryScanStarted() { lock.lock(); inventoryScanCount += 1; lock.unlock() }
     static func recordEnvironmentAssessment(milliseconds: UInt64) { lock.lock(); environmentAssessmentMilliseconds += milliseconds; lock.unlock() }
     static func recordPluginDirectoryScan(milliseconds: UInt64) { lock.lock(); pluginDirectoryScanMilliseconds += milliseconds; lock.unlock() }
+    /// Count only a real inventory enumeration in ReadOnlyPluginScanner.
     static func recordDirectoryEnumeration() { lock.lock(); directoryEnumerationCount += 1; lock.unlock() }
+    /// Environment assessment probes are separate from inventory scans and must not
+    /// inflate the scanner enumeration metric.
+    static func recordEnvironmentProbeEnumeration() { lock.lock(); environmentProbeEnumerationCount += 1; lock.unlock() }
     static func recordDirectoryListingReuse() { lock.lock(); directoryListingReuseCount += 1; lock.unlock() }
     static func recordPluginPlistRead() { lock.lock(); pluginPlistReadCount += 1; lock.unlock() }
     static func recordManifestRead() { lock.lock(); manifestReadCount += 1; lock.unlock() }
@@ -82,6 +90,7 @@ enum PluginInventoryPerformanceDiagnostics {
             environmentAssessmentMilliseconds: environmentAssessmentMilliseconds,
             pluginDirectoryScanMilliseconds: pluginDirectoryScanMilliseconds,
             directoryEnumerationCount: directoryEnumerationCount,
+            environmentProbeEnumerationCount: environmentProbeEnumerationCount,
             directoryListingReuseCount: directoryListingReuseCount,
             pluginPlistReadCount: pluginPlistReadCount,
             manifestReadCount: manifestReadCount,
@@ -98,7 +107,7 @@ enum PluginInventoryPerformanceDiagnostics {
     }
     static func logSummaryIfNeeded() {
         let v = snapshot()
-        let line = "[PluginInventory][P2-39-R3] scans=\(v.inventoryScanCount) environment_assessment_ms=\(v.environmentAssessmentMilliseconds) plugin_directory_scan_ms=\(v.pluginDirectoryScanMilliseconds) directory_enumerations=\(v.directoryEnumerationCount) directory_listing_reuses=\(v.directoryListingReuseCount) plugin_plist_reads=\(v.pluginPlistReadCount) manifest_reads=\(v.manifestReadCount) identity_analysis_count=\(v.identityAnalysisCount) identity_analysis_ms=\(v.identityAnalysisMilliseconds) attestation_only_retries=\(v.attestationOnlyRetryCount) inventory_refresh_file_changes=\(v.inventoryRefreshForChangedFilesCount) association_snapshot_consumptions=\(v.associationSnapshotConsumptions) association_reader_fallbacks=\(v.associationReaderFallbacks) association_deferred_no_app_snapshot=\(v.associationDeferredForAppSnapshot) attestation_attempts=\(v.attestationAttempts) attestation_verified=\(v.attestationVerified) attestation_unavailable=\(v.attestationUnavailable) attestation_rejected=\(v.attestationRejected) attestation_errors=\(v.attestationErrors) attestation_ms=\(v.attestationMilliseconds)"
+        let line = "[PluginInventory][P2-39-R3] scans=\(v.inventoryScanCount) environment_assessment_ms=\(v.environmentAssessmentMilliseconds) plugin_directory_scan_ms=\(v.pluginDirectoryScanMilliseconds) inventory_directory_enumerations=\(v.directoryEnumerationCount) environment_probe_directory_enumerations=\(v.environmentProbeEnumerationCount) directory_listing_reuses=\(v.directoryListingReuseCount) plugin_plist_reads=\(v.pluginPlistReadCount) manifest_reads=\(v.manifestReadCount) identity_analysis_count=\(v.identityAnalysisCount) identity_analysis_ms=\(v.identityAnalysisMilliseconds) attestation_only_retries=\(v.attestationOnlyRetryCount) inventory_refresh_file_changes=\(v.inventoryRefreshForChangedFilesCount) association_snapshot_consumptions=\(v.associationSnapshotConsumptions) association_reader_fallbacks=\(v.associationReaderFallbacks) association_deferred_no_app_snapshot=\(v.associationDeferredForAppSnapshot) attestation_attempts=\(v.attestationAttempts) attestation_verified=\(v.attestationVerified) attestation_unavailable=\(v.attestationUnavailable) attestation_rejected=\(v.attestationRejected) attestation_errors=\(v.attestationErrors) attestation_ms=\(v.attestationMilliseconds)"
         RuntimeDiagnosticsStore.append(line)
         #if DEBUG
         NSLog("[FilterKit] %@", line)

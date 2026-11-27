@@ -487,7 +487,8 @@
 "diagnostics.plugin_snapshot_misses" = "插件快照未命中次数";
 "diagnostics.icon_file_reads" = "图标文件读取次数";
 "diagnostics.inventory_scans" = "插件清单扫描次数";
-"diagnostics.directory_enumerations" = "目录枚举次数";
+"diagnostics.inventory_directory_enumerations" = "库存扫描目录枚举次数";
+"diagnostics.environment_probe_directory_enumerations" = "环境探测目录枚举次数";
 "diagnostics.directory_listing_reuses" = "目录列表复用次数";
 "diagnostics.environment_assessment_ms" = "环境评估耗时（毫秒）";
 "diagnostics.plugin_scan_ms" = "插件目录扫描耗时（毫秒）";

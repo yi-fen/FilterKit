@@ -50,7 +50,8 @@ enum RuntimeDiagnosticsStore {
         ioQueue.sync {
             guard let directory = logDirectoryURL else { return "FilterKit diagnostics unavailable." }
             let files = [directory.appendingPathComponent(previousName), directory.appendingPathComponent(currentName)]
-            return files.compactMap { try? String(contentsOf: $0, encoding: .utf8) }.joined(separator: "\n")
+            let text = files.compactMap { try? String(contentsOf: $0, encoding: .utf8) }.joined(separator: "\n")
+            return text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "" : text
         }
     }
 

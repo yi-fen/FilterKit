@@ -32,17 +32,25 @@ final class PluginDirectoryLocatorTests: XCTestCase {
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         try Data([0x01]).write(to: directory.appendingPathComponent("CachedListing.dylib"))
 
+        let beforeProbe = PluginInventoryPerformanceDiagnostics.snapshot()
         let result = PluginDirectoryLocator().inspect(jbroot: root.path, environment: .rootHide)
+        let afterProbe = PluginInventoryPerformanceDiagnostics.snapshot()
         let candidate = try XCTUnwrap(result.candidates.first(where: { $0.kind == .tweakInject }))
         XCTAssertEqual(candidate.entryNames, ["CachedListing.dylib"])
         XCTAssertEqual(candidate.dylibCount, 1)
+        XCTAssertEqual(afterProbe.environmentProbeEnumerationCount, beforeProbe.environmentProbeEnumerationCount + 1,
+                       "Environment assessment must account its own candidate directory listing")
+        XCTAssertEqual(afterProbe.directoryEnumerationCount, beforeProbe.directoryEnumerationCount,
+                       "Environment probing must not inflate actual inventory enumeration")
 
-        let before = PluginInventoryPerformanceDiagnostics.snapshot()
+        let before = afterProbe
         let scan = ReadOnlyPluginScanner().scan(assessment: result)
         let after = PluginInventoryPerformanceDiagnostics.snapshot()
         XCTAssertEqual(scan.plugins.map(\.baseName), ["CachedListing"])
         XCTAssertEqual(after.directoryEnumerationCount, before.directoryEnumerationCount,
                        "Scanner must reuse the assessment listing, not enumerate the directory again")
+        XCTAssertEqual(after.environmentProbeEnumerationCount, before.environmentProbeEnumerationCount,
+                       "The probe count was captured before this test snapshot and must not be mutated by scanning")
         XCTAssertEqual(after.directoryListingReuseCount, before.directoryListingReuseCount + 1)
     }
 
@@ -109,7 +117,9 @@ final class PluginDirectoryLocatorTests: XCTestCase {
         let candidate = try XCTUnwrap(result.candidates.first(where: { $0.role == .elleKitComponentDirectory }))
         XCTAssertNil(candidate.entryNames)
         XCTAssertEqual(after.directoryEnumerationCount, before.directoryEnumerationCount,
-                       "Diagnostic-only ElleKit component directory must not be enumerated")
+                       "Diagnostic-only ElleKit component directory must not be counted as inventory I/O")
+        XCTAssertEqual(after.environmentProbeEnumerationCount, before.environmentProbeEnumerationCount,
+                       "ElleKit component directory must not be enumerated by environment probes")
         XCTAssertEqual(result.state, .unavailable)
     }
 

@@ -98,7 +98,7 @@ final class PluginDirectoryLocator {
         let writable = isDirectory.boolValue && fileManager.isWritableFile(atPath: path)
         let entries: [String]?
         if readable && role == .thirdPartyPluginDirectory {
-            PluginInventoryPerformanceDiagnostics.recordDirectoryEnumeration()
+            PluginInventoryPerformanceDiagnostics.recordEnvironmentProbeEnumeration()
             entries = try? fileManager.contentsOfDirectory(atPath: path)
         } else {
             // ElleKit's own component directory is diagnostic-only and is never
