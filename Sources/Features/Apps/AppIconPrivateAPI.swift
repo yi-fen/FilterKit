@@ -15,7 +15,7 @@ enum AppIconPrivateAPI {
     static func applicationIcon(bundleIdentifier: String, scale: CGFloat) -> (UIImage?, AppIconPrivateAPIResult) {
         #if canImport(ObjectiveC)
         var image: UIImage?
-        let status = FKLookupApplicationIcon(bundleIdentifier as NSString, scale, &image)
+        let status = FKLookupApplicationIcon(bundleIdentifier, scale, &image)
         switch status {
         case .success:
             guard let image else {
