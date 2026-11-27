@@ -1,0 +1,19 @@
+P2-36-R2 Phase 2 Host result (2026-11-27)
+
+Static audit: 17/17 PASS
+Swift source/test parse: PASS
+FilterKitHelper source-set semantic typecheck with host Swift 6.2.1: PASS
+Journal crash boundaries: prepared, staged, backedUp, replacingPlist, replacingManifest, committed: PASS
+Successful two-file commit + Filter.plist byte preservation: PASS
+Foreign modification fail-closed recovery: PASS
+SIGKILL child process + parent-process recovery: PASS
+IPC full request frame round-trip: PASS
+Legacy per-App request decode compatibility: PASS
+Both production Release Gates false: PASS
+Project.yml parse: PASS
+Shell syntax: PASS
+
+Xcode/iOS SDK build: NOT RUN (Linux environment; xcodebuild unavailable)
+XCTest Runner: NOT RUN (requires macOS + Xcode + XcodeGen)
+Live AF_UNIX App<->signed Helper IPC: NOT RUN
+RootHide/ElleKit device validation: NOT RUN

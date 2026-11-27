@@ -6,6 +6,6 @@ import Foundation
 enum PluginListScope {
     static func includes(_ item: PluginScanItem, filterKitOnly: Bool) -> Bool {
         guard filterKitOnly else { return true }
-        return item.ownership == .filterKit || item.filterKitPluginID != nil
+        return item.ownership == .filterKit || item.helperIdentityAttestation?.isVerified == true
     }
 }

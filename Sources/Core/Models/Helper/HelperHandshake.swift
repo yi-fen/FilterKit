@@ -156,7 +156,9 @@ enum HelperIPCServerRequestPolicy {
         .operationRequest,
         .deploymentBatchRequest,
         .pluginFilterMutationPrepareRequest,
-        .pluginFilterMutationCommitRequest
+        .pluginFilterMutationCommitRequest,
+        .appPluginActivationPrepareRequest,
+        .appPluginActivationCommitRequest
     ]
 
     static func allows(_ messageType: HelperIPCMessageType) -> Bool {

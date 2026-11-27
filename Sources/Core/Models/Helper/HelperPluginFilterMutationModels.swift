@@ -1,8 +1,14 @@
 import Foundation
 
+struct HelperPluginSoftAssociation: Codable, Equatable {
+    let bundleIdentifier: String
+    let isEnabled: Bool
+}
+
 enum HelperPluginFilterMutationAction: String, Codable, Equatable {
     case enableForApp
     case disableForApp
+    case replaceSoftAssociations
 }
 
 /// Narrow intent-only request. It carries no filesystem path and no replacement plist bytes.
@@ -17,6 +23,7 @@ struct HelperPluginFilterMutationRequest: Codable, Equatable {
     let expectedPlistSHA256: String
     let expectedManifestSHA256: String
     let createdAt: Date
+    var desiredSoftAssociations: [HelperPluginSoftAssociation]? = nil
 
     func validateShape(now: Date = Date(), clockSkewLimit: TimeInterval = 120) -> Bool {
         guard requestID != UUID(uuidString: "00000000-0000-0000-0000-000000000000"),
@@ -27,6 +34,11 @@ struct HelperPluginFilterMutationRequest: Codable, Equatable {
               HelperPolicy.isValidHash(expectedPlistSHA256), HelperPolicy.isValidHash(expectedManifestSHA256),
               Self.isValidBundleIdentifier(targetBundleIdentifier),
               abs(now.timeIntervalSince(createdAt)) <= clockSkewLimit else { return false }
+        if action == .replaceSoftAssociations {
+            guard let desiredSoftAssociations, desiredSoftAssociations.count <= 512,
+                  Set(desiredSoftAssociations.map(\.bundleIdentifier)).count == desiredSoftAssociations.count,
+                  desiredSoftAssociations.allSatisfy({ Self.isValidBundleIdentifier($0.bundleIdentifier) }) else { return false }
+        } else if desiredSoftAssociations != nil { return false }
         return true
     }
 

@@ -96,7 +96,15 @@ final class PluginDirectoryLocator {
         let isLink = (attributes?[.type] as? FileAttributeType) == .typeSymbolicLink
         let readable = isDirectory.boolValue && fileManager.isReadableFile(atPath: path)
         let writable = isDirectory.boolValue && fileManager.isWritableFile(atPath: path)
-        let entries = readable ? (try? fileManager.contentsOfDirectory(atPath: path)) : nil
+        let entries: [String]?
+        if readable && role == .thirdPartyPluginDirectory {
+            PluginInventoryPerformanceDiagnostics.recordDirectoryEnumeration()
+            entries = try? fileManager.contentsOfDirectory(atPath: path)
+        } else {
+            // ElleKit's own component directory is diagnostic-only and is never
+            // part of the third-party plugin inventory, so do not enumerate it.
+            entries = nil
+        }
         let enumerable = entries != nil
         let names = entries ?? []
         let dylibCount = names.filter { $0.lowercased().hasSuffix(".dylib") }.count
@@ -106,12 +114,14 @@ final class PluginDirectoryLocator {
         let detail: String
         if !isDirectory.boolValue { detail = "plugin_directory.not_directory" }
         else if !readable { detail = "plugin_directory.not_readable" }
+        else if role == .elleKitComponentDirectory { detail = "plugin_directory.component_not_enumerated" }
         else if !enumerable { detail = "plugin_directory.not_enumerable" }
         else { detail = "plugin_directory.enumerable" }
         return PluginDirectoryCandidate(path: path, canonicalPath: canonical, kind: kind, role: role,
             exists: true, isDirectory: isDirectory.boolValue, isReadable: readable,
             isEnumerable: enumerable, isWritable: writable, isSymbolicLink: isLink,
-            dylibCount: dylibCount, plistCount: plistCount, detailCode: detail)
+            dylibCount: dylibCount, plistCount: plistCount,
+            entryNames: entries, detailCode: detail)
     }
 
     /// Canonical paths collapse symlink aliases without hiding genuinely distinct
@@ -131,6 +141,7 @@ final class PluginDirectoryLocator {
                 isSymbolicLink: group.contains(where: \.isSymbolicLink),
                 dylibCount: group.map(\.dylibCount).max() ?? 0,
                 plistCount: group.map(\.plistCount).max() ?? 0,
+                entryNames: preferred.entryNames,
                 detailCode: "plugin_directory.canonical_aliases_merged")
         }.sorted { $0.path < $1.path }
     }

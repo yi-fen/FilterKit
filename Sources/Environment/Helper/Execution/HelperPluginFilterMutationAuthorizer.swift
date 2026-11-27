@@ -125,6 +125,40 @@ struct HelperPluginFilterMutationAuthorizer {
             throw AuthorizationError.associationMetadataMismatch
         }
 
+        if request.action == .replaceSoftAssociations {
+            guard request.targetBundleIdentifier == hardBound,
+                  let desired = request.desiredSoftAssociations else { throw AuthorizationError.invalidRequest }
+            let oldByID = Dictionary(uniqueKeysWithValues: savedAssociations.map { ($0.bundleIdentifier, $0.isEnabled) })
+            let desiredByID = Dictionary(uniqueKeysWithValues: desired.map { ($0.bundleIdentifier, $0.isEnabled) })
+            guard desired.allSatisfy({ $0.bundleIdentifier != hardBound }),
+                  desired.allSatisfy({ item in oldByID[item.bundleIdentifier].map { $0 == item.isEnabled } ?? !item.isEnabled }),
+                  savedAssociations.allSatisfy({ desiredByID[$0.bundleIdentifier] != nil || !$0.isEnabled }) else {
+                throw AuthorizationError.associationMetadataMismatch
+            }
+            let currentPlan = filterStrategy.makePlan(originalData: plistData,
+                targetBundleIdentifier: hardBound, action: .enableForApp)
+            guard currentPlan.isPreviewable,
+                  Set(currentPlan.beforeBundles) == Set([hardBound] + savedAssociations.filter(\.isEnabled).map(\.bundleIdentifier)) else {
+                throw AuthorizationError.associationMetadataMismatch
+            }
+            let normalized = desired.sorted { $0.bundleIdentifier < $1.bundleIdentifier }.map {
+                FilterKitManifestSoftAssociation(bundleIdentifier: $0.bundleIdentifier, isEnabled: $0.isEnabled)
+            }
+            manifest = FilterKitPluginManifest(schemaVersion: manifest.schemaVersion, pluginID: manifest.pluginID,
+                dylibFileName: manifest.dylibFileName, plistFileName: manifest.plistFileName,
+                dylibSHA256: manifest.dylibSHA256, plistSHA256: manifest.plistSHA256,
+                hardBoundBundleIdentifier: hardBound,
+                softAssociatedBundleIdentifiers: normalized.map(\.bundleIdentifier),
+                machOIdentitySHA256: manifest.machOIdentitySHA256, softAssociations: normalized)
+            let encoder = JSONEncoder(); encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
+            let replacementManifest = try encoder.encode(manifest)
+            let unchanged = replacementManifest == manifestData
+            return PreparedMutation(request: request, ownershipProof: proof,
+                previousPlistData: plistData, replacementPlistData: plistData,
+                previousManifestData: manifestData, replacementManifestData: unchanged ? manifestData : replacementManifest,
+                disposition: unchanged ? .alreadyInRequestedState : .preparedForAtomicCommit)
+        }
+
         let plan = filterStrategy.makePlan(originalData: plistData,
             targetBundleIdentifier: request.targetBundleIdentifier,
             action: request.action == .enableForApp ? .enableForApp : .disableForApp)

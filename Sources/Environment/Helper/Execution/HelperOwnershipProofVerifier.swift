@@ -94,7 +94,9 @@ struct HelperOwnershipProofVerifier {
         return try HelperOwnershipProof(pluginID: pluginID, dylibFileName: dylibFileName,
             plistFileName: plistFileName, dylibSHA256: dylibHash, plistSHA256: plistHash,
             manifestSchemaVersion: manifest.schemaVersion, manifestSHA256: SHA256Digest.hex(manifestData),
-            binaryIdentityVerified: true)
+            binaryIdentityVerified: true, machOIdentitySHA256: actualIdentity,
+            hardBoundBundleIdentifier: hardBound, softAssociations: associations,
+            filterConfiguration: PluginFilterConfiguration.parse(plistData))
     }
 
     private static func isValidBundleIdentifier(_ value: String) -> Bool {

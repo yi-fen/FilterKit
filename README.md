@@ -153,3 +153,58 @@ P2-27 adds explicit root Helper UID/GID expectations to newly generated App trus
 ## Latest development phase
 
 - **P2-28 — Plugin Toggle Release Gate**: adds a fail-closed readiness policy for staged per-App enable/disable and injection rollout. Real mutation remains locked pending signed artifact and RootHide device validation. See `Build/P2-28-PLUGIN-TOGGLE-RELEASE-GATE.md`.
+
+## P2-32 App Detail Plugin Management
+
+The Apps tab now opens an App detail page with a visible **Import Plugin** action and an app-scoped list of related plugins. Import currently provides file selection and read-only review only; real installation, association commits, enable/disable, and uninstall remain behind the production safety gates. See `Build/P2-32-APP-DETAIL-PLUGIN-MANAGEMENT.md`.
+
+## P2-33 — Plugin Identity & Filter Diagnostics
+
+P2-33 adds bounded read-only Mach-O and plist inspection to the plugin inventory. Plugin details expose architecture, UUID, CDHash, CodeDirectory identifier/Team ID/flags/platform, SHA-256, and the parsed Bundles/Executables/Classes/Mode fields. Settings shows the scanned Filter inventory, ElleKit compatibility-profile state, and FilterKit's own executable identity. These are diagnostic signals only: they do not prove code-signature validity, package ownership, or successful injection. All production mutation gates remain closed. See `Build/P2-33-PLUGIN-IDENTITY-AND-FILTER-DIAGNOSTICS.md`.
+
+## P2-34 — Home / App / Plugin Product Architecture
+
+P2-34 formalizes the four-page responsibility boundary: Home is the device overview, App detail is the sole first-time dylib/plist import and per-App activation entry point, Plugins is the plugin library plus soft-association and backup-data management, and Settings contains low-level environment/security diagnostics. See `Build/P2-34-VALIDATION-REPORT.md`.
+
+## P2-35 — Plugin Soft Association Manager
+
+P2-35 adds a soft-association checklist to FilterKit-managed plugin detail pages. The hard-bound App is displayed as immutable and excluded from selectable Apps. Third-party, unknown, unpaired, identity-conflicted, and otherwise unauthorized plugins remain read-only. Association changes are an in-memory draft with an explicit change preview; no manifest or Filter.plist is written in this phase. Newly created soft associations default to inactive, and re-adding a relationship within the same draft preserves its original activation bit. The Plugins page has no enable/disable controls; activation remains an App-detail responsibility. See `Build/P2-35-SOFT-ASSOCIATION-MANAGER.md` and `Build/P2-35-CHANGELOG.md`.
+\n\n## P2-36\n\nP2-36 adds Helper-side soft-association mutation policy and host audit. Production persistence remains release-gated pending signed-artifact and RootHide device validation; see `Build/P2-36-VALIDATION-REPORT.md`.\n
+### P2-36-R1
+See `Build/P2-36-R1-CHANGELOG.md` and `Build/P2-36-R1-VALIDATION-REPORT.md`. The complete soft-association replacement intent and Plugin detail Save confirmation are restored, while both real-write release gates remain closed.
+
+### P2-37 — APP Detail Plugin Activation Manager
+
+P2-37 adds hard-bound / soft-associated plugin grouping in App Detail, per-target activation observations, manifest-versus-`Filter.Bundles` cross-checks, and independent local switch previews. Hard-bound associations remain immutable but their activation state is not inherently locked. Third-party, unknown, unverified, ambiguous, and inconsistent plugin states remain non-actionable. The switches are preview-only and do not write configuration, contact Helper for mutation, or enable injection. Current inventory intentionally fails closed because its scanner has not yet supplied trusted ownership and binary-identity verification. See `Build/P2-37-CHANGELOG.md` and `Build/P2-37-VALIDATION-REPORT.md`.
+
+## P2-37-R2 — Helper Plugin Identity Attestation
+
+P2-37-R2 adds a read-only Helper IPC endpoint that independently verifies a FilterKit plugin's root-owned schema-3 manifest, package-manager ownership status, dylib/plist SHA-256 values, Mach-O identity fingerprint, and parsed Filter projection. The APP detail activation preview now requires a fresh Helper-authored attestation that matches the local inventory snapshot. This phase does not execute enable/disable mutations; all production release gates remain closed.
+
+Validation details: `Build/P2-37-R2-VALIDATION-REPORT.md`.
+
+## Current development stage: P2-37-R3
+
+P2-37-R3 tightens App-detail activation preflight and state consistency. It binds Helper identity evidence to the exact manifest/dylib/plist scan, expires evidence after 120 seconds, invalidates it when file metadata changes, cross-checks the complete soft-association set against `Filter.Bundles`, and keeps App controls preview-only. See:
+
+- `Build/P2-37-R3-CHANGELOG.md`
+- `Build/P2-37-R3-VALIDATION-REPORT.md`
+- `Build/P2-37-R3-ACCEPTANCE-CHECKLIST.md`
+
+Apple SDK compilation, XCTest on Apple platforms, signed Helper IPC, and RootHide/ElleKit device acceptance remain pending. Production mutation gates remain closed.
+
+## Current development stage: P2-37-R4
+
+P2-37-R4 defines the APP single-target activation command, Helper authorization plan, and post-commit state proof. Commands bind one plugin + one Bundle ID + desired/expected activation state + current Filter.plist and Manifest hashes. Helper plans and proofs must echo the exact target and hash preconditions. The new protocol is currently a model/contract layer only: it is not yet wired into IPC dispatch or the APP switch, and no production write path is enabled. See `Build/P2-37-R4-CHANGELOG.md` and `Build/P2-37-R4-VALIDATION-REPORT.md`. Production gates remain closed.
+
+## Current development stage: P2-37-R5
+
+P2-37-R5 wires the R4 single-App activation command into dedicated authenticated Helper IPC prepare/commit routes. Both routes use the existing session, freshness, replay, recovery, and audit controls. Helper independently checks the actual prior activation state against the command. Prepare is read-only; commit reauthorizes but is explicitly rejected while the production write gate is closed. See `Build/P2-37-R5-CHANGELOG.md` and `Build/P2-37-R5-VALIDATION-REPORT.md`.
+
+## Current development stage: P2-37-R6
+
+P2-37-R6 binds Commit to the exact Helper-authored Prepare plan, uses a fresh transport request ID so the replay guard does not mistake Commit for a replay of Prepare, reauthorizes ownership and current file hashes at the commit boundary, and wires the existing Filter.plist + `.fk.json` Journal transaction into the activation route. A commit proof is derived only from the transaction receipt; no-op requests carry no transaction ID. The production activation commit gate remains closed, and the production Helper does not enable the test-only execution switch. See `Build/P2-37-R6-CHANGELOG.md`, `Build/P2-37-R6-VALIDATION-REPORT.md`, and `Build/P2-37-R6-ACCEPTANCE-CHECKLIST.md`.
+
+## Current development stage: P2-37-R7
+
+APP Detail now orchestrates Helper Prepare, explicit confirmation, fail-closed Commit coordination, proof validation, and authoritative read-only scan refresh. The APP and Helper production Commit gates remain closed pending Apple-platform and RootHide/ElleKit device acceptance. See `Build/P2-37-R7-VALIDATION-REPORT.md`.

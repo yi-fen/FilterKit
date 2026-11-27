@@ -1,8 +1,7 @@
 # P2-32 Changelog
 
-- Scope: audit the NEW App-scan and plugin-scan actions against the R16 design and produce an alignment spec only; no `Sources/` scan code was changed this round.
-- Spec: `Build/P2-32-SCAN-R16-ALIGNMENT-AUDIT.md` — R16-vs-NEW difference matrix for app discovery and plugin enumeration/classification/pairing/association, retained NEW enhancements, proposed file-level change list, and open authorization items.
-- Confirmed aligned and unchanged: LS enumeration with `allInstalledApplications`→`allApplications` fallback, single Info.plist read, path-prefix system classification, lazy icon decoding, first-wins bundle-ID dedup, localized sort; four fixed plugin directories, single-level non-recursive enumeration, symlink skip, lowercase suffix/stem pairing, inventory-layer restraint (no hash/Mach-O/dpkg), plist `Filter`-or-root parse, read-only mode.
-- Identified gaps to align (pending authorization): workspace method-existence check; relaxed bundle-ID validation on the fallback directory scanner and association reader; full static Bundles/Executables association matching against installed apps; five-state association classification (`exact_match/global/unmatched_target/invalid_configuration/unresolved`); `static_filter_match_only` / `loaded=unknown` evidence; three-dimension list filtering; file fact bits (size/regular/readable); enumeration four-state/partial semantics.
-- Retained as NEW additions (not rolled back): `.fk.json` manifest hard/soft binding, Mach-O UUID/CDHash/install-name identity fingerprints and conflict analysis, dpkg ownership evidence, locator ambiguous/inaccessible/unresolved states and canonical alias merge, Helper IPC, backup/restore, authorization model.
-- No production write gate, Rootless DEB layout, injection, target-app Bundle modification, or Resources change was added; compile verification remains pending the next Runner `xcodebuild`.
+- Replaced the Apps tab's placeholder detail page with an app-scoped plugin management section.
+- Added a prominent App-detail Import Plugin button and `.dylib` / `.plist` multi-file picker.
+- Added read-only import review, associated-plugin inventory, manageable count, plugin detail navigation, and inventory refresh.
+- Excluded hard-bound, third-party, unpaired, and permission-blocked plugins from the manageable classification.
+- Kept all real filesystem and ElleKit mutations locked.

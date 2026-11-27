@@ -15,8 +15,9 @@ enum PluginActivationPreflightBlocker: String, Codable, Equatable, CaseIterable 
     case pluginNotFilterKitOwned
     case pluginPairNotValid
     case managementPermissionDenied
-    case hardBoundAppCannotBeToggled
     case targetAppUnavailable
+    /// Deprecated compatibility case. Hard binding is not an activation blocker.
+    case hardBoundAppCannotBeToggled
     case invalidTargetBundleIdentifier
     case enableDisableStrategyUnverified
     case helperUnavailable
@@ -75,7 +76,7 @@ struct PluginActivationPreflight {
         if input.ownership != .filterKit { blockers.append(.pluginNotFilterKitOwned) }
         if input.pairing != .paired { blockers.append(.pluginPairNotValid) }
         if !input.permission.canModify { blockers.append(.managementPermissionDenied) }
-        if input.isHardBoundApp { blockers.append(.hardBoundAppCannotBeToggled) }
+        // Hard binding cannot be removed, but its activation state is independently controllable.
         if !input.targetAppIsAvailable { blockers.append(.targetAppUnavailable) }
         if !Self.isValidBundleIdentifier(input.targetBundleIdentifier) {
             blockers.append(.invalidTargetBundleIdentifier)

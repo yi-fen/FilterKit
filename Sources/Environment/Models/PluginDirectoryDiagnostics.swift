@@ -32,6 +32,9 @@ struct PluginDirectoryCandidate: Codable, Equatable, Identifiable {
     let isSymbolicLink: Bool
     let dylibCount: Int
     let plistCount: Int
+    /// Directory entries captured during the read-only assessment. The inventory
+    /// scanner reuses this listing instead of enumerating the same directory again.
+    var entryNames: [String]? = nil
     let detailCode: String
 
     var id: String { canonicalPath ?? path }

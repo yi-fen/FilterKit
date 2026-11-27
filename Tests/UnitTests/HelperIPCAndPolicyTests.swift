@@ -9,6 +9,59 @@ final class HelperIPCAndPolicyTests: XCTestCase {
         XCTAssertEqual(decoded, envelope)
     }
 
+    func testSoftAssociationReplacementRequestSurvivesIPCFrameRoundTrip() throws {
+        let request = HelperPluginFilterMutationRequest(requestID: UUID(), pluginID: UUID(),
+            action: .replaceSoftAssociations, dylibFileName: "Example.dylib", plistFileName: "Example.plist",
+            targetBundleIdentifier: "com.example.host", expectedPlistSHA256: String(repeating: "a", count: 64),
+            expectedManifestSHA256: String(repeating: "b", count: 64), createdAt: Date(timeIntervalSince1970: 1_700_000_000),
+            desiredSoftAssociations: [
+                HelperPluginSoftAssociation(bundleIdentifier: "com.example.alpha", isEnabled: false),
+                HelperPluginSoftAssociation(bundleIdentifier: "com.example.beta", isEnabled: true)
+            ])
+        let payloadEncoder = JSONEncoder()
+        payloadEncoder.dateEncodingStrategy = .iso8601
+        let envelope = HelperIPCEnvelope(messageType: .pluginFilterMutationCommitRequest,
+            requestID: request.requestID, createdAt: request.createdAt, nonce: "0123456789abcdef0123456789abcdef",
+            payload: try payloadEncoder.encode(request))
+        let codec = HelperIPCFrameCodec()
+        let decodedEnvelope = try codec.decode(codec.encode(envelope))
+        XCTAssertEqual(decodedEnvelope.messageType, .pluginFilterMutationCommitRequest)
+        XCTAssertEqual(decodedEnvelope.requestID, request.requestID)
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        let decodedRequest = try decoder.decode(HelperPluginFilterMutationRequest.self,
+            from: XCTUnwrap(decodedEnvelope.payload))
+        XCTAssertEqual(decodedRequest, request)
+        XCTAssertEqual(decodedRequest.desiredSoftAssociations?.count, 2)
+    }
+
+    func testLegacyPerAppMutationPayloadDecodesWithoutAssociationSet() throws {
+        let request = HelperPluginFilterMutationRequest(requestID: UUID(), pluginID: UUID(),
+            action: .enableForApp, dylibFileName: "Example.dylib", plistFileName: "Example.plist",
+            targetBundleIdentifier: "com.example.target", expectedPlistSHA256: String(repeating: "a", count: 64),
+            expectedManifestSHA256: String(repeating: "b", count: 64), createdAt: Date(timeIntervalSince1970: 1_700_000_000))
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        let encoded = try encoder.encode(request)
+        let object = try XCTUnwrap(JSONSerialization.jsonObject(with: encoded) as? [String: Any])
+        var legacyObject = object
+        legacyObject.removeValue(forKey: "desiredSoftAssociations")
+        let legacyData = try JSONSerialization.data(withJSONObject: legacyObject)
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        let decoded = try decoder.decode(HelperPluginFilterMutationRequest.self, from: legacyData)
+        XCTAssertEqual(decoded.action, .enableForApp)
+        XCTAssertNil(decoded.desiredSoftAssociations)
+    }
+
+    func testIPCFrameRejectsTrailingBytes() throws {
+        let codec = HelperIPCFrameCodec()
+        let envelope = HelperIPCEnvelope(messageType: .hello)
+        var frame = try codec.encode(envelope)
+        frame.append(0)
+        XCTAssertThrowsError(try codec.decode(frame))
+    }
+
     func testFrameRejectsTruncationAndOversize() throws {
         let codec = HelperIPCFrameCodec()
         XCTAssertThrowsError(try codec.decode(Data([0, 0, 0])))

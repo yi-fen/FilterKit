@@ -25,6 +25,27 @@ final class PluginDirectoryLocatorTests: XCTestCase {
         XCTAssertTrue(result.isReadOnly)
     }
 
+    func testAssessmentCarriesDirectoryEntriesForScannerReuse() throws {
+        let root = try makeRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let directory = root.appendingPathComponent("usr/lib/TweakInject", isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        try Data([0x01]).write(to: directory.appendingPathComponent("CachedListing.dylib"))
+
+        let result = PluginDirectoryLocator().inspect(jbroot: root.path, environment: .rootHide)
+        let candidate = try XCTUnwrap(result.candidates.first(where: { $0.kind == .tweakInject }))
+        XCTAssertEqual(candidate.entryNames, ["CachedListing.dylib"])
+        XCTAssertEqual(candidate.dylibCount, 1)
+
+        let before = PluginInventoryPerformanceDiagnostics.snapshot()
+        let scan = ReadOnlyPluginScanner().scan(assessment: result)
+        let after = PluginInventoryPerformanceDiagnostics.snapshot()
+        XCTAssertEqual(scan.plugins.map(\.baseName), ["CachedListing"])
+        XCTAssertEqual(after.directoryEnumerationCount, before.directoryEnumerationCount,
+                       "Scanner must reuse the assessment listing, not enumerate the directory again")
+        XCTAssertEqual(after.directoryListingReuseCount, before.directoryListingReuseCount + 1)
+    }
+
     func testMultipleEmptyCompatibilityDirectoriesResolveDeterministically() throws {
         let root = try makeRoot()
         defer { try? FileManager.default.removeItem(at: root) }
@@ -73,6 +94,23 @@ final class PluginDirectoryLocatorTests: XCTestCase {
         XCTAssertEqual(result.state, .unavailable)
         XCTAssertNil(result.selectedPath)
         XCTAssertTrue(result.warnings.contains("environment.plugin_directory.ellekit_component_separate"))
+    }
+
+    func testElleKitComponentDirectoryIsNotEnumerated() throws {
+        let root = try makeRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let component = root.appendingPathComponent("Library/TweakInject", isDirectory: true)
+        try FileManager.default.createDirectory(at: component, withIntermediateDirectories: true)
+        try Data([0x01]).write(to: component.appendingPathComponent("ElleKitComponent.dylib"))
+
+        let before = PluginInventoryPerformanceDiagnostics.snapshot()
+        let result = PluginDirectoryLocator().inspect(jbroot: root.path, environment: .rootHide)
+        let after = PluginInventoryPerformanceDiagnostics.snapshot()
+        let candidate = try XCTUnwrap(result.candidates.first(where: { $0.role == .elleKitComponentDirectory }))
+        XCTAssertNil(candidate.entryNames)
+        XCTAssertEqual(after.directoryEnumerationCount, before.directoryEnumerationCount,
+                       "Diagnostic-only ElleKit component directory must not be enumerated")
+        XCTAssertEqual(result.state, .unavailable)
     }
 
     func testRecognizesElleKitDynamicLibrariesAsPluginCandidate() throws {

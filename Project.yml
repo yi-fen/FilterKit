@@ -45,6 +45,7 @@ targets:
         INFOPLIST_KEY_CFBundleVersion: 1
         GENERATE_INFOPLIST_FILE: YES
         CODE_SIGN_STYLE: Automatic
+        SWIFT_OBJC_BRIDGING_HEADER: Sources/Features/Apps/FilterKit-Apps-Bridging-Header.h
     scheme:
       testTargets:
         - FilterKitTests
@@ -56,6 +57,7 @@ targets:
       - path: HelperRuntime
       - path: Sources/Core/Models/Helper
       - path: Sources/Core/Models/FilterKitPluginManifest.swift
+      - path: Sources/Core/Models/PluginFilterConfiguration.swift
       - path: Sources/Environment/Helper/Transport/UnixDomainSocketTransport.swift
       - path: Sources/Environment/Helper/Transport/DarwinPeerIdentityProvider.swift
       - path: Sources/Environment/Helper/Transport/HelperPeerAuthenticationDiagnostics.swift

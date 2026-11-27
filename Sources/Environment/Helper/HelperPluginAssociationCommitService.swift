@@ -31,6 +31,28 @@ final class HelperPluginAssociationCommitService {
         #endif
     }
 
+    func replaceSoftAssociations(plugin: PluginScanItem, hardBoundBundleIdentifier: String,
+                                  desired: [PluginSoftAssociation], userConfirmed: Bool) async throws -> HelperPluginFilterMutationCommitReceipt {
+        guard userConfirmed else { throw HelperDeploymentCoordinator.CoordinatorError.confirmationRequired }
+        guard let pluginID = UUID(uuidString: plugin.filterKitPluginID ?? ""),
+              let dylib = plugin.dylibFileName, let plist = plugin.plistFileName,
+              let plistPath = plugin.plistPath, let manifestPath = plugin.manifestPath,
+              let plistBytes = try? Data(contentsOf: URL(fileURLWithPath: plistPath)),
+              let manifestBytes = try? Data(contentsOf: URL(fileURLWithPath: manifestPath)),
+              plugin.ownership == .filterKit, plugin.pairingState == .paired,
+              plugin.managementPermission?.canModify == true else { throw ServiceError.missingSourceEvidence }
+        let request = HelperPluginFilterMutationRequest(requestID: UUID(), pluginID: pluginID,
+            action: .replaceSoftAssociations, dylibFileName: dylib, plistFileName: plist,
+            targetBundleIdentifier: hardBoundBundleIdentifier,
+            expectedPlistSHA256: SHA256Digest.hex(plistBytes), expectedManifestSHA256: SHA256Digest.hex(manifestBytes),
+            createdAt: Date(), desiredSoftAssociations: desired.map {
+                HelperPluginSoftAssociation(bundleIdentifier: $0.bundleIdentifier, isEnabled: $0.isEnabled)
+            })
+        guard request.validateShape() else { throw ServiceError.invalidPluginIdentity }
+        let coordinator = try coordinatorFactory()
+        return try await coordinator.commitPluginAssociation(request, userConfirmed: true)
+    }
+
     func commit(plugin: PluginScanItem, action: HelperPluginFilterMutationAction,
                 targetBundleIdentifier: String, userConfirmed: Bool) async throws -> HelperPluginFilterMutationCommitReceipt {
         guard userConfirmed else { throw HelperDeploymentCoordinator.CoordinatorError.confirmationRequired }

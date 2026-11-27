@@ -42,6 +42,38 @@ final class MachOMetadataReaderTests: XCTestCase {
         XCTAssertEqual(slice.cdHash?.count, 40)
     }
 
+    func testCodeDirectoryExtractsIdentifierTeamFlagsAndPlatform() throws {
+        let slice = try XCTUnwrap(MachOMetadataReader().readSlices(data: thinMachOWithExtendedCodeDirectory()).first)
+        XCTAssertEqual(slice.codeSignatureState, "cdhash_extracted")
+        XCTAssertEqual(slice.codeSignatureIdentifier, "com.example.test")
+        XCTAssertEqual(slice.codeSignatureTeamIdentifier, "ABCDE12345")
+        XCTAssertEqual(slice.codeSignatureFlags, 0x10000)
+        XCTAssertEqual(slice.codeSignaturePlatform, 2)
+    }
+
+    private func thinMachOWithExtendedCodeDirectory() -> Data {
+        var d = Data([0xcf, 0xfa, 0xed, 0xfe])
+        appendLE32(0x0100000c, to: &d); appendLE32(0, to: &d)
+        appendLE32(6, to: &d); appendLE32(3, to: &d)
+        appendLE32(92, to: &d); appendLE32(0, to: &d); appendLE32(0, to: &d)
+        appendLE32(0x0d, to: &d); appendLE32(52, to: &d); appendLE32(24, to: &d)
+        appendLE32(0, to: &d); appendLE32(0, to: &d); appendLE32(0x00010000, to: &d)
+        d.append(Data(repeating: 0, count: 28))
+        appendLE32(0x1b, to: &d); appendLE32(24, to: &d); d.append(contentsOf: (0..<16).map(UInt8.init))
+        appendLE32(0x1d, to: &d); appendLE32(16, to: &d); appendLE32(124, to: &d); appendLE32(132, to: &d)
+        appendBE32(0xFADE0CC0, to: &d); appendBE32(132, to: &d); appendBE32(1, to: &d)
+        appendBE32(0, to: &d); appendBE32(20, to: &d)
+        appendBE32(0xFADE0C02, to: &d); appendBE32(112, to: &d); appendBE32(0x00020200, to: &d)
+        appendBE32(0x00010000, to: &d); appendBE32(0, to: &d); appendBE32(64, to: &d)
+        appendBE32(0, to: &d); appendBE32(0, to: &d); appendBE32(0, to: &d)
+        d.append(32); d.append(2); d.append(2); d.append(12)
+        appendBE32(0, to: &d); appendBE32(0, to: &d); appendBE32(88, to: &d); appendBE32(0, to: &d)
+        d.append(Data(repeating: 0, count: 8))
+        d.append(Data("com.example.test\0".utf8)); d.append(Data(repeating: 0, count: 88 - 64 - 17))
+        d.append(Data("ABCDE12345\0".utf8)); d.append(Data(repeating: 0, count: 112 - 88 - 11))
+        return d
+    }
+
     private func thinMachOWithCodeSignature() -> Data {
         var d = Data([0xcf, 0xfa, 0xed, 0xfe])
         appendLE32(0x0100000c, to: &d); appendLE32(2, to: &d)

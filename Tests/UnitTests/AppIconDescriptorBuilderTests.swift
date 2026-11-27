@@ -26,4 +26,14 @@ final class AppIconDescriptorBuilderTests: XCTestCase {
         ], bundleURL: bundle)
         XCTAssertTrue(descriptor?.fileCandidates.contains(where: { $0.lastPathComponent == "LegacyIcon@2x.png" }) == true)
     }
+    func testDecodedIconCacheKeyIncludesBundleIdentifierAndScale() {
+        let twoX = AppIconImageCache.cacheKey(bundleIdentifier: "com.example.app", scale: 2)
+        let threeX = AppIconImageCache.cacheKey(bundleIdentifier: "com.example.app", scale: 3)
+        let otherApp = AppIconImageCache.cacheKey(bundleIdentifier: "com.example.other", scale: 2)
+
+        XCTAssertNotEqual(twoX, threeX)
+        XCTAssertNotEqual(twoX, otherApp)
+        XCTAssertEqual(twoX, AppIconImageCache.cacheKey(bundleIdentifier: "com.example.app", scale: 2.0))
+    }
+
 }

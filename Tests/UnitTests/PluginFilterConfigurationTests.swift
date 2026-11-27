@@ -38,6 +38,22 @@ final class PluginFilterConfigurationTests: XCTestCase {
         XCTAssertEqual(PluginFilterConfiguration.parse(wrongArray).parseState, .partial)
     }
 
+    func testModeBooleanAndNonStringFilterValuesRemainVisible() throws {
+        let source: [String: Any] = ["Filter": [
+            "Executables": ["Example", 7],
+            "Classes": ["ExampleClass"],
+            "Mode": true
+        ]]
+        let data = try PropertyListSerialization.data(fromPropertyList: source, format: .xml, options: 0)
+        let parsed = PluginFilterConfiguration.parse(data)
+        XCTAssertEqual(parsed.executables.count, 2)
+        XCTAssertEqual(parsed.executables[0], "Example")
+        XCTAssertTrue(parsed.executables[1].contains("integer"))
+        XCTAssertEqual(parsed.modeDescription, "true")
+        XCTAssertEqual(parsed.classes, ["ExampleClass"])
+        XCTAssertEqual(parsed.parseState, .partial, "Non-string values are shown but remain a warning")
+    }
+
     func testOnlyVerifiedFilterKitPluginGetsManagementPermission() throws {
         let data = try PropertyListSerialization.data(fromPropertyList: ["Bundles": ["com.example.app"]], format: .xml, options: 0)
         let config = PluginFilterConfiguration.parse(data)

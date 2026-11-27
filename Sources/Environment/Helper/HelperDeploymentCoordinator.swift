@@ -72,6 +72,30 @@ final class HelperDeploymentCoordinator {
     }
 
 
+    /// Requests a read-only Helper-authored identity attestation. No mutation API is called.
+    func attestPluginIdentity(pluginID: UUID, dylibFileName: String, plistFileName: String) async throws -> HelperPluginIdentityAttestation {
+        let now = Date()
+        let request = HelperPluginIdentityAttestationRequest(requestID: UUID(), pluginID: pluginID,
+            dylibFileName: dylibFileName, plistFileName: plistFileName, createdAt: now)
+        guard request.validate(now: now, clockSkewLimit: clockSkewLimit) else { throw CoordinatorError.mutationRejected }
+        let encoder = JSONEncoder(); encoder.dateEncodingStrategy = .iso8601
+        let envelope = HelperIPCEnvelope(messageType: .pluginIdentityAttestationRequest,
+            requestID: request.requestID, createdAt: now, payload: try encoder.encode(request))
+        let response = try await transport.exchange(envelope)
+        guard response.protocolVersion == HelperIPCEnvelope.currentVersion,
+              response.messageType == .pluginIdentityAttestationResponse,
+              response.requestID == request.requestID, let payload = response.payload else {
+            throw CoordinatorError.invalidStatus
+        }
+        let decoder = JSONDecoder(); decoder.dateDecodingStrategy = .iso8601
+        let result = try decoder.decode(HelperPluginIdentityAttestation.self, from: payload)
+        guard result.requestID == request.requestID,
+              abs(Date().timeIntervalSince(result.completedAt)) <= clockSkewLimit else {
+            throw CoordinatorError.invalidStatus
+        }
+        return result
+    }
+
     /// Sends a user-confirmed association intent. Helper re-reads ownership and both source files
     /// immediately before the two-file transaction; no replacement bytes cross IPC.
     /// This client-side release gate intentionally remains closed until device validation.
@@ -103,6 +127,59 @@ final class HelperDeploymentCoordinator {
         }
         return receipt
     }
+
+    /// Read-only activation Prepare. Helper independently re-reads ownership and both files.
+    func prepareAppPluginActivation(_ command: HelperAppPluginActivationCommand) async throws -> HelperAppPluginActivationPlan {
+        guard command.validate(clockSkewLimit: clockSkewLimit) else { throw CoordinatorError.mutationRejected }
+        let encoder = JSONEncoder(); encoder.dateEncodingStrategy = .iso8601
+        let envelope = HelperIPCEnvelope(messageType: .appPluginActivationPrepareRequest,
+            requestID: command.requestID, createdAt: command.createdAt, payload: try encoder.encode(command))
+        let response = try await transport.exchange(envelope)
+        guard response.protocolVersion == HelperIPCEnvelope.currentVersion,
+              response.messageType == .appPluginActivationPrepared,
+              response.requestID == command.requestID, let payload = response.payload else {
+            throw CoordinatorError.invalidReceipt
+        }
+        let decoder = JSONDecoder(); decoder.dateDecodingStrategy = .iso8601
+        let plan = try decoder.decode(HelperAppPluginActivationPlan.self, from: payload)
+        guard plan.validates(command: command) else { throw CoordinatorError.invalidReceipt }
+        return plan
+    }
+
+    /// Sends the exact Prepare plan using a fresh transport request ID. Commit remains
+    /// fail-closed in the App until the separately reviewed device release gate is opened.
+    func commitAppPluginActivation(_ command: HelperAppPluginActivationCommand,
+                                   preparedPlan: HelperAppPluginActivationPlan,
+                                   userConfirmed: Bool) async throws -> HelperAppPluginActivationProof {
+        guard userConfirmed else { throw CoordinatorError.confirmationRequired }
+        guard preparedPlan.validates(command: command) else { throw CoordinatorError.mutationRejected }
+        guard Self.appPluginActivationCommitReleased else { throw CoordinatorError.executionNotReleased }
+        let now = Date()
+        let commit = HelperAppPluginActivationCommitRequest(requestID: UUID(), createdAt: now,
+            command: command, preparedPlan: preparedPlan)
+        guard commit.validates(now: now, clockSkewLimit: clockSkewLimit) else {
+            throw CoordinatorError.mutationRejected
+        }
+        let encoder = JSONEncoder(); encoder.dateEncodingStrategy = .iso8601
+        let envelope = HelperIPCEnvelope(messageType: .appPluginActivationCommitRequest,
+            requestID: commit.requestID, createdAt: now, payload: try encoder.encode(commit))
+        let response: HelperIPCEnvelope
+        do { response = try await transport.exchange(envelope) }
+        catch { throw CoordinatorError.invalidReceipt } // Caller must rescan; commit outcome is not assumed.
+        guard response.protocolVersion == HelperIPCEnvelope.currentVersion,
+              response.messageType == .appPluginActivationCommitted,
+              response.requestID == commit.requestID, let payload = response.payload else {
+            throw CoordinatorError.invalidReceipt
+        }
+        let decoder = JSONDecoder(); decoder.dateDecodingStrategy = .iso8601
+        let proof = try decoder.decode(HelperAppPluginActivationProof.self, from: payload)
+        guard proof.validates(command: command, now: Date(), maximumAge: clockSkewLimit + 5) else {
+            throw CoordinatorError.invalidReceipt
+        }
+        return proof
+    }
+
+    static let appPluginActivationCommitReleased = false
 
     /// Constructs the single-envelope batch protocol. This is also used by offline protocol tests;
     /// transport submission remains blocked by the independent release gate.

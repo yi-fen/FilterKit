@@ -3,6 +3,10 @@ import SwiftUI
 struct SettingsView: View {
     @EnvironmentObject private var language: LanguagePreference
     @AppStorage("filterkit.showSystemApps") private var showingSystemApps = false
+    @ObservedObject private var pluginRegistry = PluginScanRegistry.shared
+    @State private var appBinaryIdentity: AppBinaryIdentitySnapshot?
+    @State private var elleKitProfileStatusKey = "settings.filter.not_checked"
+    @State private var elleKitVersion = "—"
     var helperCoordinator: HelperDeploymentCoordinator? = nil
     @State private var helperStatus: HelperStatusResponse?
     @State private var helperStatusUnavailable = false
@@ -24,6 +28,38 @@ struct SettingsView: View {
                 Section(header: Text("settings.apps")) {
                     Toggle("settings.show_system_apps", isOn: $showingSystemApps)
                         .accessibilityIdentifier("settings.showSystemApps.toggle")
+                }
+
+                Section(header: Text("settings.filter")) {
+                    HStack {
+                        Text("settings.filter.ellekit_profile")
+                        Spacer()
+                        Text(LocalizedStringKey(elleKitProfileStatusKey)).foregroundColor(.secondary)
+                    }
+                    HStack {
+                        Text("settings.filter.ellekit_version")
+                        Spacer()
+                        Text(elleKitVersion).foregroundColor(.secondary)
+                    }
+                    Text("settings.filter.read_only_note")
+                        .font(.footnote).foregroundColor(.secondary)
+                    Button("settings.filter.refresh") {
+                        pluginRegistry.refresh()
+                        Task { await refreshFilterAndIdentityStatus() }
+                    }
+                }
+
+                Section(header: Text("settings.identity")) {
+                    if let identity = appBinaryIdentity {
+                        HStack { Text("settings.identity.bundle"); Spacer(); Text(identity.bundleIdentifier).foregroundColor(.secondary).textSelection(.enabled) }
+                        HStack { Text("settings.identity.architectures"); Spacer(); Text(identity.slices.compactMap(\.architecture).joined(separator: ", ")).foregroundColor(.secondary) }
+                        HStack { Text("settings.identity.cdhash"); Spacer(); Text(identity.slices.compactMap(\.cdHash).joined(separator: ", ").isEmpty ? "—" : identity.slices.compactMap(\.cdHash).joined(separator: ", ")).foregroundColor(.secondary).textSelection(.enabled) }
+                        HStack { Text("settings.identity.signature"); Spacer(); Text(identity.slices.map(\.codeSignatureState).joined(separator: ", ")).foregroundColor(.secondary) }
+                        HStack { Text("settings.identity.team"); Spacer(); Text(identity.slices.compactMap(\.codeSignatureTeamIdentifier).joined(separator: ", ").isEmpty ? "—" : identity.slices.compactMap(\.codeSignatureTeamIdentifier).joined(separator: ", ")).foregroundColor(.secondary) }
+                        HStack { Text("settings.identity.sha256"); Spacer(); Text(identity.sha256).foregroundColor(.secondary).textSelection(.enabled) }
+                    } else {
+                        Text("settings.identity.unavailable").foregroundColor(.secondary)
+                    }
                 }
 
                 Section(header: Text("settings.helper")) {
@@ -70,8 +106,13 @@ struct SettingsView: View {
             .tint(FilterKitTheme.ColorToken.accent)
         }
         .navigationViewStyle(StackNavigationViewStyle())
-        .task { await refreshHelperStatus() }
+        .task {
+            await refreshHelperStatus()
+            await refreshFilterAndIdentityStatus()
+            pluginRegistry.loadIfNeeded()
+        }
     }
+
 
     private var recoveryStatusKey: String {
         guard let status = helperStatus else { return "settings.helper.status_unknown" }
@@ -81,6 +122,20 @@ struct SettingsView: View {
             return "settings.helper.recovery_pending"
         case .invalidJournal: return "settings.helper.recovery_invalid"
         case .unavailable: return "settings.helper.status_unknown"
+        }
+    }
+
+    @MainActor
+    private func refreshFilterAndIdentityStatus() async {
+        appBinaryIdentity = AppBinaryIdentityInspector.inspectMainBundle()
+        let provider = ReadOnlyEnvironmentProvider()
+        let report = await Task.detached(priority: .utility) { provider.makeDiagnosticReport() }.value
+        if let assessment = report.elleKitAssessment {
+            elleKitProfileStatusKey = "settings.filter.profile.\(assessment.profileMatch.rawValue)"
+            elleKitVersion = assessment.packageMetadata?.version ?? "—"
+        } else {
+            elleKitProfileStatusKey = "settings.filter.not_checked"
+            elleKitVersion = "—"
         }
     }
 

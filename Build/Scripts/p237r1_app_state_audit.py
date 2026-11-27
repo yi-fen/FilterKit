@@ -1,0 +1,30 @@
+#!/usr/bin/env python3
+from pathlib import Path
+import sys
+ROOT = Path(__file__).resolve().parents[2]
+checks = []
+def check(name, ok): checks.append((name, bool(ok)))
+registry = (ROOT / "Sources/Environment/PluginScanRegistry.swift").read_text()
+ledger = (ROOT / "Sources/Core/Models/AppPluginActivationPreviewLedger.swift").read_text()
+generation = (ROOT / "Sources/Core/Models/PluginScanGenerationTracker.swift").read_text()
+identity = (ROOT / "Sources/Core/Models/PluginIdentityVerificationResult.swift").read_text()
+resolver = (ROOT / "Sources/Environment/Deployment/AppPluginActivationStateResolver.swift").read_text()
+apps = (ROOT / "Sources/Features/Apps/AppsView.swift").read_text()
+check("monotonic scan generation", "scanGeneration.begin()" in registry)
+check("stale scan completion ignored", "self.scanGeneration.isCurrent(generation)" in registry)
+check("refresh starts new generation", "func refresh()" in registry and "inFlight?.cancel()" in registry)
+check("snapshot revision published", "@Published private(set) var snapshotRevision" in registry)
+check("generation tracker rejects old tokens", "token == current" in generation)
+check("preview key includes target App", '"\\(pluginID)::\\(bundleID)"' in ledger)
+check("new snapshot clears preview ledger", "values.removeAll()" in ledger)
+check("identity conflict fails closed", "identityStatus == .uuidCDHashMismatch" in identity and "status: .rejected" in identity)
+check("fresh Helper attestation required", "guard let attestation = plugin.helperIdentityAttestation" in identity and "attestation.isVerified" in identity)
+check("package-manager ownership rejected; unknown source needs Helper proof", "plugin.ownership == .packageManager" in identity and "guard let attestation = plugin.helperIdentityAttestation" in identity)
+check("preview resolver requires verified evidence", "identityEvidence.permitsActivationPreview" in resolver)
+check("refresh indicator visible", "apps.detail.refreshing_plugins" in apps)
+check("preview store invalidates on scan revision", "onChange(of: snapshotID)" in apps)
+check("toggle remains preview only", "apps.detail.activation_preview_message" in apps)
+check("no direct Helper commit in App detail section", "commitPluginAssociation" not in apps)
+for name, ok in checks: print(("PASS" if ok else "FAIL") + " | " + name)
+print(f"P2-37-R1 app-state audit: {sum(ok for _, ok in checks)}/{len(checks)}")
+sys.exit(0 if all(ok for _, ok in checks) else 1)

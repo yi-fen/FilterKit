@@ -1,4 +1,5 @@
 import Foundation
+import CoreFoundation
 
 enum PluginFilterParseState: String, Codable, Equatable {
     case valid
@@ -45,8 +46,11 @@ struct PluginFilterConfiguration: Codable, Equatable {
                     warnings.append("plugin_filter.\(key.lowercased())_not_array")
                     return []
                 }
-                let strings = values.compactMap { $0 as? String }
-                if strings.count != values.count {
+                let strings = values.map { value -> String in
+                    if let string = value as? String { return string }
+                    return displayPropertyListValue(value)
+                }
+                if values.contains(where: { !($0 is String) }) {
                     warnings.append("plugin_filter.\(key.lowercased())_contains_non_string")
                 }
                 return strings
@@ -57,8 +61,9 @@ struct PluginFilterConfiguration: Codable, Equatable {
             let mode: String?
             if let rawMode = filter["Mode"] {
                 if let value = rawMode as? String { mode = value }
-                else if let value = rawMode as? NSNumber { mode = value.stringValue }
-                else { mode = String(describing: type(of: rawMode)); warnings.append("plugin_filter.mode_unrecognized_type") }
+                else if let value = rawMode as? NSNumber {
+                    mode = CFGetTypeID(value) == CFBooleanGetTypeID() ? (value.boolValue ? "true" : "false") : value.stringValue
+                } else { mode = displayPropertyListValue(rawMode); warnings.append("plugin_filter.mode_unrecognized_type") }
             } else { mode = nil }
             let known: Set<String> = ["Bundles", "Executables", "Classes", "Mode"]
             let unknown = filter.keys.filter { !known.contains($0) }.sorted()
@@ -70,59 +75,14 @@ struct PluginFilterConfiguration: Codable, Equatable {
         }
     }
 
+    private static func displayPropertyListValue(_ value: Any) -> String {
+        if let data = try? PropertyListSerialization.data(fromPropertyList: value, format: .xml, options: 0),
+           let text = String(data: data, encoding: .utf8) { return text }
+        return String(describing: value)
+    }
+
     private static func invalid(_ warning: String) -> PluginFilterConfiguration {
         PluginFilterConfiguration(parseState: .invalid, containerKey: "unknown", bundles: [],
             executables: [], classes: [], modeDescription: nil, unknownKeys: [], warnings: [warning])
-    }
-}
-
-enum PluginManagementAccess: String, Codable, Equatable {
-    case manageable
-    case readOnlyPackageManager
-    case readOnlyUnknownSource
-    case readOnlyInvalidPair
-    case readOnlyUnverifiedIdentity
-    case readOnlyIdentityConflict
-    case readOnlyOwnershipConflict
-}
-
-/// Centralized authorization decision. UI visibility never grants management permission.
-struct PluginManagementPermission: Codable, Equatable {
-    let access: PluginManagementAccess
-    let reasonKey: String
-
-    var canModify: Bool { access == .manageable }
-
-    static func evaluate(ownership: PluginOwnership, pairing: PluginPairingState,
-                         binaryKind: PluginBinaryKind?, verifiedPluginID: String?,
-                         filterConfiguration: PluginFilterConfiguration?) -> PluginManagementPermission {
-        guard ownership == .filterKit else {
-            return PluginManagementPermission(access: ownership == .packageManager ? .readOnlyPackageManager : .readOnlyUnknownSource,
-                reasonKey: ownership == .packageManager ? "plugins.permission.package_manager" : "plugins.permission.unknown_source")
-        }
-        guard pairing == .paired, binaryKind == .machO,
-              filterConfiguration?.parseState == .valid else {
-            return PluginManagementPermission(access: .readOnlyInvalidPair, reasonKey: "plugins.permission.invalid_pair")
-        }
-        guard let id = verifiedPluginID, UUID(uuidString: id) != nil else {
-            return PluginManagementPermission(access: .readOnlyUnverifiedIdentity, reasonKey: "plugins.permission.unverified_identity")
-        }
-        return PluginManagementPermission(access: .manageable, reasonKey: "plugins.permission.filterkit_managed")
-    }
-
-    static func restricting(_ permission: PluginManagementPermission,
-                            identityStatus: PluginIdentityStatus,
-                            ownershipConflict: PluginOwnershipConflict) -> PluginManagementPermission {
-        if ownershipConflict != .none {
-            return PluginManagementPermission(access: .readOnlyOwnershipConflict,
-                reasonKey: "plugins.permission.ownership_conflict")
-        }
-        switch identityStatus {
-        case .duplicateIdentity, .installNameCollision, .uuidCDHashMismatch, .unresolvedBasenameCollision:
-            return PluginManagementPermission(access: .readOnlyIdentityConflict,
-                reasonKey: "plugins.permission.identity_conflict")
-        case .unique, .insufficientFingerprint:
-            return permission
-        }
     }
 }

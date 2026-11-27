@@ -55,7 +55,8 @@ private final class PluginsViewModel: ObservableObject {
                 let names = directories.flatMap { (try? FileManager.default.contentsOfDirectory(atPath: $0)) ?? [] }
                 existingNames = Set(names)
                 conflictingIDs = Set(currentScan.plugins.compactMap { item in
-                    guard let raw = item.filterKitPluginID else { return nil }
+                    guard item.helperIdentityAttestation?.isVerified == true,
+                          let raw = item.filterKitPluginID else { return nil }
                     return UUID(uuidString: raw)
                 })
             } else {
@@ -124,12 +125,6 @@ struct PluginsView: View {
     @State private var showingFilterKitOnly = false
     @State private var searchText = ""
     @State private var isImportingBackup = false
-    @State private var isImportingPlugin = false
-    @State private var isManagingSelection = false
-    @State private var selectedPluginIDs: Set<String> = []
-    @State private var importedPluginFiles: [String] = []
-    @State private var showingPluginImportReview = false
-    @State private var showingUninstallGate = false
 
     private var visiblePlugins: [PluginScanItem] {
         let items = model.registry.result?.plugins ?? []
@@ -212,21 +207,9 @@ struct PluginsView: View {
                         }
                         Section {
                             ForEach(visiblePlugins) { plugin in
-                                HStack(spacing: 10) {
-                                    if isManagingSelection {
-                                        Button { togglePluginSelection(plugin) } label: {
-                                            Image(systemName: selectedPluginIDs.contains(plugin.id) ? "checkmark.circle.fill" : "circle")
-                                                .font(.title3)
-                                        }
-                                        .buttonStyle(.plain)
-                                        .disabled(!isBulkSelectable(plugin))
-                                        .accessibilityLabel("plugins.selection.toggle")
-                                    }
-                                    NavigationLink(destination: PluginScanDetailView(plugin: plugin)) {
-                                        PluginScanRow(plugin: plugin, appNamesByBundleID: model.appNamesByBundleID, appNamesByExecutable: model.appNamesByExecutable)
-                                    }
+                                NavigationLink(destination: PluginScanDetailView(plugin: plugin)) {
+                                    PluginScanRow(plugin: plugin, appNamesByBundleID: model.appNamesByBundleID, appNamesByExecutable: model.appNamesByExecutable)
                                 }
-                                .opacity(isManagingSelection && !isBulkSelectable(plugin) ? 0.55 : 1)
                             }
                         }
                     }
@@ -237,12 +220,7 @@ struct PluginsView: View {
             .navigationTitle("tab.plugins")
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
-                ToolbarItemGroup(placement: .navigationBarLeading) {
-                    Button { isImportingPlugin = true } label: {
-                        Image(systemName: "square.and.arrow.down")
-                    }
-                    .accessibilityLabel("plugins.import.button")
-                    .accessibilityIdentifier("plugins.import.button")
+                ToolbarItem(placement: .navigationBarLeading) {
                     Menu {
                         Button { model.exportAllManageable() } label: {
                             Label("backup.export.manageable", systemImage: "square.and.arrow.up")
@@ -255,14 +233,7 @@ struct PluginsView: View {
                     }
                     .accessibilityLabel("backup.actions")
                 }
-                ToolbarItemGroup(placement: .navigationBarTrailing) {
-                    Button {
-                        isManagingSelection.toggle()
-                        if !isManagingSelection { selectedPluginIDs.removeAll() }
-                    } label: {
-                        Text(isManagingSelection ? "common.done" : "plugins.selection.manage")
-                    }
-                    .accessibilityIdentifier("plugins.selection.manage")
+                ToolbarItem(placement: .navigationBarTrailing) {
                     Button { showingFilterKitOnly.toggle() } label: {
                         Image(systemName: showingFilterKitOnly ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle")
                     }
@@ -272,21 +243,6 @@ struct PluginsView: View {
                 }
             }
             .searchable(text: $searchText, prompt: "plugins.search.prompt")
-            .safeAreaInset(edge: .bottom) {
-                if isManagingSelection {
-                    HStack {
-                        Text(String(format: NSLocalizedString("plugins.selection.count", comment: ""), selectedPluginIDs.count))
-                            .font(.footnote).foregroundStyle(.secondary)
-                        Spacer()
-                        Button(role: .destructive) { showingUninstallGate = true } label: {
-                            Label("plugins.uninstall.selected", systemImage: "trash")
-                        }
-                        .disabled(selectedPluginIDs.isEmpty)
-                    }
-                    .padding(.horizontal, 16).padding(.vertical, 10)
-                    .background(.regularMaterial)
-                }
-            }
             .task { await model.load() }
         }
         .navigationViewStyle(StackNavigationViewStyle())
@@ -297,28 +253,6 @@ struct PluginsView: View {
             BackupRestoreReviewView(review: review) { selectedIDs in
                 model.confirmRestoreSelection(selectedIDs)
             }
-        }
-        .fileImporter(isPresented: $isImportingPlugin,
-                      allowedContentTypes: [UTType(filenameExtension: "dylib", conformingTo: .data) ?? .data,
-                                            UTType(filenameExtension: "plist", conformingTo: .xml) ?? .xml],
-                      allowsMultipleSelection: true) { result in
-            switch result {
-            case .success(let urls):
-                importedPluginFiles = urls.map(\.lastPathComponent)
-                showingPluginImportReview = true
-            case .failure:
-                importedPluginFiles = []
-            }
-        }
-        .alert("plugins.import.review.title", isPresented: $showingPluginImportReview) {
-            Button("common.ok", role: .cancel) { importedPluginFiles = [] }
-        } message: {
-            Text(String(format: NSLocalizedString("plugins.import.review.message", comment: ""), importedPluginFiles.joined(separator: "\n")))
-        }
-        .alert("plugins.uninstall.title", isPresented: $showingUninstallGate) {
-            Button("common.ok", role: .cancel) { }
-        } message: {
-            Text("plugins.uninstall.locked_message")
         }
         .fileImporter(isPresented: $isImportingBackup,
                       allowedContentTypes: [UTType(filenameExtension: "filterkitbackup", conformingTo: .data) ?? .data],
@@ -348,16 +282,7 @@ struct PluginsView: View {
         }
     }
 
-    private func isBulkSelectable(_ plugin: PluginScanItem) -> Bool {
-        plugin.ownership == .filterKit && plugin.managementPermission?.canModify == true
-            && plugin.hardBoundBundleIdentifier == nil && plugin.pairingState == .paired
-    }
 
-    private func togglePluginSelection(_ plugin: PluginScanItem) {
-        guard isBulkSelectable(plugin) else { return }
-        if selectedPluginIDs.contains(plugin.id) { selectedPluginIDs.remove(plugin.id) }
-        else { selectedPluginIDs.insert(plugin.id) }
-    }
 }
 
 private struct BackupRestoreReview: Identifiable {
@@ -577,201 +502,252 @@ private struct PluginScanRow: View {
     }
 }
 
-private struct PluginAssociationPreviewSection: View {
+private struct PluginSoftAssociationManagerSection: View {
     let plugin: PluginScanItem
 
     @State private var apps: [InstalledApp] = []
-    @State private var selectedBundleIdentifier = ""
-    @State private var isLoadingApps = false
-    @State private var isRootHideEnvironment: Bool?
-    @State private var preview: RootHideFilterPlan?
-    @State private var previewAction: RootHideFilterAction = .enableForApp
-    @State private var previewErrorKey: String?
-    @State private var showingCommitConfirmation = false
-    @State private var commitGateNotice = false
-    @State private var isCommittingAssociation = false
-    @State private var commitStatusKey: String?
+    @State private var draft: PluginAssociationPlan?
+    @State private var original: PluginAssociationPlan?
+    @State private var isLoading = false
+    @State private var loadErrorKey: String?
+    @State private var reviewMessage = ""
+    @State private var showingReview = false
+    @State private var showingSaveConfirmation = false
+    @State private var isSaving = false
+    @State private var saveResultKey: String?
 
     private let appDiscovery = AppDiscoveryProviderRegistry.shared
+    private let editor = PluginAssociationPlanEditor()
 
-    private var selectableApps: [InstalledApp] {
-        apps.filter { $0.bundleIdentifier != plugin.hardBoundBundleIdentifier }
+    private var isManageable: Bool {
+        plugin.ownership == .filterKit
+            && plugin.managementPermission?.canModify == true
+            && plugin.pairingState == .paired
+            && plugin.ownershipConflict == .none
+            && plugin.identityConflictIDs.isEmpty
+            && UUID(uuidString: plugin.filterKitPluginID ?? "") != nil
+            && plugin.hardBoundBundleIdentifier.map(PluginAssociationPlanResolver.isValidBundleIdentifier) == true
     }
+
+    private var installedBundleIDs: Set<String> { Set(apps.map(\.bundleIdentifier)) }
+    private var hardBoundID: String? { plugin.hardBoundBundleIdentifier }
+    private var selectableApps: [InstalledApp] {
+        apps.filter { $0.bundleIdentifier != hardBoundID }
+            .sorted { $0.displayName.localizedStandardCompare($1.displayName) == .orderedAscending }
+    }
+    private var associatedIDs: Set<String> { Set(draft?.softAssociations.map(\.bundleIdentifier) ?? []) }
+    private var missingAssociatedIDs: [String] {
+        (draft?.softAssociations.map(\.bundleIdentifier) ?? []).filter { !installedBundleIDs.contains($0) }.sorted()
+    }
+    private var hasChanges: Bool { draft != nil && original != nil && draft != original }
 
     var body: some View {
-        Group {
-            if plugin.ownership != .filterKit {
-                Label("plugins.association_preview.third_party_read_only", systemImage: "lock.shield")
-                    .font(.footnote).foregroundStyle(.secondary)
-            } else if plugin.managementPermission?.canModify != true {
-                Label("plugins.association_preview.permission_blocked", systemImage: "lock.shield")
-                    .font(.footnote).foregroundStyle(.secondary)
-            } else if plugin.pairingState != .paired {
-                Label("plugins.association_preview.pair_blocked", systemImage: "exclamationmark.triangle")
-                    .font(.footnote).foregroundStyle(.secondary)
-            } else if isRootHideEnvironment != true {
-                Label("plugins.association_preview.roothide_only", systemImage: "info.circle")
-                    .font(.footnote).foregroundStyle(.secondary)
+        Section("plugins.association_manager.title") {
+            if let hardBoundID {
+                Label {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("plugins.association_manager.hard_bound")
+                        Text(hardBoundID).font(.caption).foregroundStyle(.secondary).textSelection(.enabled)
+                    }
+                } icon: {
+                    Image(systemName: "lock.shield")
+                }
             } else {
-                if isLoadingApps {
-                    ProgressView("plugins.association_preview.loading_apps")
-                } else if selectableApps.isEmpty {
-                    Text("plugins.association_preview.no_apps")
+                Label("plugins.association_manager.hard_bound_missing", systemImage: "exclamationmark.triangle")
+                    .foregroundStyle(.orange)
+            }
+
+            if !isManageable {
+                Label("plugins.association_manager.read_only", systemImage: "lock.fill")
+                    .font(.footnote).foregroundStyle(.secondary)
+            } else if isLoading && draft == nil {
+                HStack { ProgressView(); Text("plugins.association_manager.loading").font(.footnote).foregroundStyle(.secondary) }
+            } else if let loadErrorKey {
+                Label(LocalizedStringKey(loadErrorKey), systemImage: "exclamationmark.triangle")
+                    .font(.footnote).foregroundStyle(.orange)
+            } else if let draft {
+                Text("plugins.association_manager.instructions")
+                    .font(.footnote).foregroundStyle(.secondary)
+                Label("plugins.association_manager.activation_from_app", systemImage: "arrow.left.arrow.right")
+                    .font(.caption).foregroundStyle(.secondary)
+
+                if selectableApps.isEmpty {
+                    Text("plugins.association_manager.no_apps")
                         .font(.footnote).foregroundStyle(.secondary)
                 } else {
-                    Picker("plugins.association_preview.target_app", selection: $selectedBundleIdentifier) {
-                        ForEach(selectableApps) { app in
-                            Text("\(app.displayName) · \(app.bundleIdentifier)")
-                                .tag(app.bundleIdentifier)
+                    ForEach(selectableApps) { app in
+                        Button {
+                            toggleAssociation(for: app)
+                        } label: {
+                            HStack(spacing: 10) {
+                                if associatedIDs.contains(app.bundleIdentifier) {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .font(.title3).foregroundColor(FilterKitTheme.ColorToken.accent)
+                                } else {
+                                    Image(systemName: "circle")
+                                        .font(.title3).foregroundColor(.secondary)
+                                }
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(app.displayName).foregroundStyle(.primary)
+                                    Text(app.bundleIdentifier).font(.caption).foregroundStyle(.secondary)
+                                    if app.systemClassification == .system {
+                                        Text("apps.badge.system").font(.caption2).foregroundStyle(.secondary)
+                                    }
+                                }
+                                Spacer()
+                                if associatedIDs.contains(app.bundleIdentifier) {
+                                    Text("plugins.association_manager.associated")
+                                        .font(.caption2).foregroundStyle(.secondary)
+                                }
+                            }
+                            .contentShape(Rectangle())
                         }
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("plugins.association.toggle.\(app.bundleIdentifier)")
+                        .accessibilityValue(associatedIDs.contains(app.bundleIdentifier) ? "associated" : "not associated")
                     }
-                    .pickerStyle(.menu)
-                    HStack {
-                        Button("plugins.association_preview.preview_enable") {
-                            makePreview(action: .enableForApp)
-                        }
-                        .disabled(selectedBundleIdentifier.isEmpty)
-                        Button("plugins.association_preview.preview_disable") {
-                            makePreview(action: .disableForApp)
-                        }
-                        .disabled(selectedBundleIdentifier.isEmpty)
-                    }
-                    .font(.footnote)
                 }
-            }
 
-            if let previewErrorKey {
-                Text(LocalizedStringKey(previewErrorKey))
-                    .font(.footnote).foregroundStyle(.red)
-            }
-            if let preview {
-                Divider()
-                Text(preview.disposition.rawValue)
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(preview.disposition == .blocked ? .red : .secondary)
-                if !preview.blockers.isEmpty {
-                    ForEach(preview.blockers, id: \.rawValue) { blocker in
-                        Text(blocker.rawValue).font(.caption).foregroundStyle(.red)
+                if !missingAssociatedIDs.isEmpty {
+                    ForEach(missingAssociatedIDs, id: \.self) { bundleID in
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(bundleID).font(.caption).textSelection(.enabled)
+                                Text("plugins.association_manager.missing_app").font(.caption2).foregroundStyle(.orange)
+                            }
+                            Spacer()
+                            Button("plugins.association_manager.remove") { removeAssociation(bundleID) }
+                                .font(.caption)
+                        }
                     }
                 }
-                detailPreviewRow("plugins.association_preview.before", preview.beforeBundles)
-                detailPreviewRow("plugins.association_preview.after", preview.afterBundles)
-                if !preview.preservedRootKeys.isEmpty {
-                    Text(String(format: NSLocalizedString("plugins.association_preview.preserved_root_keys", comment: ""), preview.preservedRootKeys.joined(separator: ", ")))
-                        .font(.caption2).foregroundStyle(.secondary)
+
+                HStack {
+                    Text("plugins.association_manager.selected_count")
+                    Spacer()
+                    Text("\(draft.softAssociations.count)").foregroundStyle(.secondary)
                 }
-                if !preview.preservedFilterKeys.isEmpty {
-                    Text(String(format: NSLocalizedString("plugins.association_preview.preserved_filter_keys", comment: ""), preview.preservedFilterKeys.joined(separator: ", ")))
-                        .font(.caption2).foregroundStyle(.secondary)
+                .font(.footnote)
+
+                Button {
+                    reviewMessage = makeReviewMessage()
+                    showingReview = true
+                } label: {
+                    Label("plugins.association_manager.review_changes", systemImage: "doc.text.magnifyingglass")
                 }
-                Label("plugins.association_preview.read_only_notice", systemImage: "lock.shield")
+                .disabled(!hasChanges)
+                .accessibilityIdentifier("plugins.association.review_changes")
+
+                Button {
+                    showingSaveConfirmation = true
+                } label: {
+                    if isSaving { ProgressView() } else { Label("plugins.association_manager.save", systemImage: "checkmark.circle") }
+                }
+                .disabled(!hasChanges || isSaving)
+                .accessibilityIdentifier("plugins.association.save")
+                if let saveResultKey {
+                    Label(LocalizedStringKey(saveResultKey), systemImage: "info.circle")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+
+                Label("plugins.association_manager.not_saved", systemImage: "lock.shield")
                     .font(.caption).foregroundStyle(.secondary)
-                if preview.isPreviewable && preview.disposition == .previewReady {
-                    Button("plugins.association_preview.confirm_action") { showingCommitConfirmation = true }
-                        .font(.footnote.weight(.semibold))
-                }
-                if isCommittingAssociation { ProgressView("plugins.association_preview.committing") }
-                if let commitStatusKey {
-                    Label(LocalizedStringKey(commitStatusKey), systemImage: commitStatusKey == "plugins.association_preview.commit_success" ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
-                        .font(.caption).foregroundStyle(commitStatusKey == "plugins.association_preview.commit_success" ? .green : .orange)
-                }
-                if commitGateNotice {
-                    Label("plugins.association_preview.commit_locked", systemImage: "lock.fill")
-                        .font(.caption).foregroundStyle(.orange)
-                }
-                Text("plugins.association_preview.semantics_notice")
-                    .font(.caption2).foregroundStyle(.secondary)
+            } else {
+                Text("plugins.association_manager.unavailable")
+                    .font(.footnote).foregroundStyle(.secondary)
             }
         }
-        .confirmationDialog("plugins.association_preview.confirm_title", isPresented: $showingCommitConfirmation, titleVisibility: .visible) {
-            Button("plugins.association_preview.confirm_button", role: .destructive) {
-                Task { await commitAssociation(action: previewAction) }
-            }
-            .disabled(isCommittingAssociation)
-            Button("common.cancel", role: .cancel) {}
-        } message: {
-            Text("plugins.association_preview.confirm_message")
-        }
-        .task { await loadApps() }
+        .task { await load() }
+        .alert("plugins.association_manager.review_title", isPresented: $showingReview) {
+            Button("common.ok", role: .cancel) { }
+        } message: { Text(reviewMessage) }
+        .confirmationDialog("plugins.association_manager.confirm_save", isPresented: $showingSaveConfirmation, titleVisibility: .visible) {
+            Button("plugins.association_manager.confirm_save_action", role: .destructive) { Task { await save() } }
+            Button("common.cancel", role: .cancel) { }
+        } message: { Text("plugins.association_manager.confirm_save_message") }
     }
 
     @MainActor
-    private func loadApps() async {
-        guard apps.isEmpty, !isLoadingApps else { return }
-        isLoadingApps = true
-        defer { isLoadingApps = false }
-        let rootHideDetected = await Task.detached(priority: .utility) {
-            ReadOnlyEnvironmentProvider().makeDiagnosticReport().environment.kind == .rootHide
-        }.value
-        isRootHideEnvironment = rootHideDetected
-        guard rootHideDetected else { return }
+    private func load() async {
+        guard !isLoading, draft == nil else { return }
+        guard isManageable,
+              let pluginID = UUID(uuidString: plugin.filterKitPluginID ?? ""),
+              let hardBoundID else {
+            loadErrorKey = "plugins.association_manager.not_editable"
+            return
+        }
+        isLoading = true
+        defer { isLoading = false }
         do {
-            apps = try await appDiscovery.scanInstalledApps()
-            if selectedBundleIdentifier.isEmpty {
-                selectedBundleIdentifier = selectableApps.first?.bundleIdentifier ?? ""
+            let discovered = try await appDiscovery.scanInstalledApps()
+            apps = discovered
+            // Preserve schema-3 enabled bits. Legacy schema-1/2 associations retain
+            // their established compatibility interpretation (enabled) until migrated.
+            let states = plugin.softAssociationStates ?? plugin.softAssociatedBundleIdentifiers.map {
+                FilterKitManifestSoftAssociation(bundleIdentifier: $0, isEnabled: true)
             }
+            let plan = PluginAssociationPlan(pluginID: pluginID, hardBoundBundleIdentifier: hardBoundID,
+                softAssociations: states.map { PluginSoftAssociation(bundleIdentifier: $0.bundleIdentifier, isEnabled: $0.isEnabled) })
+            draft = plan
+            original = plan
+            loadErrorKey = nil
         } catch {
-            previewErrorKey = "plugins.association_preview.apps_unavailable"
+            loadErrorKey = "plugins.association_manager.apps_unavailable"
         }
     }
 
+    private func toggleAssociation(for app: InstalledApp) {
+        guard let current = draft else { return }
+        if associatedIDs.contains(app.bundleIdentifier) {
+            apply(.removeSoft(bundleIdentifier: app.bundleIdentifier), to: current)
+        } else if let prior = original?.softAssociations.first(where: { $0.bundleIdentifier == app.bundleIdentifier }) {
+            apply(.restoreSoft(association: prior), to: current)
+        } else {
+            apply(.addSoft(bundleIdentifier: app.bundleIdentifier), to: current)
+        }
+    }
+
+    private func removeAssociation(_ bundleID: String) {
+        guard let current = draft else { return }
+        apply(.removeSoft(bundleIdentifier: bundleID), to: current)
+    }
+
+    private func apply(_ edit: PluginAssociationEdit, to plan: PluginAssociationPlan) {
+        switch editor.applying(edit, to: plan, installedBundleIdentifiers: installedBundleIDs, pluginIsManageable: isManageable) {
+        case .success(let updated): draft = updated
+        case .failure: loadErrorKey = "plugins.association_manager.edit_rejected"
+        }
+    }
+
+
     @MainActor
-    private func commitAssociation(action: RootHideFilterAction) async {
-        guard preview?.isPreviewable == true, !selectedBundleIdentifier.isEmpty else { return }
-        isCommittingAssociation = true
-        commitStatusKey = nil
-        defer { isCommittingAssociation = false }
+    private func save() async {
+        guard let draft, let original, let hardBoundID, draft != original else { return }
+        isSaving = true
+        defer { isSaving = false }
         do {
             let service = try HelperPluginAssociationCommitService.production()
-            let intent: HelperPluginFilterMutationAction = action == .enableForApp ? .enableForApp : .disableForApp
-            let receipt = try await service.commit(plugin: plugin, action: intent,
-                targetBundleIdentifier: selectedBundleIdentifier, userConfirmed: true)
-            guard receipt.pluginID == UUID(uuidString: plugin.filterKitPluginID ?? ""),
-                  receipt.targetBundleIdentifier == selectedBundleIdentifier else {
-                commitStatusKey = "plugins.association_preview.commit_invalid_receipt"
-                return
-            }
-            commitStatusKey = "plugins.association_preview.commit_success"
-        } catch HelperDeploymentCoordinator.CoordinatorError.executionNotReleased {
-            commitGateNotice = true
-        } catch HelperPluginAssociationCommitService.ServiceError.trustNotProvisioned {
-            commitStatusKey = "plugins.association_preview.helper_not_provisioned"
+            _ = try await service.replaceSoftAssociations(plugin: plugin,
+                hardBoundBundleIdentifier: hardBoundID, desired: draft.softAssociations, userConfirmed: true)
+            original = draft
+            saveResultKey = "plugins.association_manager.save_success"
         } catch {
-            commitStatusKey = "plugins.association_preview.commit_failed"
+            saveResultKey = "plugins.association_manager.save_blocked"
         }
     }
 
-    private func makePreview(action: RootHideFilterAction) {
-        preview = nil
-        previewErrorKey = nil
-        guard let path = plugin.plistPath, path.hasPrefix("/"),
-              let attributes = try? FileManager.default.attributesOfItem(atPath: path),
-              attributes[.type] as? FileAttributeType == .typeRegular,
-              let data = try? Data(contentsOf: URL(fileURLWithPath: path), options: [.mappedIfSafe]) else {
-            previewErrorKey = "plugins.association_preview.plist_unavailable"
-            return
-        }
-        let eligibility = PluginAssociationPreviewPolicy().evaluate(
-            plugin: plugin, targetBundleIdentifier: selectedBundleIdentifier,
-            installedBundleIdentifiers: Set(apps.map(\.bundleIdentifier)), originalPlistIsReadable: true)
-        guard eligibility.isEligible else {
-            previewErrorKey = "plugins.association_preview.policy_blocked"
-            return
-        }
-        previewAction = action
-        preview = RootHideElleKitFilterStrategy().makePlan(
-            originalData: data, targetBundleIdentifier: selectedBundleIdentifier, action: action)
-    }
-
-    @ViewBuilder
-    private func detailPreviewRow(_ title: LocalizedStringKey, _ values: [String]) -> some View {
-        HStack(alignment: .top) {
-            Text(title)
-            Spacer(minLength: 8)
-            Text(values.isEmpty ? "—" : values.joined(separator: ", "))
-                .foregroundStyle(.secondary).multilineTextAlignment(.trailing).textSelection(.enabled)
-        }
-        .font(.caption)
+    private func makeReviewMessage() -> String {
+        guard let draft, let original else { return NSLocalizedString("plugins.association_manager.no_changes", comment: "") }
+        let old = Set(original.softAssociations.map(\.bundleIdentifier))
+        let new = Set(draft.softAssociations.map(\.bundleIdentifier))
+        let added = new.subtracting(old).sorted()
+        let removed = old.subtracting(new).sorted()
+        var lines: [String] = []
+        if !added.isEmpty { lines.append(NSLocalizedString("plugins.association_manager.added", comment: "") + ": " + added.joined(separator: ", ")) }
+        if !removed.isEmpty { lines.append(NSLocalizedString("plugins.association_manager.removed", comment: "") + ": " + removed.joined(separator: ", ")) }
+        if lines.isEmpty { lines.append(NSLocalizedString("plugins.association_manager.no_changes", comment: "")) }
+        lines.append(NSLocalizedString("plugins.association_manager.review_only", comment: ""))
+        return lines.joined(separator: "\n")
     }
 }
 
@@ -816,30 +792,7 @@ private struct PluginScanDetailView: View {
                     ForEach(filter.warnings, id: \.self) { Text(LocalizedStringKey($0)).font(.caption).foregroundStyle(.secondary) }
                 }
             }
-            if plugin.ownership == .filterKit {
-                Section("plugins.detail.associations") {
-                    detailRow("plugins.detail.hard_bound", plugin.hardBoundBundleIdentifier ?? "—")
-                    ForEach(plugin.softAssociatedBundleIdentifiers, id: \.self) { Text($0) }
-                }
-            }
-            Section("plugins.association_preview.title") {
-                PluginAssociationPreviewSection(plugin: plugin)
-            }
-            Section("plugins.management.actions") {
-                if plugin.hardBoundBundleIdentifier != nil {
-                    Label("plugins.management.hard_bound_protected", systemImage: "lock.shield")
-                        .font(.footnote).foregroundStyle(.secondary)
-                } else if plugin.ownership == .filterKit && plugin.managementPermission?.canModify == true {
-                    Button(role: .destructive) { } label: {
-                        Label("plugins.uninstall.disabled", systemImage: "trash")
-                    }
-                    .disabled(true)
-                    Text("plugins.uninstall.locked_message").font(.caption).foregroundStyle(.secondary)
-                } else {
-                    Label("plugins.management.read_only", systemImage: "lock.shield")
-                        .font(.footnote).foregroundStyle(.secondary)
-                }
-            }
+            PluginSoftAssociationManagerSection(plugin: plugin)
             if !plugin.identityConflictIDs.isEmpty {
                 Section("plugins.identity.conflicts") {
                     ForEach(plugin.identityConflictIDs, id: \.self) { Text($0).font(.caption).textSelection(.enabled) }

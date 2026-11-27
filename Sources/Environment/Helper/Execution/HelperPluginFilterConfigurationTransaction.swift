@@ -6,7 +6,8 @@ import Glibc
 #endif
 
 /// Association-only transaction. It changes Filter.plist and .fk.json, never the dylib.
-/// Not connected to IPC or startup recovery until device validation and release approval.
+/// Routed through the authenticated Helper dispatcher; commit remains fail-closed behind its release gate.
+/// Startup only inspects this journal. Reconciliation is explicit and is not auto-run at launch.
 final class HelperPluginFilterConfigurationTransaction {
     enum Phase: String, Codable { case prepared, staged, backedUp, replacingPlist, replacingManifest, committed }
     enum Failure: Error, Equatable { case notRoot, invalidInput, unsafePath, conflict, hashMismatch, invalidJournal, manualIntervention, io(Int32), injectedCrash(Phase) }

@@ -261,7 +261,7 @@
 "settings.helper.recovery_pending" = "需要恢复";
 "settings.helper.recovery_invalid" = "事务日志异常";
 
-"settings.helper.not_configured" = "尚未配置";
+"settings.helper.not_configured" = "Helper 尚未接入";
 
 "plugins.row.hard_bound" = "硬绑定：%@";
 "plugins.row.associated_apps" = "关联：%@";
@@ -322,3 +322,150 @@
 "plugins.management.actions" = "管理操作";
 "plugins.management.hard_bound_protected" = "硬绑定插件受保护，不能通过批量操作选择。";
 "plugins.management.read_only" = "此插件不是 FilterKit 可管理插件，保持只读。";
+
+
+/* P2-37 APP 详情插件启停管理器 */
+"apps.detail.hard_bound_plugins" = "硬绑定插件";
+"apps.detail.soft_associated_plugins" = "软关联插件";
+"apps.detail.filter_matched_plugins" = "其他 Filter 命中项";
+"apps.detail.activation_hard_bound" = "硬绑定插件 · 绑定关系不可解除";
+"apps.detail.activation_soft_associated" = "软关联插件";
+"apps.detail.activation_filter_match" = "Filter 命中 · 非可编辑关联";
+"apps.detail.activation_enabled" = "Filter 配置中已启用";
+"apps.detail.activation_disabled" = "Filter 配置中已关闭";
+"apps.detail.activation_global" = "全局 Filter · 无法隔离单个 App 状态";
+"apps.detail.activation_ambiguous" = "Filter 含 Classes / Executables 匹配条件，无法可靠归因到单个 App";
+"apps.detail.activation_mismatch" = "Manifest 与 Filter 配置不一致";
+"apps.detail.activation_unavailable" = "无法读取启用状态";
+"apps.detail.activation_read_only_ownership" = "第三方或未知插件 · 不提供开关";
+"apps.detail.activation_read_only_unverified" = "FilterKit 归属或二进制身份尚未验证 · 不提供开关";
+"apps.detail.activation_read_only_app_missing" = "目标 App 不可用 · 不提供开关";
+"apps.detail.activation_read_only_not_associated" = "此 App 不属于已保存的硬绑定或软关联";
+"apps.detail.activation_read_only_mismatch" = "状态交叉验证失败 · 刷新并确认一致前锁定开关";
+"apps.detail.activation_preview_title" = "仅预览启停状态";
+"apps.detail.activation_preview_message" = "此开关只改变当前页面的预览状态，不会写入 Filter.plist 或 Manifest，不会请求 Helper 执行修改，也不会启用注入。页面显示的配置状态仍以只读扫描结果为准。";
+"apps.detail.preview_enabled" = "预览：开启 · 尚未应用";
+"apps.detail.preview_disabled" = "预览：关闭 · 尚未应用";
+"apps.detail.activation_toggle_accessibility" = "预览插件启用状态";
+
+/* P2-32 app detail plugin management */
+"apps.detail.import_plugin" = "导入插件到此 App";
+"apps.detail.manageable_plugins" = "可管理插件";
+"apps.detail.plugin_inventory_unavailable" = "插件目录暂不可用，请检查越狱环境后刷新。";
+"apps.detail.no_related_plugins" = "当前没有发现关联到此 App 的插件。可通过上方按钮选择 dylib / plist 进行导入预检。";
+"apps.detail.refresh_plugins" = "刷新";
+"apps.detail.plugin_manageable" = "FilterKit 管理 · 可管理";
+"apps.detail.plugin_read_only" = "只读 · 不允许修改";
+"apps.detail.plugin_mutations_locked" = "导入、关联提交、启用和卸载的真实写入操作仍受安全门禁保护。";
+"apps.detail.import_review_title" = "插件导入预检";
+"apps.detail.import_review_message" = "已选择以下文件：\n%@\n\n当前版本仅完成文件选择和预检入口，不会复制文件或修改 ElleKit 配置。";
+"apps.detail.plugin_information" = "插件信息";
+"apps.detail.target_app" = "目标 App";
+"apps.detail.plugin_detail_read_only" = "此页面显示插件与当前 App 的关联及配置启用状态。本版本开关仅用于预览；实际 Filter 写入和注入仍需等待设备验收后开放。";
+
+"settings.filter" = "Filter / ElleKit 状态";
+"settings.filter.inventory" = "插件 Filter 配置";
+"settings.filter.inventory_summary" = "共 %d 个；解析成功 %d；异常 %d";
+"settings.filter.ellekit_profile" = "ElleKit 兼容性识别";
+"settings.filter.ellekit_version" = "ElleKit 版本";
+"settings.filter.read_only_note" = "此处显示已扫描的插件 Filter 配置数量，以及 ElleKit 兼容性 Profile 识别结果；不代表注入已启用，也不会修改配置。";
+"settings.filter.not_checked" = "尚未检测";
+"settings.filter.profile.matched" = "已匹配已验证 Profile";
+"settings.filter.profile.versionMismatch" = "版本不匹配";
+"settings.filter.profile.identityMismatch" = "身份不匹配";
+"settings.filter.profile.unknownFingerprint" = "缺少已验证指纹";
+"settings.filter.profile.unverifiable" = "证据不足，无法验证";
+"settings.filter.profile.ambiguous" = "存在多个候选，无法确定";
+"settings.filter.profile.notEvaluated" = "未评估";
+"settings.filter.profile.environmentNotSupported" = "当前环境不支持";
+"settings.identity" = "FilterKit 自身二进制身份";
+"settings.identity.bundle" = "Bundle ID";
+"settings.identity.architectures" = "架构";
+"settings.identity.cdhash" = "CDHash";
+"settings.identity.signature" = "代码签名状态";
+"settings.identity.team" = "Team Identifier";
+"settings.identity.sha256" = "文件 SHA-256";
+"settings.identity.unavailable" = "无法读取当前 App 主程序的 Mach-O 身份信息。";
+"plugin_scan.macho_metadata_unavailable" = "无法读取该文件的 Mach-O 元数据；文件仍保留在只读清单中。";
+
+"settings.filter.refresh" = "刷新 Filter 检测";
+
+// P2-34 Home dashboard and product navigation boundaries
+"home.overview" = "设备概览";
+"home.apps" = "已安装 APP";
+"home.plugins" = "发现插件";
+"home.filters" = "Filter 配置";
+"home.associated_apps" = "已关联 APP";
+"home.filter_health" = "Filter 健康状态";
+"home.filter.parsed" = "解析成功";
+"home.filter.invalid" = "配置异常";
+"home.scan.pending" = "正在读取插件与 Filter 清单…";
+"home.environment" = "运行环境";
+"home.environment.status" = "RootHide / ElleKit";
+"home.environment.ellekit_version" = "ElleKit 版本";
+"home.status.checking" = "检查中";
+"home.status.ellekit_detected" = "检测到 ElleKit";
+"home.status.root_detected_ellekit_uncertain" = "已识别越狱环境，ElleKit 状态待确认";
+"home.status.environment_unresolved" = "越狱环境尚未确认";
+"home.last_scan" = "最近扫描";
+"home.refresh" = "刷新设备概览";
+"home.operation_hint" = "首次导入 dylib 请进入对应 APP 详情页；插件页仅用于查看资料、管理关联和导入备份数据。";
+"plugins.detail.association_management" = "APP 关联";
+"plugins.detail.association_manage_from_app" = "插件页面不提供启用/关闭开关。APP 级启用状态请在对应 APP 详情页管理。";
+"plugins.detail.hard_bound_app" = "硬绑定 APP";
+"plugins.detail.soft_associated_app" = "软关联 APP";
+"plugins.detail.no_soft_associations" = "尚无软关联 APP";
+"plugins.association_manager.title" = "软关联 APP 管理";
+"plugins.association_manager.hard_bound" = "硬绑定 APP（固定，不可取消）";
+"plugins.association_manager.hard_bound_missing" = "未识别到有效硬绑定 APP，关联编辑已锁定";
+"plugins.association_manager.read_only" = "此插件不可由 FilterKit 修改关联。第三方、来源未知或身份异常插件仅供查看。";
+"plugins.association_manager.loading" = "正在读取已安装 APP…";
+"plugins.association_manager.instructions" = "勾选或取消普通 APP 以编辑软关联。此操作不会启用或停用插件。";
+"plugins.association_manager.no_apps" = "没有可供软关联的其他已安装 APP。";
+"plugins.association_manager.associated" = "已关联";
+"plugins.association_manager.missing_app" = "该 APP 当前未安装，可移除此失效关联";
+"plugins.association_manager.remove" = "移除";
+"plugins.association_manager.selected_count" = "软关联 APP 数量";
+"plugins.association_manager.review_changes" = "预览关联变更";
+"plugins.association_manager.not_saved" = "当前仅编辑本页草稿；Helper 关联提交尚未开放，不会写入 Filter 或 Manifest。";
+"plugins.association_manager.unavailable" = "关联清单暂不可用。";
+"plugins.association_manager.not_editable" = "插件身份或所有权未通过管理校验，不能编辑关联。";
+"plugins.association_manager.apps_unavailable" = "无法读取已安装 APP 清单。";
+"plugins.association_manager.edit_rejected" = "关联变更被策略拒绝，草稿未更新。";
+"plugins.association_manager.review_title" = "关联变更预览（只读）";
+"plugins.association_manager.added" = "新增软关联";
+"plugins.association_manager.removed" = "移除软关联";
+"plugins.association_manager.no_changes" = "没有待处理的关联变更。";
+"plugins.association_manager.review_only" = "这只是本页草稿预览；尚未保存，也没有修改任何文件或注入状态。";
+"plugins.association_manager.activation_from_app" = "插件关联只决定关系；启用或关闭请在对应 APP 详情页面操作。";
+"plugins.association_manager.save" = "保存软关联";
+"plugins.association_manager.confirm_save" = "确认关联变更";
+"plugins.association_manager.confirm_save_action" = "确认保存";
+"plugins.association_manager.confirm_save_message" = "仅保存完整软关联集合。保留已有启用状态；新增关联保持关闭。本操作不会启用注入。";
+"plugins.association_manager.save_success" = "软关联集合已保存。";
+"plugins.association_manager.save_blocked" = "保存被阻止。Release Gate 仍关闭，未写入任何变更。";
+
+"apps.detail.activation_identity_rejected" = "检测到插件身份冲突 · 已锁定开关";
+
+"apps.detail.preview_pending_refresh" = "仅为预览 · 下次刷新插件清单后清除";
+
+"apps.detail.refreshing_plugins" = "正在刷新插件清单…";
+"apps.detail.activation_helper_attestation_required" = "需要 Helper 身份验证证明 · 暂不可操作";
+"apps.detail.activation_helper_attestation_mismatch" = "Helper 身份证明与当前扫描结果不一致 · 已锁定开关";
+
+/* P2-37-R3 identity freshness */
+"apps.detail.activation_helper_attestation_expired" = "Helper 身份证明已过期 · 正在重新扫描插件文件并刷新授权状态";
+
+/* P2-37-R7 APP activation flow */
+"apps.detail.activation_confirm_title" = "确认插件启停操作";
+"apps.detail.activation_confirm_action" = "继续";
+"apps.detail.activation_confirm_message" = "Helper 将重新核验插件身份和当前文件哈希。设备验收完成前，生产提交 Gate 仍保持关闭。";
+"apps.detail.activation_operation_title" = "插件启停操作";
+"apps.detail.activation_operation_idle" = "当前没有待处理的启停请求。";
+"apps.detail.activation_operation_preparing" = "正在请求 Helper 生成只读启停计划……";
+"apps.detail.activation_operation_prepared" = "Helper 已生成计划，尚未修改任何文件。";
+"apps.detail.activation_operation_committing" = "正在提交启停请求……";
+"apps.detail.activation_operation_committed_refreshing" = "已收到提交证明，正在刷新只读扫描……";
+"apps.detail.activation_operation_release_closed" = "生产 Release Gate 已锁定提交，未修改任何文件。";
+"apps.detail.activation_operation_unknown" = "无法确认提交结果。必须重新扫描，不会自动重试。";
+"apps.detail.activation_operation_failed" = "启停请求失败或扫描快照已过期。请刷新后重试。";

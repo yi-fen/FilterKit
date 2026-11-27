@@ -8,6 +8,9 @@ actor CachedAppDiscoveryProvider: AppDiscoveryProvider, AppDiscoveryRefreshing {
     private let now: () -> Date
     private var cachedApps: [InstalledApp]?
     private var cachedAt: Date?
+    /// A system inventory-change notification bypasses TTL without discarding the
+    /// last successful snapshot. The old list remains readable until a refresh succeeds.
+    private var isStale = false
     /// Single in-flight enumeration shared by every concurrent caller, mirroring
     /// R16's `isLoading` + completion-waiters. Prewarm, Apps, and Plugins all
     /// await the same task instead of each launching a separate LaunchServices scan.
@@ -27,7 +30,7 @@ actor CachedAppDiscoveryProvider: AppDiscoveryProvider, AppDiscoveryRefreshing {
     }
 
     func scanInstalledApps() async throws -> [InstalledApp] {
-        if let cachedApps, let cachedAt, now().timeIntervalSince(cachedAt) < timeToLive {
+        if !isStale, let cachedApps, let cachedAt, now().timeIntervalSince(cachedAt) < timeToLive {
             return cachedApps
         }
         return try await sharedRefresh().value
@@ -44,7 +47,24 @@ actor CachedAppDiscoveryProvider: AppDiscoveryProvider, AppDiscoveryRefreshing {
     func invalidateCache() async {
         cachedApps = nil
         cachedAt = nil
+        isStale = false
         mirrorLock.lock(); mirror = nil; mirrorLock.unlock()
+    }
+
+    /// Marks the inventory stale and refreshes it in the background. Unlike the
+    /// explicit destructive invalidation API, this retains the previous snapshot
+    /// (including the synchronous mirror) until a complete replacement succeeds.
+    /// A failed scan leaves the old snapshot visible and stale so a later request
+    /// can retry instead of silently treating old data as fresh.
+    func markStaleAndRefresh() async throws -> [InstalledApp] {
+        isStale = true
+        let task = sharedRefresh()
+        let refreshed = try await task.value
+        // Publish the replacement before returning to the observer. The detached
+        // completion callback may also finalize; applying the same successful
+        // snapshot twice is idempotent and closes the callback scheduling race.
+        finalizeRefresh(result: .success(refreshed))
+        return cachedApps ?? refreshed
     }
 
     /// Non-scanning snapshot of the cached inventory, if present. Used to render
@@ -98,6 +118,7 @@ actor CachedAppDiscoveryProvider: AppDiscoveryProvider, AppDiscoveryRefreshing {
         let sorted = Self.deduplicatedAndSorted(apps)
         cachedApps = sorted
         cachedAt = now()
+        isStale = false
         mirrorLock.lock(); mirror = sorted; mirrorLock.unlock()
     }
 
@@ -117,4 +138,20 @@ actor CachedAppDiscoveryProvider: AppDiscoveryProvider, AppDiscoveryRefreshing {
 enum AppDiscoveryProviderRegistry {
     static let shared = CachedAppDiscoveryProvider(
         source: LaunchServicesAppDiscoveryProvider(), timeToLive: 60)
+
+    /// A single process-wide observer is retained for the lifetime of the app,
+    /// rather than being installed by each SwiftUI page instance.
+    private static let changeObserver = LaunchServicesApplicationsChangeObserver {
+        Task {
+            guard let refreshed = try? await shared.markStaleAndRefresh() else { return }
+            await MainActor.run {
+                NotificationCenter.default.post(
+                    name: .filterKitAppInventoryDidRefresh, object: refreshed)
+            }
+        }
+    }
+
+    static func startObservingSystemChanges() {
+        _ = changeObserver
+    }
 }

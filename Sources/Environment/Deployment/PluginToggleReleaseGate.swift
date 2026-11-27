@@ -10,6 +10,7 @@ struct PluginToggleReleaseEvidence: Equatable {
     let pluginOwnershipVerified: Bool
     let pluginPairVerified: Bool
     let targetAppAvailable: Bool
+    /// Retained as context for audit/reporting. Hard binding does not prohibit activation toggles.
     let targetIsHardBoundApp: Bool
     let userConfirmed: Bool
 }
@@ -22,6 +23,7 @@ enum PluginToggleReleaseBlocker: String, Codable, Equatable, CaseIterable {
     case pluginNotFilterKitOwned
     case pluginPairNotVerified
     case targetAppUnavailable
+    /// Deprecated compatibility case. Hard binding is no longer a toggle blocker.
     case hardBoundTargetImmutable
     case confirmationRequired
     case productionReleaseSwitchClosed
@@ -47,7 +49,6 @@ enum PluginToggleReleaseGate {
         if !evidence.pluginOwnershipVerified { blockers.append(.pluginNotFilterKitOwned) }
         if !evidence.pluginPairVerified { blockers.append(.pluginPairNotVerified) }
         if !evidence.targetAppAvailable { blockers.append(.targetAppUnavailable) }
-        if evidence.targetIsHardBoundApp { blockers.append(.hardBoundTargetImmutable) }
         if !evidence.userConfirmed { blockers.append(.confirmationRequired) }
         if !productionMutationReleased { blockers.append(.productionReleaseSwitchClosed) }
         return PluginToggleReleaseDecision(blockers: blockers)

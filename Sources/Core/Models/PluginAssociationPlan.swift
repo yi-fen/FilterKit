@@ -112,6 +112,8 @@ struct PluginAssociationPlanResolver {
 
 enum PluginAssociationEdit: Equatable {
     case addSoft(bundleIdentifier: String)
+    /// Re-adds a relationship removed earlier in the same draft while preserving its prior activation bit.
+    case restoreSoft(association: PluginSoftAssociation)
     case setSoftEnabled(bundleIdentifier: String, isEnabled: Bool)
     case removeSoft(bundleIdentifier: String)
 }
@@ -138,7 +140,16 @@ struct PluginAssociationPlanEditor {
             guard bundleID != plan.hardBoundBundleIdentifier else { return .failure(.hardBoundIsImmutable) }
             guard installedBundleIdentifiers.contains(bundleID) else { return .failure(.appNotInstalled) }
             guard !plan.softAssociations.contains(where: { $0.bundleIdentifier == bundleID }) else { return .failure(.duplicateAssociation) }
-            updated.softAssociations.append(PluginSoftAssociation(bundleIdentifier: bundleID, isEnabled: true))
+            // Creating a relationship must never implicitly activate injection.
+            // The per-App activation state is controlled only from the App detail page.
+            updated.softAssociations.append(PluginSoftAssociation(bundleIdentifier: bundleID, isEnabled: false))
+        case .restoreSoft(let association):
+            let bundleID = association.bundleIdentifier
+            guard PluginAssociationPlanResolver.isValidBundleIdentifier(bundleID) else { return .failure(.invalidBundleIdentifier) }
+            guard bundleID != plan.hardBoundBundleIdentifier else { return .failure(.hardBoundIsImmutable) }
+            guard installedBundleIdentifiers.contains(bundleID) else { return .failure(.appNotInstalled) }
+            guard !plan.softAssociations.contains(where: { $0.bundleIdentifier == bundleID }) else { return .failure(.duplicateAssociation) }
+            updated.softAssociations.append(association)
         case .setSoftEnabled(let bundleID, let enabled):
             guard bundleID != plan.hardBoundBundleIdentifier else { return .failure(.hardBoundIsImmutable) }
             guard let index = updated.softAssociations.firstIndex(where: { $0.bundleIdentifier == bundleID }) else { return .failure(.associationNotFound) }

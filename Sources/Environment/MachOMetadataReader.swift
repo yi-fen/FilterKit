@@ -11,6 +11,10 @@ struct MachOSliceMetadata: Codable, Equatable {
     let uuid: String?
     let cdHash: String?
     let codeSignatureState: String
+    let codeSignatureIdentifier: String?
+    let codeSignatureTeamIdentifier: String?
+    let codeSignatureFlags: UInt32?
+    let codeSignaturePlatform: UInt8?
 }
 
 /// Bounds-checked, read-only Mach-O metadata parser. Supports thin and fat containers.
@@ -102,45 +106,76 @@ struct MachOMetadataReader {
             }
             cursor += size
         }
-        let cd: (hash: String?, state: String) = signatureRange.map { codeDirectoryHash(Array(b[$0])) } ?? (hash: nil, state: "absent")
+        let cd: CodeDirectoryMetadata = signatureRange.map { codeDirectoryMetadata(Array(b[$0])) } ?? CodeDirectoryMetadata(hash: nil, state: "absent", identifier: nil, teamIdentifier: nil, flags: nil, platform: nil)
         return MachOSliceMetadata(architecture: Self.architectureName(cpuType: actualCPU, cpuSubtype: actualSubtype),
             cpuType: actualCPU, cpuSubtype: actualSubtype, is64Bit: is64, installName: install,
             currentVersion: current, compatibilityVersion: compat, uuid: uuid, cdHash: cd.hash,
-            codeSignatureState: cd.state)
+            codeSignatureState: cd.state, codeSignatureIdentifier: cd.identifier,
+            codeSignatureTeamIdentifier: cd.teamIdentifier, codeSignatureFlags: cd.flags,
+            codeSignaturePlatform: cd.platform)
     }
 
-    private func codeDirectoryHash(_ blob: [UInt8]) -> (hash: String?, state: String) {
-        guard blob.count >= 12 else { return (nil, "malformed") }
+    private struct CodeDirectoryMetadata {
+        let hash: String?
+        let state: String
+        let identifier: String?
+        let teamIdentifier: String?
+        let flags: UInt32?
+        let platform: UInt8?
+    }
+
+    private func codeDirectoryMetadata(_ blob: [UInt8]) -> CodeDirectoryMetadata {
+        func result(_ hash: String? = nil, state: String, identifier: String? = nil,
+                    team: String? = nil, flags: UInt32? = nil, platform: UInt8? = nil) -> CodeDirectoryMetadata {
+            CodeDirectoryMetadata(hash: hash, state: state, identifier: identifier,
+                                  teamIdentifier: team, flags: flags, platform: platform)
+        }
+        guard blob.count >= 12 else { return result(state: "malformed") }
         let magic = u32(blob, 0, little: false), length = Int(u32(blob, 4, little: false)), count = Int(u32(blob, 8, little: false))
-        guard length >= 12, length <= blob.count else { return (nil, "malformed") }
+        guard length >= 12, length <= blob.count else { return result(state: "malformed") }
         let codeDirectories: [Int]
         if magic == 0xFADE0C02 { codeDirectories = [0] }
         else if magic == 0xFADE0CC0 {
-            guard count <= 64, 12 + count * 8 <= length else { return (nil, "malformed") }
+            guard count <= 64, 12 + count * 8 <= length else { return result(state: "malformed") }
             codeDirectories = (0..<count).compactMap { i in
                 let p = 12 + i * 8
                 let off = Int(u32(blob, p + 4, little: false))
                 guard off >= 0, off + 8 <= length, u32(blob, off, little: false) == 0xFADE0C02 else { return nil }
                 return off
             }
-        } else { return (nil, "unsupported") }
+        } else { return result(state: "unsupported_superblob") }
         for offset in codeDirectories {
-            guard offset + 38 <= length else { continue }
+            guard offset + 39 <= length else { continue }
             let cdLength = Int(u32(blob, offset + 4, little: false))
             guard cdLength >= 38, offset + cdLength <= length else { continue }
+            let version = u32(blob, offset + 8, little: false)
+            let flags = u32(blob, offset + 12, little: false)
+            let identOffset = Int(u32(blob, offset + 20, little: false))
             let hashSize = Int(blob[offset + 36]), hashType = blob[offset + 37]
+            let platform = blob[offset + 38]
+            let identifier = identOffset > 0 && identOffset < cdLength ? cString(blob, offset + identOffset, offset + cdLength) : nil
+            var team: String?
+            if version >= 0x20200, offset + 52 <= offset + cdLength {
+                let teamOffset = Int(u32(blob, offset + 48, little: false))
+                if teamOffset > 0, teamOffset < cdLength {
+                    team = cString(blob, offset + teamOffset, offset + cdLength)
+                }
+            }
             let cd = Data(blob[offset..<(offset + cdLength)])
+            let hash: String?
             switch hashType {
             case 2, 3:
                 let hex = SHA256Digest.hex(cd)
-                if (hashType == 2 && hashSize == 32) || (hashType == 3 && hashSize == 20) { return (String(hex.prefix(40)), "cdhash_extracted") }
+                hash = ((hashType == 2 && hashSize == 32) || (hashType == 3 && hashSize == 20)) ? String(hex.prefix(40)) : nil
             case 1:
                 let hex = SHA1Digest.hex(cd)
-                if hashSize == 20 { return (hex, "cdhash_extracted") }
-            default: continue
+                hash = hashSize == 20 ? hex : nil
+            default: hash = nil
             }
+            if let hash { return result(hash, state: "cdhash_extracted", identifier: identifier, team: team, flags: flags, platform: platform) }
+            return result(nil, state: "unsupported_hash_type", identifier: identifier, team: team, flags: flags, platform: platform)
         }
-        return (nil, codeDirectories.isEmpty ? "code_directory_missing" : "unsupported_hash_type")
+        return result(state: codeDirectories.isEmpty ? "code_directory_missing" : "malformed_code_directory")
     }
 
     private static func architectureName(cpuType: UInt32, cpuSubtype: UInt32) -> String? {

@@ -46,7 +46,8 @@ struct PluginToggleAuthorization {
                        isHardBoundApp: Bool,
                        appIsAvailable: Bool,
                        strategy: EnableDisableStrategy) -> PluginToggleDenial? {
-        if isHardBoundApp { return .hardBoundAssociation }
+        // A hard binding is immutable as an association, not as an activation state.
+        // App Detail may disable/enable its own hard-bound plugin; it may never unbind it.
         if ownership != .filterKit { return .notFilterKitOwned }
         if !permission.canModify { return .managementPermissionDenied }
         if !appIsAvailable { return .appUnavailable }

@@ -39,10 +39,10 @@ final class PluginActivationPreflightTests: XCTestCase {
         XCTAssertTrue(report.blockers.contains(.mutationReleaseClosed))
     }
 
-    func testHardBoundAndUncleanRecoveryAreIndependentBlockers() {
+    func testHardBoundActivationIsAllowedByPolicyButUncleanRecoveryStillBlocks() {
         let report = PluginActivationPreflight().evaluate(
-            makeInput(isHardBound: true, recoveryIsClean: false), desiredState: .enabled)
-        XCTAssertTrue(report.blockers.contains(.hardBoundAppCannotBeToggled))
+            makeInput(isHardBound: true, recoveryIsClean: false), desiredState: .disabled)
+        XCTAssertFalse(report.blockers.contains(.hardBoundAppCannotBeToggled))
         XCTAssertTrue(report.blockers.contains(.recoveryNotClean))
         XCTAssertFalse(report.canMutate)
     }

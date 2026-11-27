@@ -3,24 +3,43 @@ import UIKit
 import ObjectiveC.runtime
 #endif
 
-/// Bundle-ID icon fallback modeled on TrollFools 4.4's UIImage._applicationIconImage.
-/// The selector is resolved dynamically so the app has no link-time private-API dependency.
-enum AppIconPrivateAPI {
-    private static let cache = NSCache<NSString, UIImage>()
+enum AppIconPrivateAPIResult: String {
+    case success
+    case unavailable
+    case emptyImage
+    case exception
+}
 
-    static func applicationIcon(bundleIdentifier: String, scale: CGFloat) -> UIImage? {
-        if let cached = cache.object(forKey: bundleIdentifier as NSString) { return cached }
+/// Bundle-ID icon lookup. Objective-C catches NSException around the private UIKit call.
+enum AppIconPrivateAPI {
+    static func applicationIcon(bundleIdentifier: String, scale: CGFloat) -> (UIImage?, AppIconPrivateAPIResult) {
         #if canImport(ObjectiveC)
-        let selector = NSSelectorFromString("_applicationIconImageForBundleIdentifier:format:scale:")
-        guard let method = class_getClassMethod(UIImage.self, selector) else { return nil }
-        typealias IconFunction = @convention(c) (AnyObject, Selector, NSString, Int, CGFloat) -> Unmanaged<AnyObject>?
-        let function = unsafeBitCast(method_getImplementation(method), to: IconFunction.self)
-        guard let image = function(UIImage.self, selector, bundleIdentifier as NSString, 0, scale)?
-            .takeUnretainedValue() as? UIImage else { return nil }
-        cache.setObject(image, forKey: bundleIdentifier as NSString)
-        return image
+        var image: UIImage?
+        let status = FKLookupApplicationIcon(bundleIdentifier as NSString, scale, &image)
+        switch status {
+        case .success:
+            guard let image else {
+                AppIconDiagnostics.recordPrivateAPI(.emptyImage)
+                return (nil, .emptyImage)
+            }
+            AppIconDiagnostics.recordPrivateAPI(.success)
+            return (image, .success)
+        case .unavailable:
+            AppIconDiagnostics.recordPrivateAPI(.unavailable)
+            return (nil, .unavailable)
+        case .emptyImage:
+            AppIconDiagnostics.recordPrivateAPI(.emptyImage)
+            return (nil, .emptyImage)
+        case .exception:
+            AppIconDiagnostics.recordPrivateAPI(.exception)
+            return (nil, .exception)
+        @unknown default:
+            AppIconDiagnostics.recordPrivateAPI(.unavailable)
+            return (nil, .unavailable)
+        }
         #else
-        return nil
+        AppIconDiagnostics.recordPrivateAPI(.unavailable)
+        return (nil, .unavailable)
         #endif
     }
 }

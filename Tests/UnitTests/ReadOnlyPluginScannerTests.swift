@@ -53,14 +53,14 @@ final class ReadOnlyPluginScannerTests: XCTestCase {
         XCTAssertEqual(result.scannedDirectory?.components(separatedBy: ";").count, 2)
     }
 
-    func testNonMachODylibStillAppearsInFastInventory() throws {
+    func testNonMachODylibStillAppearsAndIsExplicitlyClassified() throws {
         let dir = try makeDirectory(); defer { try? FileManager.default.removeItem(at: dir) }
         try Data("not-yet-inspected".utf8).write(to: dir.appendingPathComponent("Visible.dylib"))
         let result = ReadOnlyPluginScanner().scan(assessment: assessment(dir))
         let item = result.plugins.first(where: { $0.baseName == "Visible" })
         XCTAssertNotNil(item)
         XCTAssertEqual(item?.pairingState, .orphanDylib)
-        XCTAssertNil(item?.binaryKind, "Binary inspection belongs to the detail path")
+        XCTAssertEqual(item?.binaryKind, .notMachO, "The scanner now classifies malformed/non-Mach-O dylib candidates")
         XCTAssertFalse(item?.managementPermission?.canModify ?? false)
     }
 
@@ -89,7 +89,7 @@ final class ReadOnlyPluginScannerTests: XCTestCase {
         XCTAssertEqual(item?.hardBoundBundleIdentifier, "com.example.app", "The list may show the declared hard-bound App without treating the manifest as verified")
         XCTAssertFalse(item?.managementPermission?.canModify ?? false, "No management permission without detail verification")
         XCTAssertEqual(item?.filterConfiguration?.bundles, ["com.example.app"])
-        XCTAssertNil(item?.dylibSHA256, "Fast inventory must not hash dylibs")
+        XCTAssertNotNil(item?.dylibSHA256, "Read-only inventory now records a bounded SHA-256 for binary identity")
         XCTAssertEqual(item?.softAssociatedBundleIdentifiers, [])
         XCTAssertTrue(item?.warnings.contains("plugin_scan.manifest_verification_deferred") == true)
     }

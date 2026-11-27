@@ -155,6 +155,52 @@ final class HelperRequestDispatcherTests: XCTestCase {
         XCTAssertFalse(HelperRequestDispatcher.executionReleased)
     }
 
+    func testAppPluginActivationRoutesAreExplicitlyAllowlisted() {
+        XCTAssertTrue(HelperIPCServerRequestPolicy.allows(.appPluginActivationPrepareRequest))
+        XCTAssertTrue(HelperIPCServerRequestPolicy.allows(.appPluginActivationCommitRequest))
+        XCTAssertFalse(HelperIPCServerRequestPolicy.allows(.appPluginActivationPrepared))
+        XCTAssertFalse(HelperIPCServerRequestPolicy.allows(.appPluginActivationCommitted))
+        XCTAssertFalse(HelperRequestDispatcher.pluginAssociationCommitReleased)
+    }
+
+    func testAppPluginActivationPrepareRejectsMalformedPayloadAndReplay() throws {
+        let (manifest, context) = fixture()
+        let dispatcher = HelperRequestDispatcher(manifest: manifest, audit: MemoryAudit())
+        let requestID = UUID()
+        let now = Date()
+        let envelope = HelperIPCEnvelope(messageType: .appPluginActivationPrepareRequest,
+            requestID: requestID, createdAt: now, nonce: context.sessionNonce,
+            payload: Data("{}".utf8))
+        let first = dispatcher.dispatch(envelope, context: context, now: now)
+        XCTAssertEqual(first.messageType, .rejected)
+        let decoder = JSONDecoder()
+        let firstRejection = try decoder.decode(HelperRequestDispatcher.Rejection.self,
+            from: try XCTUnwrap(first.payload))
+        XCTAssertEqual(firstRejection.code, .malformedAppPluginActivation)
+
+        let replay = dispatcher.dispatch(envelope, context: context, now: now)
+        let replayRejection = try decoder.decode(HelperRequestDispatcher.Rejection.self,
+            from: try XCTUnwrap(replay.payload))
+        XCTAssertEqual(replayRejection.code, .replayedRequest)
+    }
+
+
+    func testAppPluginActivationCommitRequiresBoundPreparePlan() throws {
+        let (manifest, context) = fixture()
+        let dispatcher = HelperRequestDispatcher(manifest: manifest, audit: MemoryAudit())
+        let requestID = UUID()
+        let now = Date()
+        let envelope = HelperIPCEnvelope(messageType: .appPluginActivationCommitRequest,
+            requestID: requestID, createdAt: now, nonce: context.sessionNonce,
+            payload: Data("{}".utf8))
+        let response = dispatcher.dispatch(envelope, context: context, now: now)
+        XCTAssertEqual(response.messageType, .rejected)
+        let rejection = try JSONDecoder().decode(HelperRequestDispatcher.Rejection.self,
+            from: try XCTUnwrap(response.payload))
+        XCTAssertEqual(rejection.code, .malformedAppPluginActivation)
+        XCTAssertFalse(HelperRequestDispatcher.pluginAssociationCommitReleased)
+    }
+
     func testReplayAndMalformedPayloadAreRejected() throws {
         let (manifest, context) = fixture()
         let audit = MemoryAudit()

@@ -52,13 +52,13 @@ final class PluginToggleReleaseGateTests: XCTestCase {
         XCTAssertTrue(decision.blockers.contains(.auditUnavailable))
     }
 
-    func testOwnershipPairAvailabilityAndHardBoundRulesBlockMutation() {
+    func testOwnershipPairAndAvailabilityBlockMutationButHardBindingDoesNot() {
         let decision = PluginToggleReleaseGate.evaluate(evidence(pluginOwnershipVerified: false,
             pluginPairVerified: false, targetAppAvailable: false, targetIsHardBoundApp: true))
         XCTAssertTrue(decision.blockers.contains(.pluginNotFilterKitOwned))
         XCTAssertTrue(decision.blockers.contains(.pluginPairNotVerified))
         XCTAssertTrue(decision.blockers.contains(.targetAppUnavailable))
-        XCTAssertTrue(decision.blockers.contains(.hardBoundTargetImmutable))
+        XCTAssertFalse(decision.blockers.contains(.hardBoundTargetImmutable))
     }
 
     func testExplicitConfirmationIsRequired() {

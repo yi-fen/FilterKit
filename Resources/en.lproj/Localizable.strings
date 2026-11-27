@@ -261,7 +261,7 @@
 "settings.helper.recovery_pending" = "Recovery required";
 "settings.helper.recovery_invalid" = "Recovery journal invalid";
 
-"settings.helper.not_configured" = "Not configured";
+"settings.helper.not_configured" = "Helper not wired";
 
 "plugins.row.hard_bound" = "Hard-bound: %@";
 "plugins.row.associated_apps" = "Apps: %@";
@@ -322,3 +322,150 @@
 "plugins.management.actions" = "Management Actions";
 "plugins.management.hard_bound_protected" = "Hard-bound plugins are protected and cannot be selected for bulk operations.";
 "plugins.management.read_only" = "This plugin is not managed by FilterKit and remains read-only.";
+
+
+/* P2-37 App Detail Plugin Activation Manager */
+"apps.detail.hard_bound_plugins" = "Hard-bound plugins";
+"apps.detail.soft_associated_plugins" = "Soft-associated plugins";
+"apps.detail.filter_matched_plugins" = "Other Filter matches";
+"apps.detail.activation_hard_bound" = "Hard-bound plugin · binding is permanent";
+"apps.detail.activation_soft_associated" = "Soft-associated plugin";
+"apps.detail.activation_filter_match" = "Filter match · not an editable association";
+"apps.detail.activation_enabled" = "Enabled in Filter configuration";
+"apps.detail.activation_disabled" = "Disabled in Filter configuration";
+"apps.detail.activation_global" = "Global filter · per-App state cannot be isolated";
+"apps.detail.activation_ambiguous" = "Classes / Executables filter dimensions prevent reliable per-App state attribution";
+"apps.detail.activation_mismatch" = "Manifest and Filter configuration disagree";
+"apps.detail.activation_unavailable" = "Activation state unavailable";
+"apps.detail.activation_read_only_ownership" = "Third-party or unknown plugin · switch unavailable";
+"apps.detail.activation_read_only_unverified" = "FilterKit ownership / binary identity is not verified · switch unavailable";
+"apps.detail.activation_read_only_app_missing" = "Target App is unavailable · switch unavailable";
+"apps.detail.activation_read_only_not_associated" = "This App is not a persisted hard or soft association";
+"apps.detail.activation_read_only_mismatch" = "State cross-check failed · switch locked until refreshed";
+"apps.detail.activation_preview_title" = "Activation preview only";
+"apps.detail.activation_preview_message" = "This switch changes only the on-screen preview. It does not write Filter.plist or the manifest, contact Helper for a mutation, or enable injection. The displayed configured state remains the authoritative read-only observation.";
+"apps.detail.preview_enabled" = "Preview: ON · not applied";
+"apps.detail.preview_disabled" = "Preview: OFF · not applied";
+"apps.detail.activation_toggle_accessibility" = "Preview plugin activation";
+
+/* P2-32 app detail plugin management */
+"apps.detail.import_plugin" = "Import Plugin for This App";
+"apps.detail.manageable_plugins" = "Manageable Plugins";
+"apps.detail.plugin_inventory_unavailable" = "Plugin inventory is unavailable. Check the jailbreak environment and refresh.";
+"apps.detail.no_related_plugins" = "No plugins associated with this app were found. Use the button above to select dylib / plist files for import preflight.";
+"apps.detail.refresh_plugins" = "Refresh";
+"apps.detail.plugin_manageable" = "FilterKit-managed · Manageable";
+"apps.detail.plugin_read_only" = "Read-only · Modification unavailable";
+"apps.detail.plugin_mutations_locked" = "Real import, association commits, enable/disable, and uninstall writes remain protected by the safety gate.";
+"apps.detail.import_review_title" = "Plugin Import Preflight";
+"apps.detail.import_review_message" = "Selected files:\n%@\n\nThis version provides file selection and preflight only. It does not copy files or modify ElleKit configuration.";
+"apps.detail.plugin_information" = "Plugin Information";
+"apps.detail.target_app" = "Target App";
+"apps.detail.plugin_detail_read_only" = "This page shows the plugin association and configured activation state for this App. Switches are preview-only in this release; actual Filter writes and injection remain closed pending device acceptance.";
+
+"settings.filter" = "Filter / ElleKit Status";
+"settings.filter.inventory" = "Plugin Filter configurations";
+"settings.filter.inventory_summary" = "%d total; %d parsed; %d invalid";
+"settings.filter.ellekit_profile" = "ElleKit compatibility profile";
+"settings.filter.ellekit_version" = "ElleKit version";
+"settings.filter.read_only_note" = "Shows scanned plugin Filter configuration counts and ElleKit profile identification. It does not mean injection is enabled and does not modify configuration.";
+"settings.filter.not_checked" = "Not checked";
+"settings.filter.profile.matched" = "Matched verified profile";
+"settings.filter.profile.versionMismatch" = "Version mismatch";
+"settings.filter.profile.identityMismatch" = "Identity mismatch";
+"settings.filter.profile.unknownFingerprint" = "No verified fingerprint";
+"settings.filter.profile.unverifiable" = "Insufficient evidence";
+"settings.filter.profile.ambiguous" = "Multiple candidates";
+"settings.filter.profile.notEvaluated" = "Not evaluated";
+"settings.filter.profile.environmentNotSupported" = "Environment unsupported";
+"settings.identity" = "FilterKit Binary Identity";
+"settings.identity.bundle" = "Bundle ID";
+"settings.identity.architectures" = "Architectures";
+"settings.identity.cdhash" = "CDHash";
+"settings.identity.signature" = "Code signature state";
+"settings.identity.team" = "Team Identifier";
+"settings.identity.sha256" = "File SHA-256";
+"settings.identity.unavailable" = "Could not read the main app executable's Mach-O identity.";
+"plugin_scan.macho_metadata_unavailable" = "Mach-O metadata could not be read; the file remains visible in the read-only inventory.";
+
+"settings.filter.refresh" = "Refresh Filter diagnostics";
+
+// P2-34 Home dashboard and product navigation boundaries
+"home.overview" = "Device Overview";
+"home.apps" = "Installed Apps";
+"home.plugins" = "Discovered Plugins";
+"home.filters" = "Filter Configurations";
+"home.associated_apps" = "Associated Apps";
+"home.filter_health" = "Filter Health";
+"home.filter.parsed" = "Parsed Successfully";
+"home.filter.invalid" = "Invalid Configurations";
+"home.scan.pending" = "Reading plugin and Filter inventory…";
+"home.environment" = "Runtime Environment";
+"home.environment.status" = "RootHide / ElleKit";
+"home.environment.ellekit_version" = "ElleKit Version";
+"home.status.checking" = "Checking";
+"home.status.ellekit_detected" = "ElleKit detected";
+"home.status.root_detected_ellekit_uncertain" = "Jailbreak detected; ElleKit status needs confirmation";
+"home.status.environment_unresolved" = "Jailbreak environment not confirmed";
+"home.last_scan" = "Last Scan";
+"home.refresh" = "Refresh Overview";
+"home.operation_hint" = "Import a new dylib from the target App detail page. The Plugins page is for plugin information, associations, and backup data import only.";
+"plugins.detail.association_management" = "App Associations";
+"plugins.detail.association_manage_from_app" = "The Plugins page has no enable/disable switches. Manage per-App activation from the corresponding App detail page.";
+"plugins.detail.hard_bound_app" = "Hard-bound App";
+"plugins.detail.soft_associated_app" = "Soft-associated App";
+"plugins.detail.no_soft_associations" = "No soft-associated Apps";
+"plugins.association_manager.title" = "Soft-associated Apps";
+"plugins.association_manager.hard_bound" = "Hard-bound App (fixed; cannot be removed)";
+"plugins.association_manager.hard_bound_missing" = "No valid hard-bound App was identified. Association editing is locked.";
+"plugins.association_manager.read_only" = "This plugin cannot be modified by FilterKit. Third-party, unknown-source, or identity-conflicted plugins are view-only.";
+"plugins.association_manager.loading" = "Loading installed Apps…";
+"plugins.association_manager.instructions" = "Select or deselect ordinary Apps to edit soft associations. This does not enable or disable the plugin.";
+"plugins.association_manager.no_apps" = "No other installed Apps are available for soft association.";
+"plugins.association_manager.associated" = "Associated";
+"plugins.association_manager.missing_app" = "This App is not currently installed. You may remove this stale association.";
+"plugins.association_manager.remove" = "Remove";
+"plugins.association_manager.selected_count" = "Soft-associated Apps";
+"plugins.association_manager.review_changes" = "Preview Association Changes";
+"plugins.association_manager.not_saved" = "Edits are only a local draft in this view. Helper association commit is not released; no Filter or Manifest files are written.";
+"plugins.association_manager.unavailable" = "The association inventory is currently unavailable.";
+"plugins.association_manager.not_editable" = "Plugin identity or ownership did not pass management checks. Associations cannot be edited.";
+"plugins.association_manager.apps_unavailable" = "The installed App inventory could not be read.";
+"plugins.association_manager.edit_rejected" = "The association edit was rejected by policy. The draft was not updated.";
+"plugins.association_manager.review_title" = "Association Change Preview (Read Only)";
+"plugins.association_manager.added" = "Added soft associations";
+"plugins.association_manager.removed" = "Removed soft associations";
+"plugins.association_manager.no_changes" = "There are no pending association changes.";
+"plugins.association_manager.review_only" = "This is a local draft preview only. Nothing is saved and no files or injection state are changed.";
+"plugins.association_manager.activation_from_app" = "Association only defines the relationship. Enable or disable the plugin from the corresponding App detail page.";
+"plugins.association_manager.save" = "Save Associations";
+"plugins.association_manager.confirm_save" = "Confirm Association Changes";
+"plugins.association_manager.confirm_save_action" = "Save Changes";
+"plugins.association_manager.confirm_save_message" = "Only the complete soft-association set will be saved. Activation states are preserved; new associations remain disabled. This does not enable injection.";
+"plugins.association_manager.save_success" = "Association set saved.";
+"plugins.association_manager.save_blocked" = "Save was blocked. The release gate remains closed; no changes were written.";
+
+"apps.detail.activation_identity_rejected" = "Plugin identity conflict detected · switch locked";
+
+"apps.detail.preview_pending_refresh" = "Preview only · cleared after the next inventory refresh";
+
+"apps.detail.refreshing_plugins" = "Refreshing plugin inventory…";
+"apps.detail.activation_helper_attestation_required" = "Helper identity attestation is required · switch unavailable";
+"apps.detail.activation_helper_attestation_mismatch" = "Helper identity evidence does not match the current scan · switch locked";
+
+/* P2-37-R3 identity freshness */
+"apps.detail.activation_helper_attestation_expired" = "Helper identity evidence expired · refreshing plugin files and authorization";
+
+/* P2-37-R7 APP activation flow */
+"apps.detail.activation_confirm_title" = "Confirm plugin activation change";
+"apps.detail.activation_confirm_action" = "Continue";
+"apps.detail.activation_confirm_message" = "Helper will re-check plugin identity and current file hashes. The production commit gate remains closed until device validation is complete.";
+"apps.detail.activation_operation_title" = "Plugin activation operation";
+"apps.detail.activation_operation_idle" = "No activation request is pending.";
+"apps.detail.activation_operation_preparing" = "Asking Helper to prepare a read-only activation plan…";
+"apps.detail.activation_operation_prepared" = "Helper prepared the plan. No files have been changed.";
+"apps.detail.activation_operation_committing" = "Submitting the activation request…";
+"apps.detail.activation_operation_committed_refreshing" = "Commit proof received. Refreshing the read-only scan…";
+"apps.detail.activation_operation_release_closed" = "Commit is locked by the production release gate. No files were changed.";
+"apps.detail.activation_operation_unknown" = "Commit outcome could not be confirmed. A fresh scan is required; do not retry automatically.";
+"apps.detail.activation_operation_failed" = "Activation request failed or its scan snapshot became stale. Refresh and try again.";

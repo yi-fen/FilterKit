@@ -6,6 +6,8 @@ final class ReadOnlyPluginScanner: PluginDiscoveryProvider {
     private let fileManager: FileManager
     private let assessmentProvider: (() -> PluginDirectoryAssessment)?
     private let maximumManifestBytes = 64 * 1024
+    private let maximumDylibBytes: UInt64 = 128 * 1024 * 1024
+    private let maximumPlistBytes: UInt64 = 2 * 1024 * 1024
 
     init(fileManager: FileManager = .default,
          assessmentProvider: (() -> PluginDirectoryAssessment)? = nil) {
@@ -76,11 +78,23 @@ final class ReadOnlyPluginScanner: PluginDiscoveryProvider {
         var dylibs: [String: [URL]] = [:]
         var plists: [String: [URL]] = [:]
         var manifests: [String: [URL]] = [:]
+        let assessedEntries = Dictionary(assessment.candidates.compactMap { candidate -> (String, [String])? in
+            guard let canonical = candidate.canonicalPath, let names = candidate.entryNames else { return nil }
+            return (canonical, names)
+        }, uniquingKeysWith: { first, _ in first })
         for directoryURL in readableDirectories {
-            guard let names = try? fileManager.contentsOfDirectory(atPath: directoryURL.path) else {
-                issues.append(issue("directory-enumeration-\(directoryURL.lastPathComponent)",
-                                    "plugin_scan.enumeration_failed", directoryURL.lastPathComponent))
-                continue
+            let names: [String]
+            if let reused = assessedEntries[directoryURL.path] {
+                PluginInventoryPerformanceDiagnostics.recordDirectoryListingReuse()
+                names = reused
+            } else {
+                PluginInventoryPerformanceDiagnostics.recordDirectoryEnumeration()
+                guard let enumerated = try? fileManager.contentsOfDirectory(atPath: directoryURL.path) else {
+                    issues.append(issue("directory-enumeration-\(directoryURL.lastPathComponent)",
+                                        "plugin_scan.enumeration_failed", directoryURL.lastPathComponent))
+                    continue
+                }
+                names = enumerated
             }
             for name in names.sorted() {
                 let url = directoryURL.appendingPathComponent(name)
@@ -125,17 +139,71 @@ final class ReadOnlyPluginScanner: PluginDiscoveryProvider {
             let ownership = PluginOwnership.unknown
             let manifestIdentityBinding: PluginManifestIdentityBinding = manifest == nil ? .notPresent : .unverified
             var hardBound: String?
+            // A manifest UUID is only a lookup hint for the Helper attestation request.
+            // It is never treated as verified ownership or management permission here.
+            var filterKitPluginID: String?
             var soft: [String] = []
             var softStates: [FilterKitManifestSoftAssociation] = []
             var filterConfiguration: PluginFilterConfiguration?
 
-            // Fast inventory deliberately does not read/hash dylib binaries, parse
-            // Mach-O slices, query package ownership, or verify manifests. Those
-            // expensive checks belong to the explicit detail/diagnostics path.
-            // A dylib remains visible even when its metadata cannot be inspected.
+            // Read-only inventory now enriches each visible entry with bounded
+            // Mach-O and plist metadata. It never loads or executes a plugin.
+            var binaryKind: PluginBinaryKind? = nil
+            var dylibHash: String? = nil
+            var plistHash: String? = nil
+            var manifestHash: String? = nil
+            var dylibObservation: PluginScanFileObservation? = nil
+            var plistObservation: PluginScanFileObservation? = nil
+            var manifestObservation: PluginScanFileObservation? = nil
+            var installName: String? = nil
+            var currentVersion: String? = nil
+            var compatibilityVersion: String? = nil
+            var uuids: [String] = []
+            var architectures: [String] = []
+            var cdHashes: [String] = []
+            var signatureStates: [String] = []
+            var signatureDetails: [String] = []
+            if let dylib {
+                do {
+                    let attributes = try fileManager.attributesOfItem(atPath: dylib.path)
+                    let size = (attributes[.size] as? NSNumber)?.uint64Value ?? 0
+                    dylibObservation = Self.fileObservation(attributes)
+                    guard size > 0, size <= maximumDylibBytes else { throw CocoaError(.fileReadTooLarge) }
+                    let data = try Data(contentsOf: dylib, options: .mappedIfSafe)
+                    guard let afterAttributes = try? fileManager.attributesOfItem(atPath: dylib.path),
+                          Self.fileObservation(afterAttributes) == dylibObservation else {
+                        throw CocoaError(.fileReadCorruptFile)
+                    }
+                    dylibHash = SHA256Digest.hex(data)
+                    let slices = try MachOMetadataReader().readSlices(data: data)
+                    binaryKind = .machO
+                    for slice in slices {
+                        if installName == nil { installName = slice.installName }
+                        if currentVersion == nil { currentVersion = slice.currentVersion }
+                        if compatibilityVersion == nil { compatibilityVersion = slice.compatibilityVersion }
+                        if let uuid = slice.uuid { uuids.append(uuid) }
+                        if let arch = slice.architecture { architectures.append(arch) }
+                        if let hash = slice.cdHash { cdHashes.append(hash) }
+                        signatureStates.append(slice.codeSignatureState)
+                        signatureDetails.append("arch=\(slice.architecture ?? "unknown"); identifier=\(slice.codeSignatureIdentifier ?? "—"); team=\(slice.codeSignatureTeamIdentifier ?? "—"); flags=\(slice.codeSignatureFlags.map(String.init) ?? "—"); platform=\(slice.codeSignaturePlatform.map(String.init) ?? "—")")
+                    }
+                } catch {
+                    binaryKind = .notMachO
+                    warnings.append("plugin_scan.macho_metadata_unavailable")
+                }
+            }
             if let plist {
                 do {
+                    let attributes = try fileManager.attributesOfItem(atPath: plist.path)
+                    let size = (attributes[.size] as? NSNumber)?.uint64Value ?? 0
+                    plistObservation = Self.fileObservation(attributes)
+                    guard size > 0, size <= maximumPlistBytes else { throw CocoaError(.fileReadTooLarge) }
                     let data = try Data(contentsOf: plist, options: .mappedIfSafe)
+                    guard let afterAttributes = try? fileManager.attributesOfItem(atPath: plist.path),
+                          Self.fileObservation(afterAttributes) == plistObservation else {
+                        throw CocoaError(.fileReadCorruptFile)
+                    }
+                    plistHash = SHA256Digest.hex(data)
                     // PluginFilterConfiguration.parse performs the single plist decode;
                     // avoid parsing the same bytes twice on every inventory refresh.
                     filterConfiguration = PluginFilterConfiguration.parse(data)
@@ -154,14 +222,26 @@ final class ReadOnlyPluginScanner: PluginDiscoveryProvider {
                 if dylib == nil && plist == nil { pairing = .invalid; warnings.append("plugin_scan.manifest_without_pair") }
             }
 
-            // Ownership remains unknown during inventory. This is intentional:
-            // visibility must not depend on dpkg or FilterKit manifest validation.
-            // Management permissions therefore remain conservative until a future
-            // explicit detail verification establishes ownership and binary identity.
-            if let manifest, let metadata = readAssociationMetadata(from: manifest) {
+            // Ownership and FilterKit manifest identity remain unverified during
+            // inventory. Binary metadata improves identification only; it never
+            // grants ownership or management permission.
+            var manifestData: Data?
+            if let manifest {
+                if let attributes = try? fileManager.attributesOfItem(atPath: manifest.path) {
+                    manifestObservation = Self.fileObservation(attributes)
+                }
+                let beforeObservation = manifestObservation
+                manifestData = readManifestData(from: manifest)
+                let afterObservation = (try? fileManager.attributesOfItem(atPath: manifest.path)).map(Self.fileObservation)
+                if beforeObservation != afterObservation { manifestData = nil }
+                manifestHash = manifestData.map(SHA256Digest.hex)
+            }
+            if let manifestData,
+               let metadata = try? JSONDecoder().decode(FilterKitPluginManifest.self, from: manifestData) {
                 // Read only the small association projection needed by the list UI.
                 // This does NOT verify hashes, binary identity, ownership, or grant
                 // management permission; full manifest verification remains deferred.
+                filterKitPluginID = metadata.pluginID
                 hardBound = metadata.hardBoundBundleIdentifier
                 soft = metadata.softAssociatedBundleIdentifiers ?? []
                 softStates = metadata.softAssociations ?? []
@@ -170,24 +250,26 @@ final class ReadOnlyPluginScanner: PluginDiscoveryProvider {
                 warnings.append("plugin_scan.manifest_verification_deferred")
             }
             let permission = PluginManagementPermission.evaluate(ownership: ownership, pairing: pairing,
-                binaryKind: nil, verifiedPluginID: nil, filterConfiguration: filterConfiguration)
+                binaryKind: binaryKind, verifiedPluginID: nil, filterConfiguration: filterConfiguration)
             let itemID = "\(normalizedStem).dylib"
             items.append(PluginScanItem(id: itemID, baseName: stem,
                 dylibFileName: dylib?.lastPathComponent, plistFileName: plist?.lastPathComponent,
                 manifestFileName: manifest?.lastPathComponent, pairingState: pairing,
-                binaryKind: nil, ownership: ownership, filterKitPluginID: nil, packageIdentifier: nil,
-                dylibSHA256: nil, plistSHA256: nil,
+                binaryKind: binaryKind, ownership: ownership, filterKitPluginID: filterKitPluginID, packageIdentifier: nil,
+                dylibSHA256: dylibHash, plistSHA256: plistHash,
                 hardBoundBundleIdentifier: hardBound,
                 softAssociatedBundleIdentifiers: soft, warnings: warnings,
                 filterConfiguration: filterConfiguration, managementPermission: permission,
                 packageVersion: nil,
-                machOInstallName: nil, machOCurrentVersion: nil, machOCompatibilityVersion: nil,
-                machOUUID: nil, machOUUIDs: [], machOArchitectures: [], machOCDHashes: [],
-                codeSignatureStates: [], machOSliceDetails: [],
+                machOInstallName: installName, machOCurrentVersion: currentVersion, machOCompatibilityVersion: compatibilityVersion,
+                machOUUID: uuids.first, machOUUIDs: Array(Set(uuids)).sorted(), machOArchitectures: Array(Set(architectures)).sorted(), machOCDHashes: Array(Set(cdHashes)).sorted(),
+                codeSignatureStates: signatureStates, machOSliceDetails: signatureDetails,
                 dylibPackageIdentifier: nil, plistPackageIdentifier: nil,
                 ownershipConflict: .none,
                 manifestIdentityBinding: manifestIdentityBinding,
-                softAssociationStates: softStates,
+                manifestSHA256: manifestHash,
+                dylibFileObservation: dylibObservation, plistFileObservation: plistObservation,
+                manifestFileObservation: manifestObservation, softAssociationStates: softStates,
                 dylibPath: dylib?.path, plistPath: plist?.path, manifestPath: manifest?.path))
         }
         let identityAnalysis = PluginIdentityAnalyzer().analyze(items)
@@ -207,12 +289,18 @@ final class ReadOnlyPluginScanner: PluginDiscoveryProvider {
             scannedDirectories: directoryPaths)
     }
 
-    private func readAssociationMetadata(from url: URL) -> FilterKitPluginManifest? {
+    private func readManifestData(from url: URL) -> Data? {
         guard let attributes = try? fileManager.attributesOfItem(atPath: url.path),
               let size = attributes[.size] as? NSNumber,
-              size.intValue > 0, size.intValue <= maximumManifestBytes,
-              let data = try? Data(contentsOf: url, options: [.mappedIfSafe]) else { return nil }
-        return try? JSONDecoder().decode(FilterKitPluginManifest.self, from: data)
+              size.intValue > 0, size.intValue <= maximumManifestBytes else { return nil }
+        return try? Data(contentsOf: url, options: [.mappedIfSafe])
+    }
+
+    private static func fileObservation(_ attributes: [FileAttributeKey: Any]) -> PluginScanFileObservation {
+        PluginScanFileObservation(
+            fileSize: (attributes[.size] as? NSNumber)?.uint64Value ?? 0,
+            modificationDate: attributes[.modificationDate] as? Date,
+            systemFileNumber: (attributes[.systemFileNumber] as? NSNumber)?.uint64Value)
     }
 
     private func issue(_ id: String, _ code: String, _ file: String?) -> PluginScanIssue {

@@ -2,7 +2,7 @@ import Foundation
 
 /// Versioned, bounded IPC envelope. The transport is intentionally abstract in P1-19.
 enum HelperIPCMessageType: String, Codable {
-    case hello, helloAck, operationRequest, deploymentBatchRequest, deploymentBatchReceipt, operationReceipt, healthRequest, healthResponse, maintenanceRecoveryRequest, maintenanceRecoveryResponse, pluginFilterMutationPrepareRequest, pluginFilterMutationPrepared, pluginFilterMutationCommitRequest, pluginFilterMutationCommitted, rejected
+    case hello, helloAck, operationRequest, deploymentBatchRequest, deploymentBatchReceipt, operationReceipt, healthRequest, healthResponse, maintenanceRecoveryRequest, maintenanceRecoveryResponse, pluginFilterMutationPrepareRequest, pluginFilterMutationPrepared, pluginFilterMutationCommitRequest, pluginFilterMutationCommitted, pluginIdentityAttestationRequest, pluginIdentityAttestationResponse, appPluginActivationPrepareRequest, appPluginActivationPrepared, appPluginActivationCommitRequest, appPluginActivationCommitted, rejected
 }
 
 struct HelperIPCEnvelope: Codable, Equatable {

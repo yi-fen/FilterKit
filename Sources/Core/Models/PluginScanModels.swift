@@ -67,6 +67,12 @@ struct PluginScanIssue: Codable, Equatable, Identifiable {
     let detail: String?
 }
 
+struct PluginScanFileObservation: Codable, Equatable {
+    let fileSize: UInt64
+    let modificationDate: Date?
+    let systemFileNumber: UInt64?
+}
+
 struct PluginScanItem: Codable, Equatable, Identifiable {
     let id: String
     let baseName: String
@@ -102,6 +108,13 @@ struct PluginScanItem: Codable, Equatable, Identifiable {
     var plistPackageIdentifier: String? = nil
     var ownershipConflict: PluginOwnershipConflict = .none
     var manifestIdentityBinding: PluginManifestIdentityBinding = .notPresent
+    var helperIdentityAttestation: HelperPluginIdentityAttestation? = nil
+    /// Hash of the exact manifest bytes observed by the read-only scanner.
+    /// It is compared with Helper evidence and never treated as ownership proof.
+    var manifestSHA256: String? = nil
+    var dylibFileObservation: PluginScanFileObservation? = nil
+    var plistFileObservation: PluginScanFileObservation? = nil
+    var manifestFileObservation: PluginScanFileObservation? = nil
     var softAssociationStates: [FilterKitManifestSoftAssociation]? = nil
     // Absolute source paths are retained for multi-directory read-only inventories.
     // These are descriptive scan evidence, not permission to mutate the files.

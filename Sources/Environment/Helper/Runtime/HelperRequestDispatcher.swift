@@ -32,6 +32,10 @@ final class HelperRequestDispatcher {
         case pluginMutationAuthorizationFailed = "plugin_mutation_authorization_failed"
         case pluginMutationRecoveryRequired = "plugin_mutation_recovery_required"
         case pluginMutationAuditUnavailable = "plugin_mutation_audit_unavailable"
+        case malformedIdentityAttestation = "malformed_identity_attestation"
+        case malformedAppPluginActivation = "malformed_app_plugin_activation"
+        case appPluginActivationAuthorizationFailed = "app_plugin_activation_authorization_failed"
+        case identityAttestationUnavailable = "identity_attestation_unavailable"
     }
 
     struct Rejection: Codable, Equatable {
@@ -49,6 +53,9 @@ final class HelperRequestDispatcher {
     private let pluginDirectory: String?
     private let pluginFilterMutationAuthorizer: HelperPluginFilterMutationAuthorizer?
     private let pluginAssociationTransaction: HelperPluginFilterConfigurationTransaction?
+    private let pluginIdentityAttestor: HelperPluginIdentityAttestor?
+    /// Test-injectable only; production construction leaves activation writes disabled.
+    private let activationCommitExecutionEnabled: Bool
 
     init(manifest: HelperDeploymentManifest,
          audit: HelperAuditSink,
@@ -59,7 +66,9 @@ final class HelperRequestDispatcher {
          deploymentPipeline: HelperDeploymentPipeline? = nil,
          pluginDirectory: String? = nil,
          pluginFilterMutationAuthorizer: HelperPluginFilterMutationAuthorizer? = nil,
-         pluginAssociationTransaction: HelperPluginFilterConfigurationTransaction? = nil) {
+         pluginAssociationTransaction: HelperPluginFilterConfigurationTransaction? = nil,
+         pluginIdentityAttestor: HelperPluginIdentityAttestor? = nil,
+         activationCommitExecutionEnabled: Bool = false) {
         self.manifest = manifest
         self.audit = audit
         self.replayGuard = replayGuard
@@ -70,6 +79,8 @@ final class HelperRequestDispatcher {
         self.pluginDirectory = pluginDirectory
         self.pluginFilterMutationAuthorizer = pluginFilterMutationAuthorizer
         self.pluginAssociationTransaction = pluginAssociationTransaction
+        self.pluginIdentityAttestor = pluginIdentityAttestor
+        self.activationCommitExecutionEnabled = activationCommitExecutionEnabled
     }
 
     func dispatch(_ envelope: HelperIPCEnvelope,
@@ -157,6 +168,175 @@ final class HelperRequestDispatcher {
             return HelperIPCEnvelope(messageType: .maintenanceRecoveryResponse, requestID: envelope.requestID,
                                      createdAt: now, nonce: context.sessionNonce,
                                      payload: try? encoder.encode(response))
+
+        case .pluginIdentityAttestationRequest:
+            guard let payload = envelope.payload,
+                  let request = Self.decodePluginIdentityAttestation(payload),
+                  request.requestID == envelope.requestID,
+                  abs(request.createdAt.timeIntervalSince(envelope.createdAt)) <= 5,
+                  request.validate(now: now, clockSkewLimit: clockSkewLimit) else {
+                return reject(envelope, code: .malformedIdentityAttestation, operation: nil, peer: context.identity)
+            }
+            guard recoveryStatus() == .clean,
+                  let attestor = pluginIdentityAttestor else {
+                return reject(envelope, code: .identityAttestationUnavailable, operation: nil, peer: context.identity)
+            }
+            let attestation = attestor.attest(request, now: now)
+            do {
+                try audit.append(HelperAuditRecord(requestID: envelope.requestID, peer: context.identity,
+                    outcome: attestation.isVerified ? .accepted : .rejected,
+                    reasonCode: "plugin_identity_attestation.\(attestation.reasonCode ?? "unknown")"))
+            } catch {
+                return reject(envelope, code: .auditUnavailable, operation: nil, peer: context.identity)
+            }
+            let encoder = JSONEncoder(); encoder.dateEncodingStrategy = .iso8601
+            guard let data = try? encoder.encode(attestation) else {
+                return reject(envelope, code: .malformedIdentityAttestation, operation: nil, peer: context.identity)
+            }
+            return HelperIPCEnvelope(messageType: .pluginIdentityAttestationResponse,
+                requestID: envelope.requestID, createdAt: now, nonce: context.sessionNonce, payload: data)
+
+        case .appPluginActivationPrepareRequest:
+            guard let payload = envelope.payload,
+                  let command = Self.decodeAppPluginActivationCommand(payload),
+                  command.requestID == envelope.requestID,
+                  abs(command.createdAt.timeIntervalSince(envelope.createdAt)) <= 5,
+                  command.validate(now: now, clockSkewLimit: clockSkewLimit) else {
+                return reject(envelope, code: .malformedAppPluginActivation, operation: nil, peer: context.identity)
+            }
+            guard recoveryStatus() == .clean else {
+                return reject(envelope, code: .pluginMutationRecoveryRequired, operation: nil, peer: context.identity)
+            }
+            guard let authorizer = pluginFilterMutationAuthorizer else {
+                return reject(envelope, code: .dispatchNotConfigured, operation: nil, peer: context.identity)
+            }
+            do {
+                let prepared = try authorizer.prepare(command.makeMutationRequest(), now: now)
+                guard let filterBefore = prepared.response.previousPlistSHA256,
+                      let filterAfter = prepared.response.proposedPlistSHA256,
+                      let manifestBefore = prepared.response.previousManifestSHA256,
+                      let manifestAfter = prepared.response.proposedManifestSHA256 else {
+                    return reject(envelope, code: .appPluginActivationAuthorizationFailed, operation: nil, peer: context.identity)
+                }
+                guard let currentManifest = try? JSONDecoder().decode(FilterKitPluginManifest.self,
+                    from: prepared.previousManifestData),
+                    let currentAssociations = currentManifest.softAssociations else {
+                    return reject(envelope, code: .appPluginActivationAuthorizationFailed, operation: nil, peer: context.identity)
+                }
+                let actualPreviousEnabled = currentAssociations.first(where: {
+                    $0.bundleIdentifier == command.targetBundleIdentifier
+                })?.isEnabled ?? false
+                guard actualPreviousEnabled == command.expectedEnabled else {
+                    return reject(envelope, code: .appPluginActivationAuthorizationFailed, operation: nil, peer: context.identity)
+                }
+                let plan = HelperAppPluginActivationPlan(requestID: command.requestID,
+                    pluginID: command.pluginID, targetBundleIdentifier: command.targetBundleIdentifier,
+                    previousEnabled: actualPreviousEnabled, desiredEnabled: command.desiredEnabled,
+                    filterBeforeSHA256: filterBefore, filterAfterSHA256: filterAfter,
+                    manifestBeforeSHA256: manifestBefore, manifestAfterSHA256: manifestAfter,
+                    changed: actualPreviousEnabled != command.desiredEnabled)
+                guard plan.validates(command: command) else {
+                    return reject(envelope, code: .appPluginActivationAuthorizationFailed, operation: nil, peer: context.identity)
+                }
+                do {
+                    try audit.append(HelperAuditRecord(requestID: envelope.requestID, peer: context.identity,
+                        outcome: .accepted, reasonCode: plan.changed ? "app_plugin_activation_prepared_read_only" : "app_plugin_activation_already_current"))
+                } catch {
+                    return reject(envelope, code: .pluginMutationAuditUnavailable, operation: nil, peer: context.identity)
+                }
+                let encoder = JSONEncoder(); encoder.dateEncodingStrategy = .iso8601
+                return HelperIPCEnvelope(messageType: .appPluginActivationPrepared,
+                    requestID: envelope.requestID, createdAt: now, nonce: context.sessionNonce,
+                    payload: try? encoder.encode(plan))
+            } catch {
+                return reject(envelope, code: .appPluginActivationAuthorizationFailed, operation: nil, peer: context.identity)
+            }
+
+        case .appPluginActivationCommitRequest:
+            guard let payload = envelope.payload,
+                  let commit = Self.decodeAppPluginActivationCommit(payload),
+                  commit.requestID == envelope.requestID,
+                  abs(commit.createdAt.timeIntervalSince(envelope.createdAt)) <= 5,
+                  commit.validates(now: now, clockSkewLimit: clockSkewLimit) else {
+                return reject(envelope, code: .malformedAppPluginActivation, operation: nil, peer: context.identity)
+            }
+            let command = commit.command
+            guard recoveryStatus() == .clean else {
+                return reject(envelope, code: .pluginMutationRecoveryRequired, operation: nil, peer: context.identity)
+            }
+            guard let authorizer = pluginFilterMutationAuthorizer,
+                  let transaction = pluginAssociationTransaction else {
+                return reject(envelope, code: .dispatchNotConfigured, operation: nil, peer: context.identity)
+            }
+            do {
+                // Re-read ownership, Manifest and Filter at the commit boundary. The supplied
+                // Prepare plan is accepted only if every field matches this fresh Helper result.
+                let prepared = try authorizer.prepare(command.makeMutationRequest(), now: now)
+                guard let currentManifest = try? JSONDecoder().decode(FilterKitPluginManifest.self,
+                    from: prepared.previousManifestData),
+                    let currentAssociations = currentManifest.softAssociations else {
+                    return reject(envelope, code: .appPluginActivationAuthorizationFailed, operation: nil, peer: context.identity)
+                }
+                let actualEnabled = currentAssociations.first(where: {
+                    $0.bundleIdentifier == command.targetBundleIdentifier
+                })?.isEnabled ?? false
+                guard actualEnabled == command.expectedEnabled,
+                      let filterBefore = prepared.response.previousPlistSHA256,
+                      let filterAfter = prepared.response.proposedPlistSHA256,
+                      let manifestBefore = prepared.response.previousManifestSHA256,
+                      let manifestAfter = prepared.response.proposedManifestSHA256 else {
+                    return reject(envelope, code: .appPluginActivationAuthorizationFailed, operation: nil, peer: context.identity)
+                }
+                let freshPlan = HelperAppPluginActivationPlan(requestID: command.requestID,
+                    pluginID: command.pluginID, targetBundleIdentifier: command.targetBundleIdentifier,
+                    previousEnabled: actualEnabled, desiredEnabled: command.desiredEnabled,
+                    filterBeforeSHA256: filterBefore, filterAfterSHA256: filterAfter,
+                    manifestBeforeSHA256: manifestBefore, manifestAfterSHA256: manifestAfter,
+                    changed: actualEnabled != command.desiredEnabled)
+                guard freshPlan == commit.preparedPlan,
+                      freshPlan.validates(command: command) else {
+                    return reject(envelope, code: .appPluginActivationAuthorizationFailed, operation: nil, peer: context.identity)
+                }
+                // Production remains fail-closed. The injectable switch is only for isolated
+                // transaction/dispatcher tests and is never enabled by HelperRuntime.
+                guard activationCommitExecutionEnabled else {
+                    return reject(envelope, code: .executionDisabled, operation: nil, peer: context.identity)
+                }
+                do {
+                    try audit.append(HelperAuditRecord(requestID: envelope.requestID, peer: context.identity,
+                        outcome: .accepted, reasonCode: "app_plugin_activation_commit_authorized"))
+                } catch {
+                    return reject(envelope, code: .pluginMutationAuditUnavailable, operation: nil, peer: context.identity)
+                }
+                let proof: HelperAppPluginActivationProof
+                if prepared.disposition == .alreadyInRequestedState {
+                    proof = HelperAppPluginActivationProof(requestID: command.requestID,
+                        pluginID: command.pluginID, targetBundleIdentifier: command.targetBundleIdentifier,
+                        enabled: command.desiredEnabled, filterSHA256: filterBefore,
+                        manifestSHA256: manifestBefore, transactionID: nil, completedAt: now)
+                } else {
+                    let receipt = try transaction.execute(prepared)
+                    proof = HelperAppPluginActivationProof(requestID: command.requestID,
+                        pluginID: command.pluginID, targetBundleIdentifier: command.targetBundleIdentifier,
+                        enabled: command.desiredEnabled, filterSHA256: receipt.plistSHA256,
+                        manifestSHA256: receipt.manifestSHA256, transactionID: receipt.transactionID,
+                        completedAt: receipt.completedAt)
+                }
+                guard proof.validates(command: command, now: Date(), maximumAge: 125) else {
+                    // A committed transaction must never be misreported as a successful IPC proof.
+                    return reject(envelope, code: .appPluginActivationAuthorizationFailed, operation: nil, peer: context.identity)
+                }
+                let encoder = JSONEncoder(); encoder.dateEncodingStrategy = .iso8601
+                let responseData = try encoder.encode(proof)
+                try? audit.append(HelperAuditRecord(requestID: envelope.requestID, peer: context.identity,
+                    outcome: .accepted, reasonCode: proof.transactionID == nil
+                        ? "app_plugin_activation_already_current" : "app_plugin_activation_committed"))
+                return HelperIPCEnvelope(messageType: .appPluginActivationCommitted,
+                    requestID: envelope.requestID, createdAt: now, nonce: context.sessionNonce,
+                    payload: responseData)
+            } catch {
+                return reject(envelope, code: .appPluginActivationAuthorizationFailed, operation: nil, peer: context.identity)
+            }
 
         case .pluginFilterMutationPrepareRequest:
             guard let payload = envelope.payload,
@@ -370,6 +550,21 @@ final class HelperRequestDispatcher {
         case .associationTransactionRecoveryRequired: return .associationTransactionRecoveryRequired
         case .invalidJournal: return .invalidJournal
         }
+    }
+
+    private static func decodeAppPluginActivationCommand(_ data: Data) -> HelperAppPluginActivationCommand? {
+        let decoder = JSONDecoder(); decoder.dateDecodingStrategy = .iso8601
+        return try? decoder.decode(HelperAppPluginActivationCommand.self, from: data)
+    }
+
+    private static func decodeAppPluginActivationCommit(_ data: Data) -> HelperAppPluginActivationCommitRequest? {
+        let decoder = JSONDecoder(); decoder.dateDecodingStrategy = .iso8601
+        return try? decoder.decode(HelperAppPluginActivationCommitRequest.self, from: data)
+    }
+
+    private static func decodePluginIdentityAttestation(_ data: Data) -> HelperPluginIdentityAttestationRequest? {
+        let decoder = JSONDecoder(); decoder.dateDecodingStrategy = .iso8601
+        return try? decoder.decode(HelperPluginIdentityAttestationRequest.self, from: data)
     }
 
     private static func decodePluginFilterMutation(_ data: Data) -> HelperPluginFilterMutationRequest? {

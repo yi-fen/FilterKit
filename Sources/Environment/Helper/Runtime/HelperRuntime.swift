@@ -76,6 +76,9 @@ final class FilterKitHelperRuntime {
         let mutationConfiguration = try HelperPluginFilterMutationAuthorizer.Configuration(
             pluginDirectory: manifest.tweakInjectPath, dpkgInfoDirectories: packageInfoDirectories)
         let mutationAuthorizer = HelperPluginFilterMutationAuthorizer(configuration: mutationConfiguration)
+        let identityAttestorConfiguration = try HelperPluginIdentityAttestor.Configuration(
+            pluginDirectory: manifest.tweakInjectPath, dpkgInfoDirectories: packageInfoDirectories)
+        let identityAttestor = HelperPluginIdentityAttestor(configuration: identityAttestorConfiguration)
         let associationTransaction = try HelperPluginFilterConfigurationTransaction(
             directoryPath: manifest.tweakInjectPath)
         let durableLedgerStore = try HelperDeploymentDurableLedgerStore(
@@ -85,7 +88,8 @@ final class FilterKitHelperRuntime {
             deploymentIdempotencyLedger: durableDeploymentLedger, deploymentLedgerStore: durableLedgerStore,
             deploymentPipeline: pipeline,
             pluginDirectory: manifest.tweakInjectPath, pluginFilterMutationAuthorizer: mutationAuthorizer,
-            pluginAssociationTransaction: associationTransaction)
+            pluginAssociationTransaction: associationTransaction,
+            pluginIdentityAttestor: identityAttestor)
         let server = UnixDomainSocketServer(socketPath: manifest.socketPath,
             maximumConnections: HelperLifecycleProfile.conservativePersistent.maximumConcurrentConnections,
             socketMode: 0o660, socketGroupID: manifest.socketGroupID ?? 0, identityProvider: identityProvider, trustEvaluator: trust,

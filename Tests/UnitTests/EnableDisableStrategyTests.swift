@@ -30,11 +30,11 @@ final class EnableDisableStrategyTests: XCTestCase {
         XCTAssertFalse(result.permitsMutation)
     }
 
-    func testHardBoundAppCannotBeToggledEvenWithVerifiedStrategy() {
+    func testHardBoundAppMayToggleActivationWithoutChangingBinding() {
         let permission = PluginManagementPermission(access: .manageable, reasonKey: "ok")
         let denial = PluginToggleAuthorization.denial(ownership: .filterKit, permission: permission,
             isHardBoundApp: true, appIsAvailable: true, strategy: .verifiedProfileStrategy)
-        XCTAssertEqual(denial, .hardBoundAssociation)
+        XCTAssertNil(denial)
     }
 
     func testRuntimeSuccessRequiresObservedLoadedEvidence() {
