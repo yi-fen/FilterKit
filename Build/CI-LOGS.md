@@ -397,3 +397,52 @@ Process completed with exit code 1.
 
 - `FilterKit-NEW-0.1.0-source.zip`：663 条目 / 939,104 B，SHA256 `211190279d4724a5b3cb1d6baf942c00837293e071097500c7fe67b2bc8e106b`（回填前一版；文档自引用，覆盖重打包后哈希差一版，以最终文件为准）。
 - 本轮改 `AppIconPrivateAPI.swift`、`CachedAppDiscoveryProvider.swift`、`PluginsView.swift`、`ReadOnlyEnvironmentProvider.swift`、`SettingsView.swift`；新增 `Build/P2-42-R2-COMPILE-FIX.md`；版本号仍 1.0.0。
+
+### P2-45-R4.3 — 桥接头 libproc.h 缺失修复
+
+- Runner：`macos-26-arm64` / Xcode 26.6 / iPhoneOS 26.5 SDK / arm64 Release / `CODE_SIGNING_ALLOWED=NO`，exit 65 `BUILD FAILED`；`ZIPFoundation` 依赖包正常，失败仅在 FilterKit target 桥接头依赖扫描。
+- 错误：`FilterKit-Apps-Bridging-Header.h:2:10 fatal error: 'libproc.h' file not found`。`libproc.h` 为 macOS 进程管理头，公开 iPhoneOS SDK 不提供；P2-31 已移除全部 `proc_*` 符号引用，该 include 为遗留。
+- 改动文件与目录：
+  1. `Sources/Features/Apps/FilterKit-Apps-Bridging-Header.h`（`Sources/Features/Apps/`）：删除残留 `#include <libproc.h>`，保留 `#import "FilterKitAppIconPrivateAPI.h"`。
+- 核对：全树无 `proc_pid`/`proc_name`/`proc_listpids`/`PROC_` 代码调用；`proc_uniqidentifierinfo` 仅注释提及；`getpid()` 由 Darwin/unistd 模块提供；其余 include 为 UIKit/objc/runtime/math，iOS SDK 均有。
+- 未改 Swift 源码、模型、扫描/配对/归属逻辑、Helper 身份规则、生产写入 Gate、`.m` 实现与 Project.yml 桥接头配置。
+- 待 Runner/真机复验：桥接头扫描通过；后续 Swift 编译与 XCTest 进入下一阶段；peer 身份门禁行为不变。
+
+### 交付包（P2-45-R4.3 桥接头修复态）
+
+- `FilterKit-NEW-0.1.0-source.zip`：1005 条目 / 1,491,604 B，SHA256 `2a41f1bddcf0da1037cf2f930132bec402fbd651845ea5131d7da2ce6e7e9eb2`（回填前一版；文档自引用，覆盖重打包后哈希差一版，以最终文件为准）。
+- 本轮改 `FilterKit-Apps-Bridging-Header.h`；新增 `Build/P2-45-R4.3-BRIDGING-HEADER-LIBPROC-FIX.md`；版本号仍 1.0.0。
+
+### P2-45-R4.4 — Runner 多文件编译错误修复（13 error + 1 warning）
+
+- Runner：`macos-26-arm64` / Xcode 26.6 / iPhoneOS 26.5 SDK / `-swift-version 5` / arm64 Release / `CODE_SIGNING_ALLOWED=NO`，exit 65 `BUILD FAILED`；Job run `de320e5f-5802-54c6-b67d-1d51e08ba73a`。
+- 口径：只修日志点名的编译错误；不改扫描/配对/归属/模型语义、Helper 身份验证规则、生产写入 Gate；不可用证据记 nil 不伪造。
+- 改动文件与目录：
+  1. `Sources/Features/Settings/ActivityHistoryView.swift`：`ActivityRecord.activityTitle/activityDetail` 为非可选 `String`；标题空串回退 `eventName`，详情改 `if !activityDetail.isEmpty`，去掉错误的 `??` 与 `if let`。
+  2. `Sources/Environment/Deployment/AppPluginActivationOperationStore.swift`：三处 `recordPluginOperation` 调用标签顺序对齐签名 `pluginID, detail, traceID`（原为 `pluginID, traceID, detail`）。
+  3. `Sources/Environment/Helper/Transport/DarwinPeerIdentityProvider.swift`：SecTask 三符号（`SecTaskCreateWithAuditToken`/`SecTaskCopySigningIdentifier`/`SecTaskCopyValueForEntitlement`）为 macOS/Catalyst-only，iPhoneOS SDK 不可见；采集路径以 `#if os(macOS)` 隔离，iOS 分支抛 `.codeSigningIdentityUnavailable`；audit token 双读 + CDHash 绑定不变，门禁规则未改。
+  4. `Sources/Environment/PluginScanRegistry.swift`：`attestation.pluginID: UUID?` 经 `.uuidString` 转 `String?`，适配 `evaluate(verifiedPluginID: String?)`。
+  5. `Sources/Features/Plugins/PluginListScope.swift`：`AppEntry` 遵循 `Identifiable`（`id = bundleIdentifier`），消除 ForEach 显式 id 重载根类型推断失败。
+  6. `Sources/Features/Plugins/PluginsView.swift`：关联 App 列表 `ForEach(status.apps, id: \.bundleIdentifier)` 改为 `ForEach(status.apps)`，走 Identifiable 重载。
+- 静态核对：六文件花括号配平；SecTask 符号仅存于 `#if os(macOS)` 分支及注释；日志调用点标签顺序与签名一致；`AppEntry` 既有测试不受影响；本机 Linux 无 Xcode/SwiftPM，编译与 XCTest 以下次 Runner 为准。
+- 待 Runner/真机复验：Swift 5 编译通过无上述 error/warning；iOS 下 peer 增强标识采集降级为不可用、门禁未放宽；详情页关联 App 列表渲染与名称/状态显示正确；真机闭环（Helper 身份证据、签名放行、双环境兼容）仍 pending，0.1 未闭环不签署。
+
+### 交付包（P2-45-R4.4 编译修复态）
+
+- `FilterKit-NEW-0.1.0-source.zip`：1008 条目 / 1,495,357 B，SHA256 `0d3d970d7e07312454178511bc73838e302c4a725249a73f94f9055467f1afa9`（回填前一版；文档自引用，覆盖重打包后哈希差一版，以最终文件为准）。
+- 本轮改 `ActivityHistoryView.swift`、`AppPluginActivationOperationStore.swift`、`DarwinPeerIdentityProvider.swift`、`PluginScanRegistry.swift`、`PluginListScope.swift`、`PluginsView.swift`；新增 `Build/P2-45-R4.4-COMPILE-FIX.md`；版本号仍 1.0.0。
+
+### P2-45-R4.5 — PluginsView ForEach 绑定重载歧义（4 error）
+
+- Runner：`macos-26-arm64` / Xcode 26.6 / iPhoneOS 26.5 SDK / `-swift-version 5` / arm64 Release / `CODE_SIGNING_ALLOWED=NO`，exit 65 `BUILD FAILED`；Job run `bddbe4c4-8983-5f13-ab07-627a99d72a6b`。R4.4 其余四类错误已不再出现，仅余详情页关联 App 列表 ForEach 重载歧义。
+- 根因：ForEach 内容闭包类型检查受阻时，编译器丢失元素类型推断，回退 SwiftUI Binding 重载，把 `[AppEntry]` 误判为 `Binding<C>`，产生误导性 `C could not be inferred` / `Binding<Subject>` 报错。
+- 改动文件与目录：
+  1. `Sources/Features/Plugins/PluginsView.swift`：关联 App 列表改为 `entries.indices` 的 `Range<Int>` 下标重载（`let entries = status.apps`，闭包内 `let app = entries[idx]`），不再依赖元素 `Identifiable`；注入状态键 switch 提取为私有静态辅助方法 `injectionStateKey(_:)`，消除 ViewBuilder 闭包内控制流赋值。
+  2. `Sources/Features/Plugins/PluginListScope.swift`：保留上一轮 `AppEntry: Equatable, Identifiable`（`id = bundleIdentifier`），未改。
+- 静态核对：`PluginsView.swift` 花括号配平 320/320；无残留 `ForEach(status.apps)`；`injectionStateKey` 三 case 与 `Injection` 穷尽一致；本机 Linux 无 Xcode/SwiftPM，编译与 XCTest 以下次 Runner 为准。
+- 待 Runner/真机复验：Swift 5 编译通过无上述 error；详情页关联 App 列表渲染、名称映射与注入状态显示正确；真机闭环仍 pending，0.1 未闭环不签署。
+
+### 交付包（P2-45-R4.5 ForEach 修复态）
+
+- `FilterKit-NEW-0.1.0-source.zip`：1009 条目 / 1,498,364 B，SHA256 `4b72205232f99e99d93402a385dd1c4ca6e33eb66ec2eb2413ff9a839902eca3`（回填前一版；文档自引用，覆盖重打包后哈希差一版，以最终文件为准）。
+- 本轮改 `PluginsView.swift`；`PluginListScope.swift` 沿用上一轮；新增 `Build/P2-45-R4.5-FOREACH-REBINDING-FIX.md`；版本号仍 1.0.0。

@@ -265,12 +265,12 @@
 "plugins.row.associated_apps" = "App associations: %@";
 "plugins.row.global_association" = "Apps: Global (*)";
 "plugins.row.executable_targets" = "Apps: Executable targets";
-"plugins.row.no_association" = "Apps: No target App identified";
+"plugins.row.no_association" = "App targets: not recognized (not assumed standalone)";
 "plugins.row.filterkit_manifest_unverified" = "Source: unknown";
 
 "plugins.row.source_filterkit" = "Source: FilterKit";
 "plugins.row.source_package_manager" = "Source: package manager";
-"plugins.row.source_unknown" = "Source: unknown";
+"plugins.row.source_unknown" = "Source: unverified · read-only";
 
 /* P2-03 read-only association preview */
 "plugins.association_preview.title" = "App Association Preview";
@@ -371,7 +371,7 @@
 "settings.filter.profile.matched" = "Matched verified profile";
 "settings.filter.profile.versionMismatch" = "Version mismatch";
 "settings.filter.profile.identityMismatch" = "Identity mismatch";
-"settings.filter.profile.unknownFingerprint" = "No verified fingerprint";
+"settings.filter.profile.unknownFingerprint" = "Not verified: device binary fingerprint missing (install name, UUID, CDHash)";
 "settings.filter.profile.unverifiable" = "Insufficient evidence";
 "settings.filter.profile.ambiguous" = "Multiple candidates";
 "settings.filter.profile.notEvaluated" = "Not evaluated";
@@ -611,3 +611,15 @@
 "activity.helper_status_failed" = "Helper status check failed";
 "activity.plugin_operation.activation.unknown" = "Plugin activation outcome needs verification";
 "activity.plugin_operation.activation.blocked" = "Plugin activation was blocked";
+
+
+/* P2-45 R4.4 plugin inventory clarity */
+"plugins.row.source_package_manager_detail" = "Source: dpkg package · %@";
+"plugins.row.source_unknown_unverified" = "Source: unverified · read-only";
+"plugins.detail.third_party_read_only" = "Third-party plugin · read-only";
+"plugins.detail.source_evidence" = "Source evidence";
+"plugins.macho.team_identifier" = "Code-signing Team ID";
+"plugins.macho.team_identifier_unavailable" = "Not present or not readable in the Mach-O signature";
+"plugins.detail.open_hint" = "Open plugin information";
+"plugins.row.source_dpkg_no_owner" = "Source unverified: dpkg database readable, but no file-owner record matched";
+"plugins.row.source_dpkg_unavailable" = "Source unverified: dpkg database unavailable or unreadable";

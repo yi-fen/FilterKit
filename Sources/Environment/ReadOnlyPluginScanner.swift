@@ -143,6 +143,8 @@ final class ReadOnlyPluginScanner: PluginDiscoveryProvider {
             var ownership = PluginOwnership.unknown
             var ownershipConflict: PluginOwnershipConflict = .none
             var packageIdentifier: String?
+            var packageVersion: String?
+            var packageEvidenceSource: String?
             var dylibPackageIdentifier: String?
             var plistPackageIdentifier: String?
             if let packageOwnershipProvider {
@@ -154,6 +156,9 @@ final class ReadOnlyPluginScanner: PluginDiscoveryProvider {
                 else { plistEvidence = nil }
                 dylibPackageIdentifier = dylibEvidence?.packageIdentifier
                 plistPackageIdentifier = plistEvidence?.packageIdentifier
+                packageEvidenceSource = [dylibEvidence?.evidenceSource, plistEvidence?.evidenceSource]
+                    .compactMap { $0 }.first(where: { $0 == "dpkg-info-list" })
+                    ?? [dylibEvidence?.evidenceSource, plistEvidence?.evidenceSource].compactMap { $0 }.first
                 let owners = Set([dylibPackageIdentifier, plistPackageIdentifier].compactMap { $0 })
                 if owners.count > 1 {
                     ownershipConflict = .multiplePackageOwners
@@ -161,6 +166,8 @@ final class ReadOnlyPluginScanner: PluginDiscoveryProvider {
                 } else if !owners.isEmpty {
                     ownership = .packageManager
                     packageIdentifier = owners.first
+                    packageVersion = [dylibEvidence, plistEvidence].compactMap { $0 }
+                        .first(where: { $0.packageIdentifier == packageIdentifier })?.packageVersion
                 }
             }
             let manifestIdentityBinding: PluginManifestIdentityBinding = manifest == nil ? .notPresent : .unverified
@@ -187,6 +194,7 @@ final class ReadOnlyPluginScanner: PluginDiscoveryProvider {
             var uuids: [String] = []
             var architectures: [String] = []
             var cdHashes: [String] = []
+            var teamIdentifiers: [String] = []
             var signatureStates: [String] = []
             var signatureDetails: [String] = []
             if let dylib {
@@ -210,6 +218,7 @@ final class ReadOnlyPluginScanner: PluginDiscoveryProvider {
                         if let uuid = slice.uuid { uuids.append(uuid) }
                         if let arch = slice.architecture { architectures.append(arch) }
                         if let hash = slice.cdHash { cdHashes.append(hash) }
+                        if let team = slice.codeSignatureTeamIdentifier, !team.isEmpty { teamIdentifiers.append(team) }
                         signatureStates.append(slice.codeSignatureState)
                         signatureDetails.append("arch=\(slice.architecture ?? "unknown"); identifier=\(slice.codeSignatureIdentifier ?? "—"); team=\(slice.codeSignatureTeamIdentifier ?? "—"); flags=\(slice.codeSignatureFlags.map(String.init) ?? "—"); platform=\(slice.codeSignaturePlatform.map(String.init) ?? "—")")
                     }
@@ -287,10 +296,10 @@ final class ReadOnlyPluginScanner: PluginDiscoveryProvider {
                 hardBoundBundleIdentifier: hardBound,
                 softAssociatedBundleIdentifiers: soft, warnings: warnings,
                 filterConfiguration: filterConfiguration, managementPermission: permission,
-                packageVersion: nil,
+                packageVersion: packageVersion, packageEvidenceSource: packageEvidenceSource,
                 machOInstallName: installName, machOCurrentVersion: currentVersion, machOCompatibilityVersion: compatibilityVersion,
                 machOUUID: uuids.first, machOUUIDs: Array(Set(uuids)).sorted(), machOArchitectures: Array(Set(architectures)).sorted(), machOCDHashes: Array(Set(cdHashes)).sorted(),
-                codeSignatureStates: signatureStates, machOSliceDetails: signatureDetails,
+                machOTeamIdentifiers: Array(Set(teamIdentifiers)).sorted(), codeSignatureStates: signatureStates, machOSliceDetails: signatureDetails,
                 dylibPackageIdentifier: dylibPackageIdentifier, plistPackageIdentifier: plistPackageIdentifier,
                 ownershipConflict: ownershipConflict,
                 manifestIdentityBinding: manifestIdentityBinding,

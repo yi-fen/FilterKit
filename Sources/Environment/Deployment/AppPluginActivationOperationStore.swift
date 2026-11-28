@@ -105,8 +105,9 @@ final class AppPluginActivationOperationStore: ObservableObject {
             phase = .failed
             errorDescription = "scan_snapshot_changed"
             RuntimeEventLogger.recordPluginOperation("activation", outcome: .blocked,
-                pluginID: pending.command.pluginID.uuidString, traceID: pending.command.requestID.uuidString,
-                detail: "Activation was blocked because the plugin inventory changed.")
+                pluginID: pending.command.pluginID.uuidString,
+                detail: "Activation was blocked because the plugin inventory changed.",
+                traceID: pending.command.requestID.uuidString)
             PluginScanRegistry.shared.refresh()
             return
         }
@@ -189,14 +190,16 @@ final class AppPluginActivationOperationStore: ObservableObject {
                 phase = .reconciledCommitted
                 errorDescription = "helper_transaction_committed"
                 RuntimeEventLogger.recordPluginOperation("activation", outcome: .completed,
-                    pluginID: command.pluginID.uuidString, traceID: command.requestID.uuidString,
-                    detail: "Helper confirmed the activation transaction committed.")
+                    pluginID: command.pluginID.uuidString,
+                    detail: "Helper confirmed the activation transaction committed.",
+                    traceID: command.requestID.uuidString)
             case .rolledBack:
                 phase = .reconciledRolledBack
                 errorDescription = "helper_transaction_rolled_back"
                 RuntimeEventLogger.recordPluginOperation("activation", outcome: .failed,
-                    pluginID: command.pluginID.uuidString, traceID: command.requestID.uuidString,
-                    detail: "Helper confirmed the activation transaction rolled back.")
+                    pluginID: command.pluginID.uuidString,
+                    detail: "Helper confirmed the activation transaction rolled back.",
+                    traceID: command.requestID.uuidString)
             case .executing, .outcomeUnknown, .none:
                 phase = .outcomeUnknown
                 errorDescription = "helper_transaction_still_unknown"

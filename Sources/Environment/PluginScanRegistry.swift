@@ -193,14 +193,40 @@ final class PluginScanRegistry: ObservableObject {
                 guard let self, self.scanGeneration.isCurrent(generation) else { return }
                 self.result = output.result
                 self.resolvedRootPath = output.resolvedRootPath
+                let scannedPlugins = output.result.plugins
+                let packageOwnedCount = scannedPlugins.filter { $0.ownership == .packageManager }.count
+                let unverifiedSourceCount = scannedPlugins.filter { $0.ownership == .unknown }.count
+                let manifestCount = scannedPlugins.filter { $0.manifestFileName != nil }.count
+                let bundleTargetCount = scannedPlugins.filter { !($0.filterConfiguration?.bundles.isEmpty ?? true) }.count
+                let ruleOnlyTargetCount = scannedPlugins.filter {
+                    ($0.filterConfiguration?.bundles.isEmpty ?? true)
+                        && (!( $0.filterConfiguration?.executables.isEmpty ?? true)
+                            || !( $0.filterConfiguration?.classes.isEmpty ?? true))
+                }.count
+                let unrecognizedTargetCount = scannedPlugins.filter {
+                    $0.filterConfiguration == nil
+                        || (($0.filterConfiguration?.bundles.isEmpty ?? true)
+                            && ($0.filterConfiguration?.executables.isEmpty ?? true)
+                            && ($0.filterConfiguration?.classes.isEmpty ?? true))
+                }.count
+                let missingTeamIdentifierCount = scannedPlugins.filter { $0.machOTeamIdentifiers.isEmpty }.count
+                let missingFingerprintCount = scannedPlugins.filter { $0.identityStatus == .insufficientFingerprint }.count
                 RuntimeEventLogger.record(level: .info, module: "PluginInventory",
                     event: "plugin.inventory.scan.completed", message: "Plugin inventory scan completed.",
                     traceID: generation.description,
-                    attributes: ["plugin_count": String(output.result.plugins.count),
+                    attributes: ["plugin_count": String(scannedPlugins.count),
                                  "issue_count": String(output.result.issues.count),
+                                 "package_manager_owned_count": String(packageOwnedCount),
+                                 "source_unverified_count": String(unverifiedSourceCount),
+                                 "manifest_count": String(manifestCount),
+                                 "filter_bundle_target_count": String(bundleTargetCount),
+                                 "filter_rule_only_target_count": String(ruleOnlyTargetCount),
+                                 "filter_target_unrecognized_count": String(unrecognizedTargetCount),
+                                 "team_identifier_missing_count": String(missingTeamIdentifierCount),
+                                 "identity_fingerprint_missing_count": String(missingFingerprintCount),
                                  "read_only": String(output.result.isReadOnly)],
                     activityTitle: "activity.plugin_scan_completed",
-                    activityDetail: "\(output.result.plugins.count) plugins found; \(output.result.issues.count) diagnostic issues.")
+                    activityDetail: "\(scannedPlugins.count) plugins found; \(output.result.issues.count) diagnostic issues.")
                 // Inventory completion is independent of Helper IPC. Publish the
                 // snapshot and release the scan slot before starting attestation.
                 self.inFlight = nil
@@ -285,7 +311,7 @@ final class PluginScanRegistry: ObservableObject {
                     let permission = PluginManagementPermission.evaluate(
                         ownership: .filterKit, pairing: enriched[index].pairingState,
                         binaryKind: enriched[index].binaryKind,
-                        verifiedPluginID: attestation.pluginID,
+                        verifiedPluginID: attestation.pluginID?.uuidString,
                         filterConfiguration: enriched[index].filterConfiguration)
                     enriched[index].managementPermission = PluginManagementPermission.restricting(
                         permission, identityStatus: enriched[index].identityStatus,

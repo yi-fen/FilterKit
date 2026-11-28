@@ -14,10 +14,11 @@ struct PluginListStatus: Equatable {
     enum Injection: Equatable { case enabled, disabled, unknown }
     enum ManagementType: Equatable { case standalone, appAssociated }
 
-    struct AppEntry: Equatable {
+    struct AppEntry: Equatable, Identifiable {
         let bundleIdentifier: String
         let isFixedOwner: Bool
         let injection: Injection
+        var id: String { bundleIdentifier }
     }
 
     let apps: [AppEntry]
@@ -93,5 +94,39 @@ struct PluginListStatus: Equatable {
         } else {
             self.injectionSummary = .unknown
         }
+    }
+}
+
+/// Read-only target projection for third-party plugins. Filter.plist Bundles are
+/// effective injection targets, not FilterKit ownership or a Fixed Owner binding.
+struct PluginTargetDisplay: Equatable {
+    enum Kind: Equatable {
+        case allApps
+        case bundles
+        case executableRules
+        case unavailable
+    }
+
+    let kind: Kind
+    let bundleIdentifiers: [String]
+
+    static func resolve(_ item: PluginScanItem) -> PluginTargetDisplay {
+        guard let filter = item.filterConfiguration,
+              filter.parseState == .valid || filter.parseState == .partial else {
+            return PluginTargetDisplay(kind: .unavailable, bundleIdentifiers: [])
+        }
+        let bundles = Array(Set(filter.bundles.map {
+            $0.trimmingCharacters(in: .whitespacesAndNewlines)
+        }.filter { !$0.isEmpty })).sorted()
+        if bundles.contains("*") {
+            return PluginTargetDisplay(kind: .allApps, bundleIdentifiers: bundles)
+        }
+        if !bundles.isEmpty {
+            return PluginTargetDisplay(kind: .bundles, bundleIdentifiers: bundles)
+        }
+        if !filter.executables.isEmpty || !filter.classes.isEmpty {
+            return PluginTargetDisplay(kind: .executableRules, bundleIdentifiers: [])
+        }
+        return PluginTargetDisplay(kind: .unavailable, bundleIdentifiers: [])
     }
 }

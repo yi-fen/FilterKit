@@ -118,6 +118,12 @@ final class DarwinPeerIdentityProvider: HelperPeerIdentityProviding {
                 destination.copyBytes(from: source)
             }
         }
+        // SecTask and its audit-token/entitlement accessors are macOS/Catalyst-only
+        // public APIs; they are not exported by the iPhoneOS SDK. On iOS the
+        // code-signing identifier/Team ID evidence is therefore recorded as
+        // unavailable rather than inferred from the CDHash or fabricated. The
+        // kernel audit-token double read and CDHash binding remain unchanged.
+        #if os(macOS)
         guard let task = SecTaskCreateWithAuditToken(kCFAllocatorDefault, token) else {
             throw IdentityError.codeSigningIdentityUnavailable
         }
@@ -131,6 +137,9 @@ final class DarwinPeerIdentityProvider: HelperPeerIdentityProviding {
             throw IdentityError.teamIdentifierUnavailable
         }
         return (signingIdentifier, teamIdentifier)
+        #else
+        throw IdentityError.codeSigningIdentityUnavailable
+        #endif
     }
 
     private func readAuditToken(_ fd: Int32) throws -> [UInt32] {

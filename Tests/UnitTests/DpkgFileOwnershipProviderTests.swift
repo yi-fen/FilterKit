@@ -49,4 +49,53 @@ final class DpkgFileOwnershipProviderTests: XCTestCase {
         XCTAssertFalse(evidence.isOwnedByPackage)
         XCTAssertEqual(evidence.evidenceSource, "dpkg-status-readable-no-file-owner")
     }
+    func testRootHideNestedVarJBPackageDatabaseResolvesLogicalPluginPaths() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let dpkg = root.appendingPathComponent("var/jb/var/lib/dpkg", isDirectory: true)
+        let info = dpkg.appendingPathComponent("info", isDirectory: true)
+        try FileManager.default.createDirectory(at: info, withIntermediateDirectories: true)
+        let plugin = root.appendingPathComponent("Library/MobileSubstrate/DynamicLibraries/StorePlugin.dylib")
+        try FileManager.default.createDirectory(at: plugin.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try Data([1, 2, 3]).write(to: plugin)
+        try "Package: com.store.plugin\nStatus: install ok installed\nVersion: 4.2.1\n\n"
+            .write(to: dpkg.appendingPathComponent("status"), atomically: true, encoding: .utf8)
+        try "/Library/MobileSubstrate/DynamicLibraries/StorePlugin.dylib\n"
+            .write(to: info.appendingPathComponent("com.store.plugin.list"), atomically: true, encoding: .utf8)
+        let evidence = try DpkgFileOwnershipProvider(jbroot: root.path).ownershipEvidence(for: plugin)
+        XCTAssertTrue(evidence.isOwnedByPackage)
+        XCTAssertEqual(evidence.packageIdentifier, "com.store.plugin")
+        XCTAssertEqual(evidence.packageVersion, "4.2.1")
+        XCTAssertEqual(evidence.evidenceSource, "dpkg-info-list")
+    }
+
+    func testScannerPublishesPackageIDVersionAndEvidenceForStoreInstalledPair() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let dpkg = root.appendingPathComponent("var/lib/dpkg", isDirectory: true)
+        let info = dpkg.appendingPathComponent("info", isDirectory: true)
+        let pluginDirectory = root.appendingPathComponent("Library/MobileSubstrate/DynamicLibraries", isDirectory: true)
+        try FileManager.default.createDirectory(at: info, withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: pluginDirectory, withIntermediateDirectories: true)
+        try "Package: com.example.storetweak\nStatus: install ok installed\nVersion: 2.7\n\n"
+            .write(to: dpkg.appendingPathComponent("status"), atomically: true, encoding: .utf8)
+        let dylib = pluginDirectory.appendingPathComponent("StoreTweak.dylib")
+        let plist = pluginDirectory.appendingPathComponent("StoreTweak.plist")
+        try Data([0xcf, 0xfa, 0xed, 0xfe, 1, 2, 3, 4]).write(to: dylib)
+        let plistData = try PropertyListSerialization.data(fromPropertyList: ["Bundles": ["com.example.target"]], format: .xml, options: 0)
+        try plistData.write(to: plist)
+        try "\(dylib.path)\n\(plist.path)\n"
+            .write(to: info.appendingPathComponent("com.example.storetweak.list"), atomically: true, encoding: .utf8)
+        let assessment = PluginDirectoryAssessment(state: .resolved, selectedPath: pluginDirectory.path,
+            candidates: [], warnings: [], isReadOnly: true)
+        let result = ReadOnlyPluginScanner(packageOwnershipProvider: DpkgFileOwnershipProvider(jbroot: root.path))
+            .scan(assessment: assessment)
+        let item = try XCTUnwrap(result.plugins.first)
+        XCTAssertEqual(item.ownership, .packageManager)
+        XCTAssertEqual(item.packageIdentifier, "com.example.storetweak")
+        XCTAssertEqual(item.packageVersion, "2.7")
+        XCTAssertEqual(item.packageEvidenceSource, "dpkg-info-list")
+        XCTAssertFalse(item.managementPermission?.canModify ?? true, "Package ownership must remain read-only")
+    }
+
 }

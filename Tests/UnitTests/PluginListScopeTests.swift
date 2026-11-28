@@ -84,4 +84,35 @@ final class PluginListScopeTests: XCTestCase {
         XCTAssertEqual(status.unknownCount, 1)
     }
 
+    func testThirdPartyFilterBundlesAreDisplayedAsTargetsNotStandaloneOwnership() {
+        let plugin = item(ownership: .packageManager, enabledBundles: ["com.example.mail", "com.example.browser"])
+        let target = PluginTargetDisplay.resolve(plugin)
+        XCTAssertEqual(target.kind, .bundles)
+        XCTAssertEqual(target.bundleIdentifiers, ["com.example.browser", "com.example.mail"])
+    }
+
+    func testWildcardFilterIsDisplayedAsAllApps() {
+        let plugin = item(ownership: .unknown, enabledBundles: ["*"])
+        XCTAssertEqual(PluginTargetDisplay.resolve(plugin).kind, .allApps)
+    }
+
+    func testExecutableOrClassFilterIsNotMisreportedAsStandalone() {
+        let base = item(ownership: .packageManager)
+        let plugin = PluginScanItem(id: base.id, baseName: base.baseName,
+            dylibFileName: base.dylibFileName, plistFileName: base.plistFileName,
+            manifestFileName: nil, pairingState: .paired, binaryKind: .machO,
+            ownership: .packageManager, filterKitPluginID: nil, packageIdentifier: nil,
+            dylibSHA256: nil, plistSHA256: nil, hardBoundBundleIdentifier: nil,
+            softAssociatedBundleIdentifiers: [], warnings: [],
+            filterConfiguration: PluginFilterConfiguration(parseState: .valid, containerKey: "Filter",
+                bundles: [], executables: ["SpringBoard"], classes: [], modeDescription: nil,
+                unknownKeys: [], warnings: []), managementPermission: nil)
+        XCTAssertEqual(PluginTargetDisplay.resolve(plugin).kind, .executableRules)
+    }
+
+    func testMissingFilterTargetMetadataIsUnrecognizedRatherThanStandalone() {
+        let plugin = item(ownership: .unknown)
+        XCTAssertEqual(PluginTargetDisplay.resolve(plugin).kind, .unavailable)
+    }
+
 }

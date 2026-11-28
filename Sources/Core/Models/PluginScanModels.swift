@@ -92,6 +92,8 @@ struct PluginScanItem: Codable, Equatable, Identifiable {
     let filterConfiguration: PluginFilterConfiguration?
     var managementPermission: PluginManagementPermission?
     var packageVersion: String? = nil
+    /// Read-only provenance of package ownership lookup; never grants management permission.
+    var packageEvidenceSource: String? = nil
     var machOInstallName: String? = nil
     var machOCurrentVersion: String? = nil
     var machOCompatibilityVersion: String? = nil
@@ -99,6 +101,7 @@ struct PluginScanItem: Codable, Equatable, Identifiable {
     var machOUUIDs: [String] = []
     var machOArchitectures: [String] = []
     var machOCDHashes: [String] = []
+    var machOTeamIdentifiers: [String] = []
     var codeSignatureStates: [String] = []
     var machOSliceDetails: [String] = []
     var identityFingerprint: String? = nil

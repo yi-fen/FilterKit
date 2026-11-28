@@ -265,12 +265,12 @@
 "plugins.row.associated_apps" = "App 关联：%@";
 "plugins.row.global_association" = "关联：全局（*）";
 "plugins.row.executable_targets" = "关联：按 Executable 匹配";
-"plugins.row.no_association" = "关联：未识别到目标 App";
+"plugins.row.no_association" = "注入目标：暂无法识别（不代表独立插件）";
 "plugins.row.filterkit_manifest_unverified" = "来源：未知";
 
 "plugins.row.source_filterkit" = "来源：FilterKit";
 "plugins.row.source_package_manager" = "来源：包管理器";
-"plugins.row.source_unknown" = "来源：未知";
+"plugins.row.source_unknown" = "来源未确认 · 只读";
 
 /* P2-03 只读关联预览 */
 "plugins.association_preview.title" = "App 关联预览";
@@ -371,7 +371,7 @@
 "settings.filter.profile.matched" = "已匹配已验证 Profile";
 "settings.filter.profile.versionMismatch" = "版本不匹配";
 "settings.filter.profile.identityMismatch" = "身份不匹配";
-"settings.filter.profile.unknownFingerprint" = "缺少已验证指纹";
+"settings.filter.profile.unknownFingerprint" = "尚未验证：缺少真机二进制指纹（Install Name、UUID、CDHash）";
 "settings.filter.profile.unverifiable" = "证据不足，无法验证";
 "settings.filter.profile.ambiguous" = "存在多个候选，无法确定";
 "settings.filter.profile.notEvaluated" = "未评估";
@@ -611,3 +611,15 @@
 "activity.helper_status_failed" = "Helper 状态检查失败";
 "activity.plugin_operation.activation.unknown" = "插件启用状态待核实";
 "activity.plugin_operation.activation.blocked" = "插件启用操作被阻止";
+
+
+/* P2-45 R4.4 plugin inventory clarity */
+"plugins.row.source_package_manager_detail" = "来源：dpkg 包管理记录 · %@";
+"plugins.row.source_unknown_unverified" = "来源未确认 · 只读";
+"plugins.detail.third_party_read_only" = "第三方插件 · 只读";
+"plugins.detail.source_evidence" = "来源证据";
+"plugins.macho.team_identifier" = "代码签名 Team Identifier";
+"plugins.macho.team_identifier_unavailable" = "签名中未包含或无法读取 Team Identifier";
+"plugins.detail.open_hint" = "打开插件信息";
+"plugins.row.source_dpkg_no_owner" = "来源未确认：dpkg 数据库可读，但未匹配到文件归属记录";
+"plugins.row.source_dpkg_unavailable" = "来源未确认：dpkg 数据库不存在或不可读取";

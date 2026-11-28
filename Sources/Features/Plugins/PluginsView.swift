@@ -152,6 +152,7 @@ struct PluginsView: View {
     @State private var showingFilterKitAssociatedOnly = false
     @State private var searchText = ""
     @State private var isImportingBackup = false
+    @State private var selectedPlugin: PluginScanItem?
 
     private var visiblePlugins: [PluginScanItem] {
         let items = registry.result?.plugins ?? []
@@ -239,9 +240,12 @@ struct PluginsView: View {
                         }
                         Section {
                             ForEach(visiblePlugins) { plugin in
-                                NavigationLink(destination: PluginScanDetailView(plugin: plugin, appNamesByBundleID: model.appNamesByBundleID)) {
+                                Button { selectedPlugin = plugin } label: {
                                     PluginScanRow(plugin: plugin, appNamesByBundleID: model.appNamesByBundleID)
                                 }
+                                .buttonStyle(.plain)
+                                .accessibilityElement(children: .combine)
+                                .accessibilityHint("plugins.detail.open_hint")
                             }
                         }
                     }
@@ -285,6 +289,17 @@ struct PluginsView: View {
             BackupRestoreReviewView(review: review) { selectedIDs in
                 model.confirmRestoreSelection(selectedIDs)
             }
+        }
+        .sheet(item: $selectedPlugin) { plugin in
+            NavigationView {
+                PluginScanDetailView(plugin: plugin, appNamesByBundleID: model.appNamesByBundleID)
+                    .toolbar {
+                        ToolbarItem(placement: .navigationBarTrailing) {
+                            Button("common.done") { selectedPlugin = nil }
+                        }
+                    }
+            }
+            .navigationViewStyle(StackNavigationViewStyle())
         }
         .fileImporter(isPresented: $isImportingBackup,
                       allowedContentTypes: [UTType(filenameExtension: "filterkitbackup", conformingTo: .data) ?? .data],
@@ -468,29 +483,43 @@ private struct PluginScanRow: View {
     let plugin: PluginScanItem
     let appNamesByBundleID: [String: String]
     private var associationStatusText: String {
+        if plugin.ownership != .filterKit {
+            let target = PluginTargetDisplay.resolve(plugin)
+            switch target.kind {
+            case .allApps:
+                return NSLocalizedString("plugins.row.global_association", comment: "")
+            case .bundles:
+                let labels = target.bundleIdentifiers.map { appNamesByBundleID[$0.lowercased()] ?? $0 }
+                let visible = Array(labels.prefix(2))
+                let remainder = max(0, labels.count - visible.count)
+                let suffix = remainder > 0
+                    ? String(format: NSLocalizedString("plugins.row.more_apps", comment: ""), remainder) : ""
+                return String(format: NSLocalizedString("plugins.row.associated_apps", comment: ""), visible.joined(separator: "、") + suffix)
+            case .executableRules:
+                return NSLocalizedString("plugins.row.executable_targets", comment: "")
+            case .unavailable:
+                return NSLocalizedString("plugins.row.no_association", comment: "")
+            }
+        }
         let status = PluginListStatus(item: plugin)
         guard !status.apps.isEmpty else { return NSLocalizedString("plugins.row.association_none", comment: "") }
-
-        // The Fixed Owner App is always the first/default association shown.
-        // Keep the row compact: at most two names, then a remaining-count suffix.
         let visible = Array(status.apps.prefix(2))
         let names = visible.map { appNamesByBundleID[$0.bundleIdentifier.lowercased()] ?? $0.bundleIdentifier }
         let remainder = max(0, status.apps.count - visible.count)
         let summary = remainder > 0
             ? String(format: NSLocalizedString("plugins.row.more_apps", comment: ""), remainder)
             : ""
-        let joined = names.joined(separator: "、")
-        return String(format: NSLocalizedString("plugins.row.associated_apps", comment: ""), joined + summary)
+        return String(format: NSLocalizedString("plugins.row.associated_apps", comment: ""), names.joined(separator: "、") + summary)
     }
 
-    private var managementAndInjectionText: String {
+    private var managementAndInjectionText: String? {
+        guard plugin.ownership == .filterKit else { return nil }
         let status = PluginListStatus(item: plugin)
         let managementKey = status.managementType == .appAssociated
             ? "plugins.row.management_app_associated"
             : "plugins.row.management_standalone"
         let management = NSLocalizedString(managementKey, comment: "")
         guard !status.apps.isEmpty else { return management }
-
         let injection: String
         if status.unknownCount > 0 {
             injection = String(format: NSLocalizedString("plugins.row.injection_counts", comment: ""),
@@ -511,12 +540,23 @@ private struct PluginScanRow: View {
             return NSLocalizedString("plugins.row.source_filterkit", comment: "")
         }
         if plugin.ownership == .unknown {
-            return NSLocalizedString("plugins.row.source_unknown", comment: "")
+            switch plugin.packageEvidenceSource {
+            case "dpkg-status-readable-no-file-owner":
+                return NSLocalizedString("plugins.row.source_dpkg_no_owner", comment: "")
+            case "dpkg-status-unavailable":
+                return NSLocalizedString("plugins.row.source_dpkg_unavailable", comment: "")
+            default:
+                return NSLocalizedString("plugins.row.source_unknown_unverified", comment: "")
+            }
         }
         switch plugin.ownership {
         case .filterKit: return NSLocalizedString("plugins.row.source_filterkit", comment: "")
-        case .packageManager: return NSLocalizedString("plugins.row.source_package_manager", comment: "")
-        case .unknown: return NSLocalizedString("plugins.row.source_unknown", comment: "")
+        case .packageManager:
+            let package = plugin.packageIdentifier ?? NSLocalizedString("plugins.source.package", comment: "")
+            let version = plugin.packageVersion.map { " · \($0)" } ?? ""
+            return String(format: NSLocalizedString("plugins.row.source_package_manager_detail", comment: ""), package) + version
+        case .unknown:
+            return NSLocalizedString("plugins.row.source_unknown_unverified", comment: "")
         }
     }
 
@@ -527,13 +567,11 @@ private struct PluginScanRow: View {
                 .font(.title2).foregroundStyle(.secondary).frame(width: 36)
             VStack(alignment: .leading, spacing: 4) {
                 Text(plugin.baseName).font(.body.weight(.medium))
-                if let fileName = plugin.dylibFileName {
-                    Text(fileName).font(.caption).foregroundStyle(.secondary)
-                }
                 Text(associationStatusText)
                     .font(.caption).foregroundStyle(.secondary).lineLimit(1)
-                Text(managementAndInjectionText)
-                    .font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                if let managementText = managementAndInjectionText {
+                    Text(managementText).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                }
                 Text(sourceText)
                     .font(.caption2).foregroundStyle(.secondary).lineLimit(1)
             }
@@ -862,25 +900,40 @@ private struct PluginScanDetailView: View {
                 }
             }
             Section("plugins.detail.app_associations") {
-                let status = PluginListStatus(item: displayedPlugin)
-                detailRow("plugins.detail.management_type", NSLocalizedString(
-                    status.managementType == .appAssociated ? "plugins.row.management_app_associated" : "plugins.row.management_standalone", comment: ""))
-                if status.apps.isEmpty {
-                    detailRow("plugins.detail.associated_apps", NSLocalizedString("plugins.row.association_none", comment: ""))
-                } else {
-                    ForEach(status.apps, id: \.bundleIdentifier) { app in
-                        let name = appNamesByBundleID[app.bundleIdentifier.lowercased()] ?? app.bundleIdentifier
-                        let stateKey: String
-                        switch app.injection {
-                        case .enabled: stateKey = "plugins.row.injection_enabled"
-                        case .disabled: stateKey = "plugins.row.injection_disabled"
-                        case .unknown: stateKey = "plugins.row.injection_unknown"
+                if displayedPlugin.ownership == .filterKit {
+                    let status = PluginListStatus(item: displayedPlugin)
+                    detailRow("plugins.detail.management_type", NSLocalizedString(
+                        status.managementType == .appAssociated ? "plugins.row.management_app_associated" : "plugins.row.management_standalone", comment: ""))
+                    if status.apps.isEmpty {
+                        detailRow("plugins.detail.associated_apps", NSLocalizedString("plugins.row.association_none", comment: ""))
+                    } else {
+                        let entries = status.apps
+                        ForEach(entries.indices) { idx in
+                            let app = entries[idx]
+                            let name = appNamesByBundleID[app.bundleIdentifier.lowercased()] ?? app.bundleIdentifier
+                            let stateKey = Self.injectionStateKey(app.injection)
+                            let titleKey = app.isFixedOwner ? "plugins.detail.fixed_owner_app" : "plugins.detail.associated_app"
+                            detailRow(LocalizedStringKey(titleKey), "\(name) · \(NSLocalizedString(stateKey, comment: ""))")
                         }
-                        let titleKey = app.isFixedOwner ? "plugins.detail.fixed_owner_app" : "plugins.detail.associated_app"
-                        detailRow(LocalizedStringKey(titleKey), "\(name) · \(NSLocalizedString(stateKey, comment: ""))")
+                    }
+                } else {
+                    detailRow("plugins.detail.management_type", NSLocalizedString("plugins.detail.third_party_read_only", comment: ""))
+                    let target = PluginTargetDisplay.resolve(displayedPlugin)
+                    switch target.kind {
+                    case .allApps:
+                        detailRow("plugins.detail.associated_apps", NSLocalizedString("plugins.row.global_association", comment: ""))
+                    case .bundles:
+                        detailRow("plugins.detail.associated_apps", target.bundleIdentifiers.map { appNamesByBundleID[$0.lowercased()] ?? $0 }.joined(separator: ", "))
+                    case .executableRules:
+                        detailRow("plugins.detail.associated_apps", NSLocalizedString("plugins.row.executable_targets", comment: ""))
+                    case .unavailable:
+                        detailRow("plugins.detail.associated_apps", NSLocalizedString("plugins.row.no_association", comment: ""))
                     }
                 }
                 detailRow("plugins.detail.source", sourceText)
+                if let evidence = displayedPlugin.packageEvidenceSource {
+                    detailRow("plugins.detail.source_evidence", evidence)
+                }
             }
             if let filter = displayedPlugin.filterConfiguration {
                 Section("plugins.detail.filter") {
@@ -910,6 +963,9 @@ private struct PluginScanDetailView: View {
                 detailRow("plugins.macho.architectures", displayedPlugin.machOArchitectures.isEmpty ? "—" : displayedPlugin.machOArchitectures.joined(separator: ", "))
                 detailRow("plugins.macho.cdhash", displayedPlugin.machOCDHashes.isEmpty ? "—" : displayedPlugin.machOCDHashes.joined(separator: ", "))
                 detailRow("plugins.macho.signature_state", displayedPlugin.codeSignatureStates.isEmpty ? "—" : displayedPlugin.codeSignatureStates.joined(separator: ", "))
+                detailRow("plugins.macho.team_identifier", displayedPlugin.machOTeamIdentifiers.isEmpty
+                    ? NSLocalizedString("plugins.macho.team_identifier_unavailable", comment: "")
+                    : displayedPlugin.machOTeamIdentifiers.joined(separator: ", "))
                 ForEach(displayedPlugin.machOSliceDetails, id: \.self) { Text($0).font(.caption).textSelection(.enabled) }
             }
             Section("plugins.detail.integrity") {
@@ -951,8 +1007,15 @@ private struct PluginScanDetailView: View {
     private var sourceText: String {
         switch displayedPlugin.ownership {
         case .filterKit: return NSLocalizedString("plugins.row.source_filterkit", comment: "")
-        case .packageManager: return NSLocalizedString("plugins.row.source_package_manager", comment: "")
-        case .unknown: return NSLocalizedString("plugins.row.source_unknown", comment: "")
+        case .packageManager:
+            let package = displayedPlugin.packageIdentifier ?? NSLocalizedString("plugins.source.package", comment: "")
+            return String(format: NSLocalizedString("plugins.row.source_package_manager_detail", comment: ""), package)
+        case .unknown:
+            switch displayedPlugin.packageEvidenceSource {
+            case "dpkg-status-readable-no-file-owner": return NSLocalizedString("plugins.row.source_dpkg_no_owner", comment: "")
+            case "dpkg-status-unavailable": return NSLocalizedString("plugins.row.source_dpkg_unavailable", comment: "")
+            default: return NSLocalizedString("plugins.row.source_unknown_unverified", comment: "")
+            }
         }
     }
     private var ownershipText: String {
@@ -960,6 +1023,13 @@ private struct PluginScanDetailView: View {
         case .filterKit: return NSLocalizedString("plugins.ownership.filterkit", comment: "")
         case .packageManager: return NSLocalizedString("plugins.ownership.package_manager", comment: "")
         case .unknown: return NSLocalizedString("plugins.ownership.unknown", comment: "")
+        }
+    }
+    private static func injectionStateKey(_ injection: PluginListStatus.Injection) -> String {
+        switch injection {
+        case .enabled: return "plugins.row.injection_enabled"
+        case .disabled: return "plugins.row.injection_disabled"
+        case .unknown: return "plugins.row.injection_unknown"
         }
     }
     private var permissionText: String {

@@ -19,10 +19,17 @@ final class DpkgFileOwnershipProvider: PackageOwnershipProviding {
     private var cachedIndex: Index?
 
     init(jbroot: String) {
+        let jailbreakRoot = URL(fileURLWithPath: jbroot, isDirectory: true).standardizedFileURL
+        // RootHide and rootless package managers may expose the same dpkg database
+        // through different logical roots. Keep each candidate self-contained and
+        // select the first readable status database; never merge package databases.
         let roots = [
-            URL(fileURLWithPath: jbroot, isDirectory: true),
+            jailbreakRoot,
+            jailbreakRoot.appendingPathComponent("var/jb", isDirectory: true),
+            jailbreakRoot.appendingPathComponent("private", isDirectory: true),
             URL(fileURLWithPath: "/var/jb", isDirectory: true),
             URL(fileURLWithPath: "/var/rootless", isDirectory: true),
+            URL(fileURLWithPath: "/private", isDirectory: true),
             URL(fileURLWithPath: "/", isDirectory: true)
         ]
         var seen = Set<String>()
@@ -51,7 +58,13 @@ final class DpkgFileOwnershipProvider: PackageOwnershipProviding {
         var built = Index(statusWasReadable: false, ownersByPath: [:])
         // R16 rule: use the first readable dpkg status database; never mix roots.
         for root in databaseRoots {
-            let dpkg = root.appendingPathComponent("var/lib/dpkg", isDirectory: true)
+            let dpkgCandidates = [
+                root.appendingPathComponent("var/lib/dpkg", isDirectory: true),
+                root.appendingPathComponent("db/dpkg", isDirectory: true)
+            ]
+            guard let dpkg = dpkgCandidates.first(where: { candidate in
+                FileManager.default.isReadableFile(atPath: candidate.appendingPathComponent("status").path)
+            }) else { continue }
             let statusURL = dpkg.appendingPathComponent("status")
             guard let status = try? String(contentsOf: statusURL, encoding: .utf8) else { continue }
             let packages = Self.installedPackages(in: status)
@@ -103,6 +116,9 @@ final class DpkgFileOwnershipProvider: PackageOwnershipProviding {
         if standardized == "/var/jb" { keys.insert("/") }
         if standardized.hasPrefix("/var/jb/") {
             keys.insert(String(standardized.dropFirst("/var/jb".count)))
+        }
+        if standardized.hasPrefix("/var/rootless/") {
+            keys.insert(String(standardized.dropFirst("/var/rootless".count)))
         }
         if let databaseRoot {
             let rootPath = databaseRoot.standardizedFileURL.path
