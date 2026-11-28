@@ -15,15 +15,15 @@ struct ActivityHistoryView: View {
                 ForEach(records) { record in
                     VStack(alignment: .leading, spacing: 5) {
                         HStack(alignment: .firstTextBaseline) {
-                            Text(LocalizedStringKey(record.activityTitle ?? record.eventName))
+                            Text(LocalizedStringKey(record.activityTitle.isEmpty ? record.eventName : record.activityTitle))
                                 .font(.body.weight(.medium))
                             Spacer()
                             Text(record.level.rawValue)
                                 .font(.caption2.monospaced())
                                 .foregroundColor(record.level == .error || record.level == .fatal ? .red : .secondary)
                         }
-                        if let detail = record.activityDetail, !detail.isEmpty {
-                            Text(detail).font(.subheadline).foregroundColor(.secondary)
+                        if !record.activityDetail.isEmpty {
+                            Text(record.activityDetail).font(.subheadline).foregroundColor(.secondary)
                         }
                         Text(record.timestamp)
                             .font(.caption2.monospaced())
