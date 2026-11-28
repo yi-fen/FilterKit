@@ -868,14 +868,11 @@ private struct PluginScanDetailView: View {
                 if status.apps.isEmpty {
                     detailRow("plugins.detail.associated_apps", NSLocalizedString("plugins.row.association_none", comment: ""))
                 } else {
-                    ForEach(status.apps) { app in
+                    let entries = status.apps
+                    ForEach(entries.indices) { idx in
+                        let app = entries[idx]
                         let name = appNamesByBundleID[app.bundleIdentifier.lowercased()] ?? app.bundleIdentifier
-                        let stateKey: String
-                        switch app.injection {
-                        case .enabled: stateKey = "plugins.row.injection_enabled"
-                        case .disabled: stateKey = "plugins.row.injection_disabled"
-                        case .unknown: stateKey = "plugins.row.injection_unknown"
-                        }
+                        let stateKey = Self.injectionStateKey(app.injection)
                         let titleKey = app.isFixedOwner ? "plugins.detail.fixed_owner_app" : "plugins.detail.associated_app"
                         detailRow(LocalizedStringKey(titleKey), "\(name) · \(NSLocalizedString(stateKey, comment: ""))")
                     }
@@ -960,6 +957,13 @@ private struct PluginScanDetailView: View {
         case .filterKit: return NSLocalizedString("plugins.ownership.filterkit", comment: "")
         case .packageManager: return NSLocalizedString("plugins.ownership.package_manager", comment: "")
         case .unknown: return NSLocalizedString("plugins.ownership.unknown", comment: "")
+        }
+    }
+    private static func injectionStateKey(_ injection: PluginListStatus.Injection) -> String {
+        switch injection {
+        case .enabled: return "plugins.row.injection_enabled"
+        case .disabled: return "plugins.row.injection_disabled"
+        case .unknown: return "plugins.row.injection_unknown"
         }
     }
     private var permissionText: String {
