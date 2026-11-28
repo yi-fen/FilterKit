@@ -14,10 +14,11 @@ struct PluginListStatus: Equatable {
     enum Injection: Equatable { case enabled, disabled, unknown }
     enum ManagementType: Equatable { case standalone, appAssociated }
 
-    struct AppEntry: Equatable {
+    struct AppEntry: Equatable, Identifiable {
         let bundleIdentifier: String
         let isFixedOwner: Bool
         let injection: Injection
+        var id: String { bundleIdentifier }
     }
 
     let apps: [AppEntry]

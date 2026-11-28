@@ -868,7 +868,7 @@ private struct PluginScanDetailView: View {
                 if status.apps.isEmpty {
                     detailRow("plugins.detail.associated_apps", NSLocalizedString("plugins.row.association_none", comment: ""))
                 } else {
-                    ForEach(status.apps, id: \.bundleIdentifier) { app in
+                    ForEach(status.apps) { app in
                         let name = appNamesByBundleID[app.bundleIdentifier.lowercased()] ?? app.bundleIdentifier
                         let stateKey: String
                         switch app.injection {
