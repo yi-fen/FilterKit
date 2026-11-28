@@ -285,7 +285,7 @@ final class PluginScanRegistry: ObservableObject {
                     let permission = PluginManagementPermission.evaluate(
                         ownership: .filterKit, pairing: enriched[index].pairingState,
                         binaryKind: enriched[index].binaryKind,
-                        verifiedPluginID: attestation.pluginID,
+                        verifiedPluginID: attestation.pluginID?.uuidString,
                         filterConfiguration: enriched[index].filterConfiguration)
                     enriched[index].managementPermission = PluginManagementPermission.restricting(
                         permission, identityStatus: enriched[index].identityStatus,
