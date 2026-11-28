@@ -79,4 +79,12 @@ final class HelperAppPluginActivationService {
         return try await coordinator.commitAppPluginActivation(command,
             preparedPlan: plan, userConfirmed: userConfirmed)
     }
+
+    func reconcile(command: HelperAppPluginActivationCommand,
+                   userConfirmed: Bool) async throws -> HelperAppPluginActivationTransactionStatus {
+        let coordinator = try coordinatorFactory()
+        return try await coordinator.reconcileAppPluginActivationTransaction(
+            commandRequestID: command.requestID, pluginID: command.pluginID,
+            targetBundleIdentifier: command.targetBundleIdentifier, userConfirmed: userConfirmed)
+    }
 }

@@ -102,7 +102,7 @@
 "apps.detail.type" = "Classification";
 "apps.detail.path" = "App Path";
 "apps.detail.plugins" = "Plugins";
-"apps.detail.import_placeholder" = "Plugin import and per-app controls will be implemented in a later phase.";
+"apps.detail.import_placeholder" = "Plugin injection preflight and per-App activation controls will be implemented in a later phase.";
 "settings.apps" = "Applications";
 "settings.show_system_apps" = "Show System Apps";
 
@@ -133,8 +133,6 @@
 "plugins.ownership.filterkit" = "Managed by FilterKit";
 "plugins.ownership.package_manager" = "Managed by package manager";
 "plugins.ownership.unknown" = "Source unknown";
-"plugins.pairing.paired" = "Paired";
-"plugins.pairing.unpaired" = "Unpaired";
 "plugins.pairing.orphan_dylib" = "Missing plist";
 "plugins.pairing.orphan_plist" = "Missing dylib";
 "plugins.pairing.unreadable" = "Unreadable";
@@ -247,7 +245,7 @@
 "backup.restore.status.file_conflict" = "Blocked: destination file name already exists";
 "backup.restore.status.identity_conflict" = "Blocked: plugin identity already exists";
 "backup.restore.destination_unavailable" = "The plugin destination could not be scanned. File-name conflicts may be incomplete; no restore can be performed in this phase.";
-"backup.restore.source_app" = "Hard-bound source App";
+"backup.restore.source_app" = "Fixed-owner App";
 
 "settings.helper" = "Helper";
 "settings.helper.connection" = "Connection";
@@ -263,16 +261,16 @@
 
 "settings.helper.not_configured" = "Helper not wired";
 
-"plugins.row.hard_bound" = "Hard-bound: %@";
-"plugins.row.associated_apps" = "Apps: %@";
+"plugins.row.hard_bound" = "Fixed owner: %@";
+"plugins.row.associated_apps" = "App associations: %@";
 "plugins.row.global_association" = "Apps: Global (*)";
 "plugins.row.executable_targets" = "Apps: Executable targets";
 "plugins.row.no_association" = "Apps: No target App identified";
-"plugins.row.filterkit_manifest_unverified" = "Source: FilterKit manifest (unverified)";
+"plugins.row.filterkit_manifest_unverified" = "Source: unknown";
 
 "plugins.row.source_filterkit" = "Source: FilterKit";
 "plugins.row.source_package_manager" = "Source: package manager";
-"plugins.row.source_unknown" = "Source: unknown / unverified";
+"plugins.row.source_unknown" = "Source: unknown";
 
 /* P2-03 read-only association preview */
 "plugins.association_preview.title" = "App Association Preview";
@@ -318,18 +316,18 @@
 "plugins.uninstall.selected" = "Uninstall selected";
 "plugins.uninstall.title" = "Uninstall is locked";
 "plugins.uninstall.disabled" = "Uninstall Plugin";
-"plugins.uninstall.locked_message" = "The uninstall execution path has not passed device validation. No dylib, plist, or manifest will be deleted. Hard-bound plugins are excluded from bulk selection.";
+"plugins.uninstall.locked_message" = "The uninstall transaction and device acceptance are not complete. No dylib, Filter.plist, or Manifest will be deleted. Before uninstall, this plugin must be disabled for every App on the Apps page.";
 "plugins.management.actions" = "Management Actions";
 "plugins.management.hard_bound_protected" = "Hard-bound plugins are protected and cannot be selected for bulk operations.";
-"plugins.management.read_only" = "This plugin is not managed by FilterKit and remains read-only.";
+"plugins.management.read_only" = "This plugin is not owned by FilterKit and remains read-only; FilterKit cannot uninstall it.";
 
 
 /* P2-37 App Detail Plugin Activation Manager */
-"apps.detail.hard_bound_plugins" = "Hard-bound plugins";
-"apps.detail.soft_associated_plugins" = "Soft-associated plugins";
+"apps.detail.hard_bound_plugins" = "Fixed-owner plugins";
+"apps.detail.soft_associated_plugins" = "Additional-association plugins";
 "apps.detail.filter_matched_plugins" = "Other Filter matches";
-"apps.detail.activation_hard_bound" = "Hard-bound plugin · binding is permanent";
-"apps.detail.activation_soft_associated" = "Soft-associated plugin";
+"apps.detail.activation_hard_bound" = "Fixed-owner plugin · ownership is permanent";
+"apps.detail.activation_soft_associated" = "Additional-association plugin";
 "apps.detail.activation_filter_match" = "Filter match · not an editable association";
 "apps.detail.activation_enabled" = "Enabled in Filter configuration";
 "apps.detail.activation_disabled" = "Disabled in Filter configuration";
@@ -349,16 +347,16 @@
 "apps.detail.activation_toggle_accessibility" = "Preview plugin activation";
 
 /* P2-32 app detail plugin management */
-"apps.detail.import_plugin" = "Import Plugin for This App";
+"apps.detail.inject_plugin" = "Inject Plugin for This App";
 "apps.detail.manageable_plugins" = "Manageable Plugins";
 "apps.detail.plugin_inventory_unavailable" = "Plugin inventory is unavailable. Check the jailbreak environment and refresh.";
-"apps.detail.no_related_plugins" = "No plugins associated with this app were found. Use the button above to select dylib / plist files for import preflight.";
+"apps.detail.no_related_plugins" = "No plugins associated with this app were found. Use the button above to select dylib / plist files for injection preflight.";
 "apps.detail.refresh_plugins" = "Refresh";
 "apps.detail.plugin_manageable" = "FilterKit-managed · Manageable";
 "apps.detail.plugin_read_only" = "Read-only · Modification unavailable";
-"apps.detail.plugin_mutations_locked" = "Real import, association commits, enable/disable, and uninstall writes remain protected by the safety gate.";
-"apps.detail.import_review_title" = "Plugin Import Preflight";
-"apps.detail.import_review_message" = "Selected files:\n%@\n\nThis version provides file selection and preflight only. It does not copy files or modify ElleKit configuration.";
+"apps.detail.plugin_mutations_locked" = "Real injection and enable/disable writes remain protected by the safety gate. Plugin uninstall and association management are available only on the Plugins page.";
+"apps.detail.inject_review_title" = "Plugin Injection Preflight";
+"apps.detail.inject_review_message" = "Selected files:\n%@\n\nThis version provides file selection and injection preflight only. It does not copy files or modify ElleKit configuration.";
 "apps.detail.plugin_information" = "Plugin Information";
 "apps.detail.target_app" = "Target App";
 "apps.detail.plugin_detail_read_only" = "This page shows the plugin association and configured activation state for this App. Switches are preview-only in this release; actual Filter writes and injection remain closed pending device acceptance.";
@@ -412,20 +410,20 @@
 "home.operation_hint" = "Import a new dylib from the target App detail page. The Plugins page is for plugin information, associations, and backup data import only.";
 "plugins.detail.association_management" = "App Associations";
 "plugins.detail.association_manage_from_app" = "The Plugins page has no enable/disable switches. Manage per-App activation from the corresponding App detail page.";
-"plugins.detail.hard_bound_app" = "Hard-bound App";
-"plugins.detail.soft_associated_app" = "Soft-associated App";
-"plugins.detail.no_soft_associations" = "No soft-associated Apps";
-"plugins.association_manager.title" = "Soft-associated Apps";
-"plugins.association_manager.hard_bound" = "Hard-bound App (fixed; cannot be removed)";
+"plugins.detail.hard_bound_app" = "Fixed Owner App";
+"plugins.detail.soft_associated_app" = "Additional App Association";
+"plugins.detail.no_soft_associations" = "No additional App associations";
+"plugins.association_manager.title" = "Additional App Associations";
+"plugins.association_manager.hard_bound" = "Fixed Owner App (cannot be removed)";
 "plugins.association_manager.hard_bound_missing" = "No valid hard-bound App was identified. Association editing is locked.";
 "plugins.association_manager.read_only" = "This plugin cannot be modified by FilterKit. Third-party, unknown-source, or identity-conflicted plugins are view-only.";
 "plugins.association_manager.loading" = "Loading installed Apps…";
-"plugins.association_manager.instructions" = "Select or deselect ordinary Apps to edit soft associations. This does not enable or disable the plugin.";
-"plugins.association_manager.no_apps" = "No other installed Apps are available for soft association.";
+"plugins.association_manager.instructions" = "Select or deselect other Apps to edit additional associations. The fixed owner is always retained. This does not enable or disable the plugin.";
+"plugins.association_manager.no_apps" = "No other installed Apps are available for additional association.";
 "plugins.association_manager.associated" = "Associated";
 "plugins.association_manager.missing_app" = "This App is not currently installed. You may remove this stale association.";
 "plugins.association_manager.remove" = "Remove";
-"plugins.association_manager.selected_count" = "Soft-associated Apps";
+"plugins.association_manager.selected_count" = "Additional App associations";
 "plugins.association_manager.review_changes" = "Preview Association Changes";
 "plugins.association_manager.not_saved" = "Edits are only a local draft in this view. Helper association commit is not released; no Filter or Manifest files are written.";
 "plugins.association_manager.unavailable" = "The association inventory is currently unavailable.";
@@ -437,7 +435,7 @@
 "plugins.association_manager.removed" = "Removed soft associations";
 "plugins.association_manager.no_changes" = "There are no pending association changes.";
 "plugins.association_manager.review_only" = "This is a local draft preview only. Nothing is saved and no files or injection state are changed.";
-"plugins.association_manager.activation_from_app" = "Association only defines the relationship. Enable or disable the plugin from the corresponding App detail page.";
+"plugins.association_manager.activation_from_app" = "This page only manages additional App associations; it does not control injection. Enable or disable plugins only from the Apps page.";
 "plugins.association_manager.save" = "Save Associations";
 "plugins.association_manager.confirm_save" = "Confirm Association Changes";
 "plugins.association_manager.confirm_save_action" = "Save Changes";
@@ -469,6 +467,8 @@
 "apps.detail.activation_operation_release_closed" = "Commit is locked by the production release gate. No files were changed.";
 "apps.detail.activation_operation_unknown" = "Commit outcome could not be confirmed. A fresh scan is required; do not retry automatically.";
 "apps.detail.activation_operation_failed" = "Activation request failed or its scan snapshot became stale. Refresh and try again.";
+"apps.detail.activation_outcome_desired_observed" = "The fresh scan shows the requested state, but no Helper Commit proof was received. Review the state before continuing.";
+"apps.detail.activation_outcome_previous_observed" = "The fresh scan still shows the previous state. The Commit was not confirmed; a new Prepare is required.";
 
 
 /* P2-39-R3 Runtime Diagnostics */
@@ -511,3 +511,103 @@
 "diagnostics.manifest_reads" = "Manifest reads";
 "diagnostics.identity_analysis_count" = "Identity analysis runs";
 "diagnostics.identity_analysis_ms" = "Identity analysis time (ms)";
+
+/* Activity history */
+"activity.title" = "Activity History";
+"activity.open" = "View Activity History";
+"activity.empty" = "No activity has been recorded yet.";
+"activity.clear" = "Clear History";
+"activity.clear_confirm" = "Clear all activity history?";
+
+/* Activity event titles */
+"activity.previous_session_unconfirmed" = "Previous session end unconfirmed";
+"activity.plugin_scan_completed" = "Plugin scan completed";
+"activity.plugin_scan_failed" = "Plugin scan failed";
+"activity.plugin_operation.import.completed" = "Plugin import completed";
+"activity.plugin_operation.import.failed" = "Plugin import failed";
+"activity.plugin_operation.activation.completed" = "Plugin activation change completed";
+"activity.plugin_operation.activation.failed" = "Plugin activation change failed";
+"activity.plugin_operation.uninstall.completed" = "Plugin uninstall completed";
+"activity.plugin_operation.uninstall.failed" = "Plugin uninstall failed";
+"activity.plugin_operation.association.completed" = "Plugin association updated";
+"activity.plugin_operation.association.failed" = "Plugin association update failed";
+
+"binding.additional_association_only" = "Additional-association-only plugin";
+
+// P2-41 restore filtering and external ownership
+"backup.restore.skipped" = "Skipped";
+"backup.restore.status.no_installed_association" = "Skipped: no associated App is installed";
+"backup.restore.status.external_duplicate" = "Skipped: identical plugin is owned by a package manager";
+
+// P2-41 restore policy setting
+"settings.backup" = "Backup & Restore";
+"settings.backup.only_installed_apps" = "Restore plugins for installed Apps only";
+"settings.backup.only_installed_apps.note" = "Default on. Skip a plugin when none of its Fixed Owner or Additional App Association Apps is installed. The backup itself is never changed.";
+
+"plugins.detail.management" = "Plugin Management";
+
+"plugins.association_manager.app_available" = "App is installed; association is available";
+
+"plugins.association_manager.app_unavailable_preserved" = "App is not installed; Fixed Owner record is preserved";
+
+"plugins.load_status.app_targets" = "App load targets: %@";
+"plugins.load_status.executable_targets" = "Executable load targets: %@";
+"plugins.load_status.global" = "Load target: Global (*)";
+"plugins.load_status.independent" = "Standalone plugin: no App load target";
+"plugins.load_status.unknown" = "Load target: unknown (configuration unavailable)";
+
+
+"plugins.scope.filterkit_associated" = "FilterKit-managed App-associated plugins";
+
+"plugins.row.association_none" = "App associations: none";
+
+"plugins.row.injection_not_applicable" = "Injection: not applicable";
+
+"plugins.row.injection_status" = "Injection: %@";
+
+"plugins.row.injection_enabled" = "Enabled";
+
+"plugins.row.injection_disabled" = "Disabled";
+
+"plugins.row.injection_unknown" = "Unknown";
+
+"plugins.row.plugin_present" = "Plugin: present";
+
+/* P2-42-R10 compact plugin inventory labels */
+"plugins.row.more_apps" = " +%d more";
+"plugins.row.management_app_associated" = "App-associated plugin";
+"plugins.row.management_standalone" = "Standalone plugin";
+"plugins.row.injection_counts" = "Injection: %d enabled · %d disabled · %d unknown";
+"plugins.row.injection_all_enabled" = "Injection: all enabled";
+"plugins.row.injection_all_disabled" = "Injection: all disabled";
+
+"plugins.detail.app_associations" = "App association and injection";
+"plugins.detail.management_type" = "Management type";
+"plugins.detail.associated_apps" = "Associated Apps";
+"plugins.detail.fixed_owner_app" = "Fixed Owner App";
+"plugins.detail.associated_app" = "Additional App";
+"plugins.detail.source" = "Source";
+
+/* P2-42-R23 explicit Helper transaction reconciliation */
+"apps.detail.activation_verify_helper" = "Verify with Helper";
+"apps.detail.activation_reconcile_title" = "Reconcile previous activation";
+"apps.detail.activation_reconcile_confirm" = "Verify transaction evidence";
+"apps.detail.activation_reconcile_message" = "Helper will compare the saved transaction journal and current file hashes. It will not retry activation or replace plugin files.";
+"apps.detail.activation_reconciling" = "Checking Helper transaction evidence…";
+"apps.detail.activation_helper_committed" = "Helper confirmed: committed";
+"apps.detail.activation_helper_rolled_back" = "Helper confirmed: rolled back";
+
+"logs.developer.open" = "Developer Logs";
+"logs.developer.title" = "Developer Diagnostics";
+"logs.developer.size" = "Log Size";
+"logs.developer.privacy_note" = "Exported logs are privacy-redacted. Sensitive paths, socket details, credentials, and full CDHashes are removed.";
+"logs.developer.helper_note" = "Privileged Helper audit logs are stored separately under root-only permissions and are not included in this App export.";
+"logs.developer.export" = "Export Developer Logs";
+"logs.developer.clear" = "Clear Developer Logs";
+"logs.developer.clear_confirm" = "Clear all local developer logs?";
+"logs.developer.preview" = "Recent Diagnostic Events";
+"logs.developer.empty" = "No developer diagnostics have been recorded.";
+"activity.helper_status_checked" = "Helper status checked";
+"activity.helper_status_failed" = "Helper status check failed";
+"activity.plugin_operation.activation.unknown" = "Plugin activation outcome needs verification";
+"activity.plugin_operation.activation.blocked" = "Plugin activation was blocked";

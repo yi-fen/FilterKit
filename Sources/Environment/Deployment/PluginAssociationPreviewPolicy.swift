@@ -22,11 +22,12 @@ struct PluginAssociationPreviewPolicy {
         if plugin.ownership != .filterKit { blockers.append(.thirdPartyPlugin) }
         if plugin.managementPermission?.canModify != true { blockers.append(.pluginNotManageable) }
         if plugin.pairingState != .paired { blockers.append(.pluginNotPaired) }
-        if let hardBound = plugin.hardBoundBundleIdentifier, hardBound == targetBundleIdentifier {
+        if let hardBound = plugin.hardBoundBundleIdentifier,
+           HelperBundleIdentifierKey.make(hardBound) == HelperBundleIdentifierKey.make(targetBundleIdentifier) {
             blockers.append(.hardBoundAppIsImmutable)
         }
         if !PluginAssociationPlanResolver.isValidBundleIdentifier(targetBundleIdentifier) ||
-            !installedBundleIdentifiers.contains(targetBundleIdentifier) {
+            !HelperBundleIdentifierKey.set(installedBundleIdentifiers).contains(HelperBundleIdentifierKey.make(targetBundleIdentifier)) {
             blockers.append(.targetAppUnavailable)
         }
         if !originalPlistIsReadable { blockers.append(.originalPlistUnavailable) }

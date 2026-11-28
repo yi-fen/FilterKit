@@ -102,7 +102,7 @@
 "apps.detail.type" = "分类";
 "apps.detail.path" = "应用路径";
 "apps.detail.plugins" = "插件";
-"apps.detail.import_placeholder" = "插件导入和应用级控制将在后续阶段实现。";
+"apps.detail.import_placeholder" = "插件注入预检和 App 级启停控制将在后续阶段实现。";
 "settings.apps" = "应用";
 "settings.show_system_apps" = "显示系统应用";
 
@@ -133,8 +133,6 @@
 "plugins.ownership.filterkit" = "由 FilterKit 管理";
 "plugins.ownership.package_manager" = "由其他包管理器管理";
 "plugins.ownership.unknown" = "来源未知";
-"plugins.pairing.paired" = "已配对";
-"plugins.pairing.unpaired" = "未配对";
 "plugins.pairing.orphan_dylib" = "缺少 plist";
 "plugins.pairing.orphan_plist" = "缺少 dylib";
 "plugins.pairing.unreadable" = "无法读取";
@@ -247,7 +245,7 @@
 "backup.restore.status.file_conflict" = "已阻止：目标文件名已存在";
 "backup.restore.status.identity_conflict" = "已阻止：插件身份已存在";
 "backup.restore.destination_unavailable" = "无法扫描插件目标目录，文件名冲突检查可能不完整；本阶段不会执行恢复。";
-"backup.restore.source_app" = "硬绑定来源 App";
+"backup.restore.source_app" = "固定归属 App";
 
 "settings.helper" = "Helper 状态";
 "settings.helper.connection" = "连接状态";
@@ -263,16 +261,16 @@
 
 "settings.helper.not_configured" = "Helper 尚未接入";
 
-"plugins.row.hard_bound" = "硬绑定：%@";
-"plugins.row.associated_apps" = "关联：%@";
+"plugins.row.hard_bound" = "固定归属：%@";
+"plugins.row.associated_apps" = "App 关联：%@";
 "plugins.row.global_association" = "关联：全局（*）";
 "plugins.row.executable_targets" = "关联：按 Executable 匹配";
 "plugins.row.no_association" = "关联：未识别到目标 App";
-"plugins.row.filterkit_manifest_unverified" = "来源：FilterKit 清单（身份待验证）";
+"plugins.row.filterkit_manifest_unverified" = "来源：未知";
 
 "plugins.row.source_filterkit" = "来源：FilterKit";
 "plugins.row.source_package_manager" = "来源：包管理器";
-"plugins.row.source_unknown" = "来源：未知 / 待验证";
+"plugins.row.source_unknown" = "来源：未知";
 
 /* P2-03 只读关联预览 */
 "plugins.association_preview.title" = "App 关联预览";
@@ -318,18 +316,18 @@
 "plugins.uninstall.selected" = "卸载所选";
 "plugins.uninstall.title" = "卸载尚未开放";
 "plugins.uninstall.disabled" = "卸载插件";
-"plugins.uninstall.locked_message" = "卸载执行链路尚未完成真机验证，当前不会删除任何 dylib、plist 或 manifest。硬绑定插件不会出现在批量选择中。";
+"plugins.uninstall.locked_message" = "卸载事务和真机验收尚未完成，当前不会删除任何 dylib、Filter.plist 或 Manifest。卸载前必须在 APP 页面关闭该插件对所有 App 的启用状态。";
 "plugins.management.actions" = "管理操作";
 "plugins.management.hard_bound_protected" = "硬绑定插件受保护，不能通过批量操作选择。";
-"plugins.management.read_only" = "此插件不是 FilterKit 可管理插件，保持只读。";
+"plugins.management.read_only" = "此插件不是 FilterKit 自有插件，保持只读；不能由 FilterKit 卸载。";
 
 
 /* P2-37 APP 详情插件启停管理器 */
-"apps.detail.hard_bound_plugins" = "硬绑定插件";
-"apps.detail.soft_associated_plugins" = "软关联插件";
+"apps.detail.hard_bound_plugins" = "固定归属插件";
+"apps.detail.soft_associated_plugins" = "扩展关联插件";
 "apps.detail.filter_matched_plugins" = "其他 Filter 命中项";
-"apps.detail.activation_hard_bound" = "硬绑定插件 · 绑定关系不可解除";
-"apps.detail.activation_soft_associated" = "软关联插件";
+"apps.detail.activation_hard_bound" = "固定归属插件 · 归属关系不可解除";
+"apps.detail.activation_soft_associated" = "扩展关联插件";
 "apps.detail.activation_filter_match" = "Filter 命中 · 非可编辑关联";
 "apps.detail.activation_enabled" = "Filter 配置中已启用";
 "apps.detail.activation_disabled" = "Filter 配置中已关闭";
@@ -349,16 +347,16 @@
 "apps.detail.activation_toggle_accessibility" = "预览插件启用状态";
 
 /* P2-32 app detail plugin management */
-"apps.detail.import_plugin" = "导入插件到此 App";
+"apps.detail.inject_plugin" = "注入插件到此 App";
 "apps.detail.manageable_plugins" = "可管理插件";
 "apps.detail.plugin_inventory_unavailable" = "插件目录暂不可用，请检查越狱环境后刷新。";
-"apps.detail.no_related_plugins" = "当前没有发现关联到此 App 的插件。可通过上方按钮选择 dylib / plist 进行导入预检。";
+"apps.detail.no_related_plugins" = "当前没有发现关联到此 App 的插件。可通过上方按钮选择 dylib / plist 进行注入预检。";
 "apps.detail.refresh_plugins" = "刷新";
 "apps.detail.plugin_manageable" = "FilterKit 管理 · 可管理";
 "apps.detail.plugin_read_only" = "只读 · 不允许修改";
-"apps.detail.plugin_mutations_locked" = "导入、关联提交、启用和卸载的真实写入操作仍受安全门禁保护。";
-"apps.detail.import_review_title" = "插件导入预检";
-"apps.detail.import_review_message" = "已选择以下文件：\n%@\n\n当前版本仅完成文件选择和预检入口，不会复制文件或修改 ElleKit 配置。";
+"apps.detail.plugin_mutations_locked" = "注入、启用和停用的真实写入操作仍受安全门禁保护；插件卸载与关联管理仅在 Plugin 页面进行。";
+"apps.detail.inject_review_title" = "插件注入预检";
+"apps.detail.inject_review_message" = "已选择以下文件：\n%@\n\n当前版本仅完成文件选择和注入预检，不会复制文件或修改 ElleKit 配置。";
 "apps.detail.plugin_information" = "插件信息";
 "apps.detail.target_app" = "目标 App";
 "apps.detail.plugin_detail_read_only" = "此页面显示插件与当前 App 的关联及配置启用状态。本版本开关仅用于预览；实际 Filter 写入和注入仍需等待设备验收后开放。";
@@ -412,20 +410,20 @@
 "home.operation_hint" = "首次导入 dylib 请进入对应 APP 详情页；插件页仅用于查看资料、管理关联和导入备份数据。";
 "plugins.detail.association_management" = "APP 关联";
 "plugins.detail.association_manage_from_app" = "插件页面不提供启用/关闭开关。APP 级启用状态请在对应 APP 详情页管理。";
-"plugins.detail.hard_bound_app" = "硬绑定 APP";
-"plugins.detail.soft_associated_app" = "软关联 APP";
-"plugins.detail.no_soft_associations" = "尚无软关联 APP";
-"plugins.association_manager.title" = "软关联 APP 管理";
-"plugins.association_manager.hard_bound" = "硬绑定 APP（固定，不可取消）";
+"plugins.detail.hard_bound_app" = "固定归属 App";
+"plugins.detail.soft_associated_app" = "扩展关联 App";
+"plugins.detail.no_soft_associations" = "尚无扩展关联 App";
+"plugins.association_manager.title" = "扩展关联管理";
+"plugins.association_manager.hard_bound" = "固定归属 App（不可取消）";
 "plugins.association_manager.hard_bound_missing" = "未识别到有效硬绑定 APP，关联编辑已锁定";
 "plugins.association_manager.read_only" = "此插件不可由 FilterKit 修改关联。第三方、来源未知或身份异常插件仅供查看。";
 "plugins.association_manager.loading" = "正在读取已安装 APP…";
-"plugins.association_manager.instructions" = "勾选或取消普通 APP 以编辑软关联。此操作不会启用或停用插件。";
-"plugins.association_manager.no_apps" = "没有可供软关联的其他已安装 APP。";
+"plugins.association_manager.instructions" = "勾选或取消其他 App 以编辑扩展关联。固定归属 App 始终保留；此操作不会启用或停用插件。";
+"plugins.association_manager.no_apps" = "没有可供扩展关联的其他已安装 App。";
 "plugins.association_manager.associated" = "已关联";
 "plugins.association_manager.missing_app" = "该 APP 当前未安装，可移除此失效关联";
 "plugins.association_manager.remove" = "移除";
-"plugins.association_manager.selected_count" = "软关联 APP 数量";
+"plugins.association_manager.selected_count" = "扩展关联 App 数量";
 "plugins.association_manager.review_changes" = "预览关联变更";
 "plugins.association_manager.not_saved" = "当前仅编辑本页草稿；Helper 关联提交尚未开放，不会写入 Filter 或 Manifest。";
 "plugins.association_manager.unavailable" = "关联清单暂不可用。";
@@ -437,7 +435,7 @@
 "plugins.association_manager.removed" = "移除软关联";
 "plugins.association_manager.no_changes" = "没有待处理的关联变更。";
 "plugins.association_manager.review_only" = "这只是本页草稿预览；尚未保存，也没有修改任何文件或注入状态。";
-"plugins.association_manager.activation_from_app" = "插件关联只决定关系；启用或关闭请在对应 APP 详情页面操作。";
+"plugins.association_manager.activation_from_app" = "本页只管理扩展关联，不控制注入启停；启用或停用只能在 APP 页面操作。";
 "plugins.association_manager.save" = "保存软关联";
 "plugins.association_manager.confirm_save" = "确认关联变更";
 "plugins.association_manager.confirm_save_action" = "确认保存";
@@ -469,6 +467,8 @@
 "apps.detail.activation_operation_release_closed" = "生产 Release Gate 已锁定提交，未修改任何文件。";
 "apps.detail.activation_operation_unknown" = "无法确认提交结果。必须重新扫描，不会自动重试。";
 "apps.detail.activation_operation_failed" = "启停请求失败或扫描快照已过期。请刷新后重试。";
+"apps.detail.activation_outcome_desired_observed" = "重新扫描显示目标状态已生效，但未收到 Helper 提交证明。继续操作前请核对当前状态。";
+"apps.detail.activation_outcome_previous_observed" = "重新扫描仍显示原状态。提交未获确认；需要重新执行预检查。";
 
 
 /* P2-39-R3 Runtime Diagnostics */
@@ -511,3 +511,103 @@
 "diagnostics.manifest_reads" = "Manifest 读取次数";
 "diagnostics.identity_analysis_count" = "插件身份分析次数";
 "diagnostics.identity_analysis_ms" = "插件身份分析耗时（毫秒）";
+
+/* Activity history */
+"activity.title" = "活动记录";
+"activity.open" = "查看活动记录";
+"activity.empty" = "暂无活动记录";
+"activity.clear" = "清空记录";
+"activity.clear_confirm" = "确定清空所有活动记录吗？";
+
+/* Activity event titles */
+"activity.previous_session_unconfirmed" = "上次运行未确认正常结束";
+"activity.plugin_scan_completed" = "插件扫描完成";
+"activity.plugin_scan_failed" = "插件扫描失败";
+"activity.plugin_operation.import.completed" = "插件导入成功";
+"activity.plugin_operation.import.failed" = "插件导入失败";
+"activity.plugin_operation.activation.completed" = "插件启用/停用操作完成";
+"activity.plugin_operation.activation.failed" = "插件启用/停用操作失败";
+"activity.plugin_operation.uninstall.completed" = "插件卸载成功";
+"activity.plugin_operation.uninstall.failed" = "插件卸载失败";
+"activity.plugin_operation.association.completed" = "插件关联操作完成";
+"activity.plugin_operation.association.failed" = "插件关联操作失败";
+
+"binding.additional_association_only" = "仅扩展关联插件";
+
+// P2-41 restore filtering and external ownership
+"backup.restore.skipped" = "已跳过";
+"backup.restore.status.no_installed_association" = "已跳过：没有任何关联 App 已安装";
+"backup.restore.status.external_duplicate" = "已跳过：相同插件已由其他包管理器管理";
+
+// P2-41 restore policy setting
+"settings.backup" = "备份与恢复";
+"settings.backup.only_installed_apps" = "仅恢复关联到已安装 App 的插件";
+"settings.backup.only_installed_apps.note" = "默认开启。固定归属和所有扩展关联 App 均未安装时跳过该插件，不会修改原始备份。";
+
+"plugins.detail.management" = "插件管理";
+
+"plugins.association_manager.app_available" = "App 当前已安装，关联可用";
+
+"plugins.association_manager.app_unavailable_preserved" = "App 当前未安装；固定归属记录仍保留";
+
+"plugins.load_status.app_targets" = "App 加载目标：%@";
+"plugins.load_status.executable_targets" = "Executable 加载目标：%@";
+"plugins.load_status.global" = "加载目标：全局（*）";
+"plugins.load_status.independent" = "独立插件：未指定 App 加载目标";
+"plugins.load_status.unknown" = "加载目标：未知（配置不可验证）";
+
+
+"plugins.scope.filterkit_associated" = "FilterKit 管理的 App 关联插件";
+
+"plugins.row.association_none" = "App 关联：无";
+
+"plugins.row.injection_not_applicable" = "注入状态：不适用";
+
+"plugins.row.injection_status" = "注入状态：%@";
+
+"plugins.row.injection_enabled" = "已启用";
+
+"plugins.row.injection_disabled" = "已停用";
+
+"plugins.row.injection_unknown" = "未知";
+
+"plugins.row.plugin_present" = "插件本体：已存在";
+
+/* P2-42-R10 compact plugin inventory labels */
+"plugins.row.more_apps" = "等 +%d 个";
+"plugins.row.management_app_associated" = "App 关联插件";
+"plugins.row.management_standalone" = "独立插件";
+"plugins.row.injection_counts" = "注入：启用 %d · 停用 %d · 未知 %d";
+"plugins.row.injection_all_enabled" = "注入：全部已启用";
+"plugins.row.injection_all_disabled" = "注入：全部已停用";
+
+"plugins.detail.app_associations" = "App 关联与注入";
+"plugins.detail.management_type" = "管理类型";
+"plugins.detail.associated_apps" = "关联 App";
+"plugins.detail.fixed_owner_app" = "固定归属 App";
+"plugins.detail.associated_app" = "扩展关联 App";
+"plugins.detail.source" = "来源";
+
+/* P2-42-R23 显式 Helper 事务核对 */
+"apps.detail.activation_verify_helper" = "向 Helper 核对";
+"apps.detail.activation_reconcile_title" = "核对上一次注入操作";
+"apps.detail.activation_reconcile_confirm" = "验证事务证据";
+"apps.detail.activation_reconcile_message" = "Helper 将检查已保存的事务 Journal 和当前文件哈希。不会重试注入，也不会替换插件文件。";
+"apps.detail.activation_reconciling" = "正在核对 Helper 事务证据…";
+"apps.detail.activation_helper_committed" = "Helper 已确认：提交成功";
+"apps.detail.activation_helper_rolled_back" = "Helper 已确认：已回滚";
+
+"logs.developer.open" = "开发者日志";
+"logs.developer.title" = "开发者诊断";
+"logs.developer.size" = "日志大小";
+"logs.developer.privacy_note" = "导出的日志已进行隐私脱敏，会移除敏感路径、Socket 详情、凭据和完整 CDHash。";
+"logs.developer.helper_note" = "特权 Helper 审计日志单独保存在仅 root 可访问的位置，不包含在此 App 导出文件中。";
+"logs.developer.export" = "导出开发者日志";
+"logs.developer.clear" = "清空开发者日志";
+"logs.developer.clear_confirm" = "确定清空本地全部开发者日志吗？";
+"logs.developer.preview" = "最近诊断事件";
+"logs.developer.empty" = "暂无开发者诊断记录。";
+"activity.helper_status_checked" = "已检查 Helper 状态";
+"activity.helper_status_failed" = "Helper 状态检查失败";
+"activity.plugin_operation.activation.unknown" = "插件启用状态待核实";
+"activity.plugin_operation.activation.blocked" = "插件启用操作被阻止";

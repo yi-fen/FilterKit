@@ -8,7 +8,6 @@ enum HelperPluginAssociationMutationPolicy {
         case duplicateAssociation
         case hardBoundImmutable
         case activationStateIsAppDetailOnly
-        case enabledAssociationMustBeDisabledFirst
         case tooManyAssociations
     }
 
@@ -26,11 +25,12 @@ enum HelperPluginAssociationMutationPolicy {
                 guard PluginAssociationPlanResolver.isValidBundleIdentifier(value.bundleIdentifier) else {
                     throw PolicyError.invalidBundleIdentifier
                 }
-                guard value.bundleIdentifier != hardBoundBundleIdentifier else {
+                let key = HelperBundleIdentifierKey.make(value.bundleIdentifier)
+                guard key != HelperBundleIdentifierKey.make(hardBoundBundleIdentifier) else {
                     throw PolicyError.hardBoundImmutable
                 }
-                guard result[value.bundleIdentifier] == nil else { throw PolicyError.duplicateAssociation }
-                result[value.bundleIdentifier] = value.isEnabled
+                guard result[key] == nil else { throw PolicyError.duplicateAssociation }
+                result[key] = value.isEnabled
             }
             return result
         }
@@ -44,9 +44,9 @@ enum HelperPluginAssociationMutationPolicy {
                 throw PolicyError.activationStateIsAppDetailOnly
             }
         }
-        for (bundleID, enabled) in old where new[bundleID] == nil && enabled {
-            throw PolicyError.enabledAssociationMustBeDisabledFirst
-        }
+        // Removing a relationship is a Plugin-page operation even when it was active.
+        // The privileged Helper must atomically remove that Bundle from Filter.plist and
+        // remove the relationship from Manifest in the same transaction.
         return desired.sorted { $0.bundleIdentifier < $1.bundleIdentifier }
     }
 }

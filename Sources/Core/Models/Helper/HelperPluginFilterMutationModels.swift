@@ -36,7 +36,7 @@ struct HelperPluginFilterMutationRequest: Codable, Equatable {
               abs(now.timeIntervalSince(createdAt)) <= clockSkewLimit else { return false }
         if action == .replaceSoftAssociations {
             guard let desiredSoftAssociations, desiredSoftAssociations.count <= 512,
-                  Set(desiredSoftAssociations.map(\.bundleIdentifier)).count == desiredSoftAssociations.count,
+                  HelperBundleIdentifierKey.set(desiredSoftAssociations.map(\.bundleIdentifier)).count == desiredSoftAssociations.count,
                   desiredSoftAssociations.allSatisfy({ Self.isValidBundleIdentifier($0.bundleIdentifier) }) else { return false }
         } else if desiredSoftAssociations != nil { return false }
         return true

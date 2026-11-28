@@ -170,4 +170,60 @@ final class HelperPeerIdentityBindingTests: XCTestCase {
         XCTAssertEqual(failures, 0)
     }
 
+    func testTrustPolicyRejectsMissingExpectedCodeIdentity() {
+        let hash = String(repeating: "a", count: 40)
+        let policy = HelperPeerTrustPolicy(allowedUIDs: [501], allowedCDHashes: [hash],
+            allowedGIDs: [501], expectedBundleIdentifier: "cn.yfen.filterkit",
+            expectedTeamIdentifier: "ABCDE12345")
+        let missing = HelperPeerIdentity(uid: 501, gid: 501, pid: 123, cdHashHex: hash,
+            pidVersion: nil, auditSessionID: nil)
+        XCTAssertThrowsError(try policy.verify(missing))
+    }
+
+    func testTrustPolicyRejectsPartialExpectedCodeIdentityConfiguration() {
+        let hash = String(repeating: "a", count: 40)
+        let policy = HelperPeerTrustPolicy(allowedUIDs: [501], allowedCDHashes: [hash],
+            expectedBundleIdentifier: "cn.yfen.filterkit", expectedTeamIdentifier: nil)
+        let identity = HelperPeerIdentity(uid: 501, gid: 501, pid: 123, cdHashHex: hash,
+            pidVersion: nil, auditSessionID: nil,
+            verifiedCodeIdentifier: "cn.yfen.filterkit", verifiedTeamIdentifier: "ABCDE12345")
+        XCTAssertThrowsError(try policy.verify(identity))
+    }
+
+    func testTrustPolicyRejectsWrongUIDEvenWhenCDHashMatches() {
+        let hash = String(repeating: "a", count: 40)
+        let policy = HelperPeerTrustPolicy(allowedUIDs: [501], allowedCDHashes: [hash])
+        let identity = HelperPeerIdentity(uid: 0, gid: 501, pid: 123, cdHashHex: hash,
+            pidVersion: nil, auditSessionID: nil)
+        XCTAssertThrowsError(try policy.verify(identity))
+    }
+
+    func testTrustPolicyRejectsMalformedCDHash() {
+        let policy = HelperPeerTrustPolicy(allowedUIDs: [501], allowedCDHashes: [String(repeating: "a", count: 40)])
+        let identity = HelperPeerIdentity(uid: 501, gid: 501, pid: 123, cdHashHex: "abcd",
+            pidVersion: nil, auditSessionID: nil)
+        XCTAssertThrowsError(try policy.verify(identity))
+    }
+
+    func testSocketPeerEvidenceMustMatchAllCredentialFields() {
+        let peer = HelperSocketPeerCredentials(uid: 501, gid: 501, pid: 123)
+        let mismatchedUID = HelperPeerIdentity(uid: 502, gid: 501, pid: 123,
+            cdHashHex: String(repeating: "a", count: 40), pidVersion: nil, auditSessionID: nil)
+        let mismatchedPID = HelperPeerIdentity(uid: 501, gid: 501, pid: 124,
+            cdHashHex: String(repeating: "a", count: 40), pidVersion: nil, auditSessionID: nil)
+        XCTAssertFalse(HelperPeerIdentityBindingPolicy.identity(mismatchedUID, matches: peer))
+        XCTAssertFalse(HelperPeerIdentityBindingPolicy.identity(mismatchedPID, matches: peer))
+    }
+
+    func testDarwinAuditTokenEvidenceRejectsMalformedDigestAndZeroPID() {
+        let malformed = HelperPeerIdentity(uid: 501, gid: 501, pid: 123,
+            cdHashHex: String(repeating: "a", count: 40), pidVersion: nil,
+            auditSessionID: nil, auditTokenDigest: String(repeating: "z", count: 64))
+        let zeroPID = HelperPeerIdentity(uid: 501, gid: 501, pid: 0,
+            cdHashHex: String(repeating: "a", count: 40), pidVersion: nil,
+            auditSessionID: nil, auditTokenDigest: String(repeating: "b", count: 64))
+        XCTAssertFalse(HelperPeerIdentityBindingPolicy.hasKernelPeerEvidence(malformed))
+        XCTAssertFalse(HelperPeerIdentityBindingPolicy.hasKernelPeerEvidence(zeroPID))
+    }
+
 }

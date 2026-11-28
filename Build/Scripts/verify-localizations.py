@@ -15,9 +15,17 @@ def read_keys(path: Path) -> set[str]:
     if not path.is_file():
         raise FileNotFoundError(path)
     keys: set[str] = set()
+    in_block_comment = False
     for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
         stripped = line.strip()
+        if in_block_comment:
+            if "*/" in stripped:
+                in_block_comment = False
+            continue
         if not stripped or stripped.startswith("//"):
+            continue
+        if stripped.startswith("/*"):
+            in_block_comment = "*/" not in stripped
             continue
         match = PATTERN.match(line)
         if not match:

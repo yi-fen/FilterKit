@@ -18,6 +18,8 @@ struct HelperRootReleaseSet: Equatable {
     static let executablePath = "usr/libexec/filterkit-helper"
     static let manifestPath = "Library/FilterKit/Helper/Deployment.json"
     static let launchDaemonPath = "Library/LaunchDaemons/cn.yfen.filterkit.helper.plist"
+    /// Local activation hint; never substitutes for signed release verification.
+    static let activeReleasePointerPath = "Library/FilterKit/Helper/active-release.json"
 
     func verify(bundle: HelperInstallerProvisioningBundle, artifacts: [String: Data],
                 expectedDigests: [HelperInstallerArtifactDigest]) throws -> Verified {
@@ -31,11 +33,24 @@ struct HelperRootReleaseSet: Equatable {
         guard let executable = artifacts[Self.executablePath], executable.count >= 4,
               executable.count <= 64 * 1024 * 1024 else { throw VerificationError.executableInvalid }
         guard let manifest = artifacts[Self.manifestPath], manifest.count <= 256 * 1024,
-              let object = try? JSONSerialization.jsonObject(with: manifest) as? [String: Any],
-              (object["schemaVersion"] as? NSNumber)?.intValue == 1,
-              object["jbRootPath"] as? String == bundle.jbRootPath,
-              object["routeIdentifier"] as? String == bundle.routeIdentifier,
-              object["executionEnabled"] as? Bool == false else { throw VerificationError.manifestInvalid }
+              let deployment = try? JSONDecoder().decode(HelperDeploymentManifest.self, from: manifest),
+              deployment.schemaVersion == HelperDeploymentManifest.currentSchemaVersion,
+              deployment.jbRootPath == bundle.jbRootPath,
+              deployment.routeIdentifier == bundle.routeIdentifier,
+              deployment.tweakInjectPath == bundle.tweakInjectPath,
+              deployment.stagingRootPath == bundle.stagingRootPath,
+              deployment.socketPath == bundle.socketPath,
+              deployment.executionEnabled == false,
+              deployment.allowedClientUIDs == [bundle.allowedClientUID],
+              deployment.socketGroupID == bundle.socketGroupID,
+              deployment.stagingOwnerUID == bundle.stagingOwnerUID,
+              deployment.allowedAppCDHashes.count == 1,
+              deployment.allowedAppCDHashes.first?.caseInsensitiveCompare(bundle.appCDHash) == .orderedSame,
+              deployment.allowedHelperCDHashes.count == 1,
+              deployment.allowedHelperCDHashes.first?.caseInsensitiveCompare(bundle.helperCDHash) == .orderedSame,
+              deployment.allowedClientBundleIdentifier?.caseInsensitiveCompare(bundle.bundleIdentifier) == .orderedSame,
+              deployment.allowedClientTeamIdentifier == bundle.teamIdentifier,
+              bundle.teamIdentifier?.isEmpty == false else { throw VerificationError.manifestInvalid }
         guard let launch = artifacts[Self.launchDaemonPath],
               let plist = try? PropertyListSerialization.propertyList(from: launch, options: [], format: nil) as? [String: Any],
               plist["Label"] as? String == "cn.yfen.filterkit.helper",

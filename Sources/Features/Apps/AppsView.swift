@@ -35,6 +35,10 @@ private final class AppsViewModel: ObservableObject {
                     self?.apps = refreshedApps
                     self?.scannedAt = Date()
                     self?.errorKey = nil
+                    // Re-join the new App Inventory with the existing shared Plugin
+                    // Inventory. This restores/unsets association availability after
+                    // install or uninstall without starting another plugin scan.
+                    await self?.loadAssociationsFromSharedSnapshot()
                 }
             }
         AppDiscoveryProviderRegistry.startObservingSystemChanges()
@@ -97,7 +101,7 @@ private final class AppsViewModel: ObservableObject {
             let reader = ReadOnlyPluginAssociationReader(
                 appDiscoveryProvider: appProvider, snapshotApps: snapshot)
             let associations = try await reader.readAssociations(from: scan)
-            associatedBundleIDs = Set(associations.snapshots.flatMap(\.effectiveBundleIdentifiers))
+            associatedBundleIDs = HelperBundleIdentifierKey.set(associations.snapshots.flatMap(\.effectiveBundleIdentifiers))
             AppDiscoveryPerformanceDiagnostics.logSummaryIfNeeded()
             PluginInventoryPerformanceDiagnostics.logSummaryIfNeeded()
         } catch {
@@ -128,7 +132,7 @@ struct AppsView: View {
         let inventory = AppInventoryQuery.filter(model.apps, searchText: searchText,
                                                  showingSystemApps: showingSystemApps)
         guard showingAssociatedOnly else { return inventory }
-        return inventory.filter { model.associatedBundleIDs.contains($0.bundleIdentifier) }
+        return inventory.filter { model.associatedBundleIDs.contains(HelperBundleIdentifierKey.make($0.bundleIdentifier)) }
     }
 
     var body: some View {
@@ -169,7 +173,7 @@ struct AppsView: View {
                         Section {
                             ForEach(visibleApps) { app in
                                 NavigationLink(destination: AppDetailView(app: app)) {
-                                    AppRow(app: app, isAssociated: model.associatedBundleIDs.contains(app.bundleIdentifier))
+                                    AppRow(app: app, isAssociated: model.associatedBundleIDs.contains(HelperBundleIdentifierKey.make(app.bundleIdentifier)))
                                 }
                             }
                         } header: {
@@ -259,33 +263,52 @@ private struct AppDetailPluginManagementSection: View {
     let app: InstalledApp
     @ObservedObject private var registry = PluginScanRegistry.shared
     @State private var isImportingPlugin = false
-    @State private var importedFileNames: [String] = []
+    @State private var importReviewMessage = ""
     @State private var showingImportReview = false
 
     private var relatedPlugins: [PluginScanItem] {
         let items = registry.result?.plugins ?? []
+        let appKey = HelperBundleIdentifierKey.make(app.bundleIdentifier)
         return items.filter { plugin in
-            if plugin.hardBoundBundleIdentifier == app.bundleIdentifier { return true }
-            if plugin.softAssociatedBundleIdentifiers.contains(app.bundleIdentifier) { return true }
+            if let owner = plugin.hardBoundBundleIdentifier,
+               HelperBundleIdentifierKey.make(owner) == appKey { return true }
+            if plugin.softAssociatedBundleIdentifiers.contains(where: {
+                HelperBundleIdentifierKey.make($0) == appKey
+            }) { return true }
             if let bundles = plugin.filterConfiguration?.bundles,
-               bundles.contains("*") || bundles.contains(app.bundleIdentifier) { return true }
+               bundles.contains("*") || HelperBundleIdentifierKey.set(bundles).contains(appKey) { return true }
             return false
         }.sorted { $0.baseName.localizedStandardCompare($1.baseName) == .orderedAscending }
     }
 
     private var hardBoundPlugins: [PluginScanItem] {
-        relatedPlugins.filter { $0.hardBoundBundleIdentifier == app.bundleIdentifier }
+        relatedPlugins.filter {
+            guard let owner = $0.hardBoundBundleIdentifier else { return false }
+            return HelperBundleIdentifierKey.make(owner) == HelperBundleIdentifierKey.make(app.bundleIdentifier)
+        }
     }
 
     private var softAssociatedPlugins: [PluginScanItem] {
-        relatedPlugins.filter { $0.hardBoundBundleIdentifier != app.bundleIdentifier
-            && $0.softAssociatedBundleIdentifiers.contains(app.bundleIdentifier) }
+        relatedPlugins.filter { plugin in
+            let ownerMatches = plugin.hardBoundBundleIdentifier.map {
+                HelperBundleIdentifierKey.make($0) == HelperBundleIdentifierKey.make(app.bundleIdentifier)
+            } ?? false
+            return !ownerMatches && plugin.softAssociatedBundleIdentifiers.contains {
+                HelperBundleIdentifierKey.make($0) == HelperBundleIdentifierKey.make(app.bundleIdentifier)
+            }
+        }
     }
 
     private var filterMatchedPlugins: [PluginScanItem] {
         relatedPlugins.filter { plugin in
-            plugin.hardBoundBundleIdentifier != app.bundleIdentifier
-                && !plugin.softAssociatedBundleIdentifiers.contains(app.bundleIdentifier)
+            let appKey = HelperBundleIdentifierKey.make(app.bundleIdentifier)
+            let ownerMatches = plugin.hardBoundBundleIdentifier.map {
+                HelperBundleIdentifierKey.make($0) == appKey
+            } ?? false
+            let associationMatches = plugin.softAssociatedBundleIdentifiers.contains {
+                HelperBundleIdentifierKey.make($0) == appKey
+            }
+            return !ownerMatches && !associationMatches
         }
     }
 
@@ -297,10 +320,10 @@ private struct AppDetailPluginManagementSection: View {
         Section {
             // Prominent, always-visible app-detail import action (not hidden in a menu).
             Button { isImportingPlugin = true } label: {
-                Label("apps.detail.import_plugin", systemImage: "square.and.arrow.down")
+                Label("apps.detail.inject_plugin", systemImage: "square.and.arrow.down")
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .accessibilityIdentifier("apps.detail.import_plugin")
+            .accessibilityIdentifier("apps.detail.inject_plugin")
 
             HStack {
                 Label("apps.detail.manageable_plugins", systemImage: "puzzlepiece.extension")
@@ -344,21 +367,199 @@ private struct AppDetailPluginManagementSection: View {
         .task { registry.loadIfNeeded() }
         .fileImporter(isPresented: $isImportingPlugin,
                       allowedContentTypes: [UTType(filenameExtension: "dylib", conformingTo: .data) ?? .data,
-                                            UTType(filenameExtension: "plist", conformingTo: .xml) ?? .xml],
+                                            UTType(filenameExtension: "plist", conformingTo: .data) ?? .data,
+                                            .zip,
+                                            UTType(filenameExtension: "deb", conformingTo: .data) ?? .data],
                       allowsMultipleSelection: true) { result in
             switch result {
             case .success(let urls):
-                importedFileNames = urls.map(\.lastPathComponent)
+                inspectSelectedPluginFiles(urls)
+            case .failure(let error):
+                importReviewMessage = error.localizedDescription
                 showingImportReview = true
-            case .failure:
-                importedFileNames = []
             }
         }
-        .alert("apps.detail.import_review_title", isPresented: $showingImportReview) {
-            Button("common.ok", role: .cancel) { importedFileNames = [] }
+        .alert("apps.detail.inject_review_title", isPresented: $showingImportReview) {
+            Button("common.ok", role: .cancel) { importReviewMessage = "" }
         } message: {
-            Text(String(format: NSLocalizedString("apps.detail.import_review_message", comment: ""), importedFileNames.joined(separator: "\n")))
+            Text(importReviewMessage)
         }
+    }
+
+    private func inspectSelectedZIP(_ url: URL) {
+        guard url.startAccessingSecurityScopedResource() else {
+            importReviewMessage = "FilterKit could not obtain access to the ZIP file. Re-select it and try again."
+            showingImportReview = true
+            return
+        }
+        defer { url.stopAccessingSecurityScopedResource() }
+        do {
+            let result = try PluginZIPArchiveInspector().inspect(
+                archiveURL: url, targetBundleIdentifier: app.bundleIdentifier)
+            var lines = [
+                "ZIP: \(url.lastPathComponent)",
+                "Detected plugins: \(result.plugins.count)",
+                "Injection target: \(app.displayName) (\(app.bundleIdentifier))",
+                "Binding: This is a read-only package preview. Binding is not committed during inspection."
+            ]
+            for (index, plugin) in result.plugins.enumerated() {
+                let item = plugin.inspection
+                lines.append("\n[\(index + 1)] \(item.displayName)")
+                lines.append("Archive path: \(plugin.archivePath)")
+                lines.append("Binary: \(item.dylibFileName)")
+                lines.append("Architectures: \(item.architectures.joined(separator: ", "))")
+                lines.append("SHA-256: \(item.dylibSHA256)")
+                lines.append(packageSourceDecision(for: item.dylibSHA256))
+                lines.append(plugin.matchedPlistArchivePath.map { "Filter.plist: \($0)" }
+                    ?? "Filter.plist: automatically generated (minimal Bundles-only)")
+                if let author = item.author { lines.append("Author: \(author)") }
+                if let version = item.version { lines.append("Version: \(version)") }
+                if !item.warnings.isEmpty { lines.append("Warnings: \(item.warnings.joined(separator: "; "))") }
+            }
+            if !result.warnings.isEmpty { lines.append("\nPackage warnings:\n• " + result.warnings.joined(separator: "\n• ")) }
+            lines.append("\nRead-only ZIP inspection only. No plugin files were injected, backed up, or activated.")
+            importReviewMessage = lines.joined(separator: "\n")
+        } catch {
+            importReviewMessage = "ZIP inspection failed: \(error.localizedDescription)"
+        }
+        showingImportReview = true
+    }
+
+    private func inspectSelectedDEB(_ url: URL) {
+        guard url.startAccessingSecurityScopedResource() else {
+            importReviewMessage = "FilterKit could not obtain access to the Debian package. Re-select it and try again."
+            showingImportReview = true
+            return
+        }
+        defer { url.stopAccessingSecurityScopedResource() }
+        do {
+            let result = try PluginDEBArchiveInspector().inspect(
+                packageURL: url, targetBundleIdentifier: app.bundleIdentifier)
+            var lines = [
+                "DEB: \(url.lastPathComponent)",
+                "Package: \(result.packageName ?? "Unknown")",
+                "Version: \(result.packageVersion ?? "Unknown")",
+                "Architecture: \(result.packageArchitecture ?? "Unknown")",
+                "Maintainer: \(result.maintainer ?? "Unknown")",
+                "Detected plugins: \(result.plugins.count)",
+                "Injection target: \(app.displayName) (\(app.bundleIdentifier))",
+                "Binding: Read-only preview; binding is not committed during inspection."
+            ]
+            for (index, plugin) in result.plugins.enumerated() {
+                let item = plugin.inspection
+                lines.append("\n[\(index + 1)] \(item.displayName)")
+                lines.append("Package path: \(plugin.archivePath)")
+                lines.append("Binary: \(item.dylibFileName)")
+                lines.append("Architectures: \(item.architectures.joined(separator: ", "))")
+                lines.append("SHA-256: \(item.dylibSHA256)")
+                lines.append(packageSourceDecision(for: item.dylibSHA256))
+                lines.append(plugin.matchedPlistArchivePath.map { "Filter.plist: \($0)" }
+                    ?? "Filter.plist: automatically generated (minimal Bundles-only)")
+                if !item.warnings.isEmpty { lines.append("Warnings: \(item.warnings.joined(separator: "; "))") }
+            }
+            if !result.warnings.isEmpty { lines.append("\nPackage warnings:\n• " + result.warnings.joined(separator: "\n• ")) }
+            lines.append("\nRead-only DEB inspection only. No package scripts were executed; no files were injected, backed up, or activated.")
+            importReviewMessage = lines.joined(separator: "\n")
+        } catch {
+            importReviewMessage = "DEB inspection failed: \(error.localizedDescription)"
+        }
+        showingImportReview = true
+    }
+
+    private func inspectSelectedPluginFiles(_ urls: [URL]) {
+        let zipFiles = urls.filter { $0.pathExtension.lowercased() == "zip" }
+        let debFiles = urls.filter { $0.pathExtension.lowercased() == "deb" }
+        if !zipFiles.isEmpty || !debFiles.isEmpty {
+            guard urls.count == 1, zipFiles.count + debFiles.count == 1 else {
+                importReviewMessage = "Select one ZIP or DEB package at a time. Do not mix package archives with individual files."
+                showingImportReview = true
+                return
+            }
+            if let zip = zipFiles.first { inspectSelectedZIP(zip) }
+            else if let deb = debFiles.first { inspectSelectedDEB(deb) }
+            return
+        }
+        let dylibs = urls.filter { $0.pathExtension.lowercased() == "dylib" }
+        let plists = urls.filter { $0.pathExtension.lowercased() == "plist" }
+        guard dylibs.count == 1 else {
+            importReviewMessage = dylibs.isEmpty
+                ? "Select one .dylib file. A matching Filter.plist is optional."
+                : "Select exactly one .dylib file per import. Multiple binaries will be supported by package import in a later phase."
+            showingImportReview = true
+            return
+        }
+        guard plists.count <= 1 else {
+            importReviewMessage = "More than one plist was selected. Select the matching Filter.plist explicitly."
+            showingImportReview = true
+            return
+        }
+
+        let scopedURLs = urls.filter { $0.startAccessingSecurityScopedResource() }
+        guard scopedURLs.count == urls.count else {
+            scopedURLs.forEach { $0.stopAccessingSecurityScopedResource() }
+            importReviewMessage = "FilterKit could not obtain access to every selected file. Re-select the files and try again."
+            showingImportReview = true
+            return
+        }
+        defer { scopedURLs.forEach { $0.stopAccessingSecurityScopedResource() } }
+        do {
+            let pairedPlist = try PluginImportFilePairResolver().resolve(
+                dylibURL: dylibs[0], explicitlySelectedPlistURL: plists.first)
+            let pairedPlistScopeStarted = pairedPlist?.startAccessingSecurityScopedResource() ?? false
+            if pairedPlist != nil && !pairedPlistScopeStarted {
+                throw NSError(domain: "FilterKit.PluginImport", code: 1,
+                              userInfo: [NSLocalizedDescriptionKey: "FilterKit could not access the matched Filter.plist. Select it explicitly and try again."])
+            }
+            defer { if pairedPlistScopeStarted { pairedPlist?.stopAccessingSecurityScopedResource() } }
+            let inspection = try PluginImportInspector().inspect(
+                dylibURL: dylibs[0], originalPlistURL: pairedPlist,
+                targetBundleIdentifier: app.bundleIdentifier)
+            var lines = [
+                "Plugin: \(inspection.displayName)",
+                "Binary: \(inspection.dylibFileName)",
+                "Architectures: \(inspection.architectures.joined(separator: ", "))",
+                "Install name: \(inspection.installName ?? "Unknown")",
+                "Version: \(inspection.version ?? "Unknown")",
+                "SHA-256: \(inspection.dylibSHA256)",
+                packageSourceDecision(for: inspection.dylibSHA256),
+                inspection.usesGeneratedPlist
+                    ? "Filter.plist: generated (minimal Bundles-only)"
+                    : "Filter.plist: \(inspection.originalPlistFileName ?? "not supplied")"
+            ]
+            if pairedPlist != nil && plists.isEmpty {
+                lines.append("Filter.plist: automatically matched from the dylib's containing directory.")
+            }
+            if let author = inspection.author { lines.append("Author: \(author)") }
+            if let hash = inspection.originalPlistSHA256 { lines.append("Original plist SHA-256: \(hash)") }
+            if let generated = inspection.generatedPlist, let text = String(data: generated, encoding: .utf8) {
+                lines.append("Generated Filter.plist preview:\n\(text)")
+            }
+            if !inspection.warnings.isEmpty {
+                lines.append("Warnings:\n• " + inspection.warnings.joined(separator: "\n• "))
+            }
+            lines.append("\nInjection preview: fixed owner App = \(app.displayName). Additional App associations can be managed later in Plugins.")
+            lines.append("Default activation intent: enabled after a successful injection; this inspection does not inject or activate files.")
+            lines.append("\nRead-only inspection only. No files were injected or modified.")
+            importReviewMessage = lines.joined(separator: "\n")
+        } catch {
+            importReviewMessage = "Plugin inspection failed: \(error.localizedDescription)"
+        }
+        showingImportReview = true
+    }
+
+    private func packageSourceDecision(for sha256: String) -> String {
+        guard let snapshot = PluginScanRegistry.shared.result,
+              snapshot.directoryState == .resolved else {
+            return "Source check: unavailable. Do not inject until the shared Plugin Inventory is available."
+        }
+        let normalized = sha256.lowercased()
+        if snapshot.plugins.contains(where: {
+            $0.ownership == .packageManager && $0.dylibSHA256?.lowercased() == normalized
+        }), PluginSourceOperationPolicy.decision(for: .packageManager, operation: .inject,
+            exactPackageManagedSHA256Match: true) == .skipExternalDuplicate {
+            return "Decision: SKIP — identical SHA-256 is already owned by a package manager. FilterKit must not inject, copy, overwrite, export, uninstall, or adopt it."
+        }
+        return "Source check: no exact package-managed SHA-256 duplicate found in the current snapshot. Helper ownership and identity attestation is still required before any operation."
     }
 
     @ViewBuilder
@@ -383,12 +584,16 @@ private struct AppScopedPluginRow: View {
     @ObservedObject private var operationStore = AppPluginActivationOperationStore.shared
     @ObservedObject private var registry = PluginScanRegistry.shared
     @State private var showingCommitConfirmation = false
+    @State private var showingReconcileConfirmation = false
     @State private var showingOperationNotice = false
 
     private var snapshotRevision: UInt64 { registry.snapshotRevision }
     private var operationBelongsToRow: Bool {
-        operationStore.pending?.command.pluginID == UUID(uuidString: plugin.filterKitPluginID ?? "") &&
-        operationStore.pending?.command.targetBundleIdentifier == app.bundleIdentifier
+        (operationStore.pending?.command.pluginID == UUID(uuidString: plugin.filterKitPluginID ?? "") &&
+         HelperBundleIdentifierKey.make(operationStore.pending?.command.targetBundleIdentifier ?? "")
+            == HelperBundleIdentifierKey.make(app.bundleIdentifier)) ||
+        operationStore.outcomeBelongs(pluginID: UUID(uuidString: plugin.filterKitPluginID ?? ""),
+            targetBundleIdentifier: app.bundleIdentifier)
     }
 
     var body: some View {
@@ -409,6 +614,12 @@ private struct AppScopedPluginRow: View {
                         if operationBelongsToRow {
                             Text(operationStatusKey)
                                 .font(.caption2).foregroundStyle(.orange)
+                            if operationStore.phase == .outcomeUnknown,
+                               operationStore.outcomeResolution == .desiredStateObserved ||
+                               operationStore.outcomeResolution == .previousStateObserved {
+                                Button("common.ok") { operationStore.dismissScanObservation() }
+                                    .font(.caption2)
+                            }
                         }
                     }
                 }
@@ -428,13 +639,32 @@ private struct AppScopedPluginRow: View {
                     }
                 }))
                 .labelsHidden()
-                .disabled(!activation.canPreviewToggle || operationStore.phase == .preparing || operationStore.phase == .committing)
+                .disabled(!activation.canPreviewToggle || operationStore.phase == .preparing ||
+                          operationStore.phase == .committing || operationStore.phase == .reconciling ||
+                          operationStore.phase == .outcomeUnknown || operationStore.phase == .reconciledCommitted ||
+                          operationStore.phase == .reconciledRolledBack)
                 .accessibilityIdentifier("apps.detail.activation.toggle.\(plugin.id).\(app.bundleIdentifier)")
                 .accessibilityLabel(Text("\(plugin.baseName) — \(app.displayName)"))
+            if operationBelongsToRow && operationStore.phase == .outcomeUnknown {
+                Button("apps.detail.activation_verify_helper") {
+                    showingReconcileConfirmation = true
+                }
+                .font(.caption2)
+                .accessibilityIdentifier("apps.detail.activation.reconcile.\(plugin.id).\(app.bundleIdentifier)")
+            }
+            if operationBelongsToRow && (operationStore.phase == .reconciledCommitted ||
+                                          operationStore.phase == .reconciledRolledBack) {
+                Button("common.ok") { operationStore.clearReconciledOutcome() }
+                    .font(.caption2)
+            }
         }
         .padding(.vertical, 3)
         .onChange(of: snapshotRevision) { _ in
-            operationStore.invalidatePending()
+            if operationStore.phase == .outcomeUnknown {
+                operationStore.reconcileUnknownOutcome(using: activation)
+            } else {
+                operationStore.invalidatePending()
+            }
         }
         .confirmationDialog("apps.detail.activation_confirm_title", isPresented: $showingCommitConfirmation,
                             titleVisibility: .visible) {
@@ -448,8 +678,20 @@ private struct AppScopedPluginRow: View {
         } message: {
             Text("apps.detail.activation_confirm_message")
         }
-        .alert("apps.detail.activation_operation_title", isPresented: $showingOperationNotice) {
+        .confirmationDialog("apps.detail.activation_reconcile_title", isPresented: $showingReconcileConfirmation,
+                            titleVisibility: .visible) {
+            Button("apps.detail.activation_reconcile_confirm", role: .destructive) {
+                Task {
+                    await operationStore.reconcileWithHelper(userConfirmed: true)
+                    showingOperationNotice = true
+                }
+            }
             Button("common.ok", role: .cancel) { }
+        } message: {
+            Text("apps.detail.activation_reconcile_message")
+        }
+        .alert("apps.detail.activation_operation_title", isPresented: $showingOperationNotice) {
+            Button("common.ok", role: .cancel) { operationStore.clearReconciledOutcome() }
         } message: {
             Text(operationStatusKey)
         }
@@ -462,8 +704,16 @@ private struct AppScopedPluginRow: View {
         case .prepared: return "apps.detail.activation_operation_prepared"
         case .committing: return "apps.detail.activation_operation_committing"
         case .committed: return "apps.detail.activation_operation_committed_refreshing"
+        case .reconciling: return "apps.detail.activation_reconciling"
+        case .reconciledCommitted: return "apps.detail.activation_helper_committed"
+        case .reconciledRolledBack: return "apps.detail.activation_helper_rolled_back"
         case .blocked: return "apps.detail.activation_operation_release_closed"
-        case .outcomeUnknown: return "apps.detail.activation_operation_unknown"
+        case .outcomeUnknown:
+            switch operationStore.outcomeResolution {
+            case .desiredStateObserved: return "apps.detail.activation_outcome_desired_observed"
+            case .previousStateObserved: return "apps.detail.activation_outcome_previous_observed"
+            case .stillIndeterminate, .none: return "apps.detail.activation_operation_unknown"
+            }
         case .failed: return "apps.detail.activation_operation_failed"
         }
     }

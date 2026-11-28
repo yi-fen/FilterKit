@@ -87,6 +87,62 @@ final class PluginManifestSchemaMigrationTests: XCTestCase {
         XCTAssertThrowsError(try PluginManifestSchemaMigrator().decodeAndPreviewUpgrade(unsafe, actualDylibSHA256: hash, actualPlistSHA256: hash, machOIdentitySHA256: hash))
     }
 
+
+    func testSchemaFourCreatesOwnerlessAdditionalAssociationManifest() throws {
+        let pluginID = UUID()
+        let topology = PluginBindingTopology(pluginID: pluginID, fixedOwnerBundleIdentifier: nil,
+            additionalAssociations: [PluginBindingAssociation(bundleIdentifier: "com.example.target", isEnabled: true)])
+        let migrator = PluginManifestSchemaMigrator()
+        let manifest = try migrator.makeSchemaFourManifest(pluginID: pluginID,
+            dylibFileName: "Demo.dylib", plistFileName: "Demo.plist",
+            dylibSHA256: hash, plistSHA256: hash, machOIdentitySHA256: hash, topology: topology)
+        XCTAssertNil(manifest.hardBoundBundleIdentifier)
+        XCTAssertEqual(manifest.schemaVersion, 4)
+        XCTAssertEqual(manifest.bindingTopology?.additionalAssociations.first?.bundleIdentifier, "com.example.target")
+        let encoded = try migrator.encodeSchemaFourManifest(manifest)
+        let preview = try migrator.decodeAndPreviewUpgrade(encoded, actualDylibSHA256: hash,
+            actualPlistSHA256: hash, machOIdentitySHA256: hash)
+        XCTAssertEqual(preview.targetSchemaVersion, 4)
+        XCTAssertNil(preview.migratedManifest.hardBoundBundleIdentifier)
+        XCTAssertEqual(preview.migratedManifest.bindingTopology?.enabledBundleIdentifiers, ["com.example.target"])
+    }
+
+    func testSchemaFourPreservesFixedOwnerDisabledAndSoftAssociationState() throws {
+        let pluginID = UUID()
+        let topology = PluginBindingTopology(pluginID: pluginID, fixedOwnerBundleIdentifier: "com.example.owner",
+            fixedOwnerIsEnabled: false,
+            additionalAssociations: [PluginBindingAssociation(bundleIdentifier: "com.example.extra", isEnabled: true)])
+        let migrator = PluginManifestSchemaMigrator()
+        let manifest = try migrator.makeSchemaFourManifest(pluginID: pluginID,
+            dylibFileName: "Demo.dylib", plistFileName: "Demo.plist",
+            dylibSHA256: hash, plistSHA256: hash, machOIdentitySHA256: hash, topology: topology)
+        let preview = try migrator.decodeAndPreviewUpgrade(try migrator.encodeSchemaFourManifest(manifest),
+            actualDylibSHA256: hash, actualPlistSHA256: hash, machOIdentitySHA256: hash)
+        XCTAssertFalse(preview.migratedManifest.bindingTopology!.fixedOwnerIsEnabled)
+        XCTAssertEqual(preview.migratedManifest.bindingTopology!.enabledBundleIdentifiers, ["com.example.extra"])
+    }
+
+    func testSchemaFourRejectsEmptyOrInconsistentOwnerlessTopology() throws {
+        let pluginID = UUID()
+        let empty = PluginBindingTopology(pluginID: pluginID, fixedOwnerBundleIdentifier: nil)
+        XCTAssertThrowsError(try PluginManifestSchemaMigrator().makeSchemaFourManifest(pluginID: pluginID,
+            dylibFileName: "Demo.dylib", plistFileName: "Demo.plist", dylibSHA256: hash,
+            plistSHA256: hash, machOIdentitySHA256: hash, topology: empty))
+
+        let object: [String: Any] = [
+            "schemaVersion": 4, "pluginID": pluginID.uuidString,
+            "dylibFileName": "Demo.dylib", "plistFileName": "Demo.plist",
+            "dylibSHA256": hash, "plistSHA256": hash, "machOIdentitySHA256": hash,
+            "hardBoundBundleIdentifier": NSNull(), "softAssociatedBundleIdentifiers": ["com.example.a"],
+            "softAssociations": [["bundleIdentifier": "com.example.a", "isEnabled": true]],
+            "bindingTopology": ["schemaVersion": 1, "fixedOwnerIsEnabled": true,
+                "additionalAssociations": [["bundleIdentifier": "com.example.b", "isEnabled": true]]]
+        ]
+        let data = try JSONSerialization.data(withJSONObject: object)
+        XCTAssertThrowsError(try PluginManifestSchemaMigrator().decodeAndPreviewUpgrade(data,
+            actualDylibSHA256: hash, actualPlistSHA256: hash, machOIdentitySHA256: hash))
+    }
+
     private func manifestJSON(schema: Int, softIDs: [String], dylibName: String = "Demo.dylib") throws -> Data {
         let object: [String: Any] = [
             "schemaVersion": schema, "pluginID": pluginID,

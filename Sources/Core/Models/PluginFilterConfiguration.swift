@@ -8,14 +8,15 @@ enum PluginFilterParseState: String, Codable, Equatable {
     case unavailable
 }
 
-/// Read-only projection of the ElleKit filter dictionary. Original plist bytes remain untouched.
+/// Read-only projection of ElleKit's Filter dictionary. Original plist bytes remain untouched.
+/// The parser accepts canonical and case-insensitive key spellings, plus either a single
+/// string or an array for target fields. It never guesses semantics for unknown fields.
 struct PluginFilterConfiguration: Codable, Equatable {
     let parseState: PluginFilterParseState
     let containerKey: String
     let bundles: [String]
     let executables: [String]
     let classes: [String]
-    /// Preserves the plist value as a display string; semantics are not inferred here.
     let modeDescription: String?
     let unknownKeys: [String]
     let warnings: [String]
@@ -28,45 +29,82 @@ struct PluginFilterConfiguration: Codable, Equatable {
             }
             let filter: [String: Any]
             let containerKey: String
-            if let rawFilter = root["Filter"] {
-                guard let dictionary = rawFilter as? [String: Any] else {
+            if let filterEntry = root.first(where: { $0.key.caseInsensitiveCompare("Filter") == .orderedSame }) {
+                guard let dictionary = filterEntry.value as? [String: Any] else {
                     return invalid("plugin_filter.filter_not_dictionary")
                 }
                 filter = dictionary
-                containerKey = "Filter"
+                containerKey = filterEntry.key
             } else {
                 filter = root
                 containerKey = "root"
             }
 
             var warnings: [String] = []
+            let normalizedKeyCounts = Dictionary(grouping: filter.keys, by: { $0.lowercased() })
+            for (key, spellings) in normalizedKeyCounts where spellings.count > 1 {
+                warnings.append("plugin_filter.duplicate_key_\(key)")
+            }
+            func entry(_ key: String) -> (String, Any)? {
+                let matches = filter.filter { $0.key.caseInsensitiveCompare(key) == .orderedSame }
+                guard matches.count == 1, let match = matches.first else { return nil }
+                return (match.key, match.value)
+            }
             func stringArray(_ key: String) -> [String] {
-                guard let raw = filter[key] else { return [] }
+                guard let (_, raw) = entry(key) else { return [] }
+                if let string = raw as? String {
+                    let trimmed = string.trimmingCharacters(in: .whitespacesAndNewlines)
+                    if trimmed.isEmpty {
+                        warnings.append("plugin_filter.\\(key.lowercased())_empty_string")
+                        return []
+                    }
+                    return [trimmed]
+                }
                 guard let values = raw as? [Any] else {
-                    warnings.append("plugin_filter.\(key.lowercased())_not_array")
+                    warnings.append("plugin_filter.\\(key.lowercased())_not_array_or_string")
                     return []
                 }
-                let strings = values.map { value -> String in
-                    if let string = value as? String { return string }
-                    return displayPropertyListValue(value)
+                var result: [String] = []
+                for value in values {
+                    guard let string = value as? String else {
+                        warnings.append("plugin_filter.\\(key.lowercased())_contains_non_string")
+                        continue
+                    }
+                    let trimmed = string.trimmingCharacters(in: .whitespacesAndNewlines)
+                    if trimmed.isEmpty {
+                        warnings.append("plugin_filter.\\(key.lowercased())_contains_empty_string")
+                    } else {
+                        result.append(trimmed)
+                    }
                 }
-                if values.contains(where: { !($0 is String) }) {
-                    warnings.append("plugin_filter.\(key.lowercased())_contains_non_string")
-                }
-                return strings
+                return result
             }
+
+            let hasBundles = entry("Bundles") != nil
+            let hasExecutables = entry("Executables") != nil
+            // Without either target field, an empty parse is not proof of an independent
+            // plugin. It may be a different/unsupported Filter.plist dialect.
+            if !hasBundles && !hasExecutables {
+                warnings.append("plugin_filter.load_target_fields_missing")
+            }
+
             let bundles = stringArray("Bundles")
             let executables = stringArray("Executables")
             let classes = stringArray("Classes")
             let mode: String?
-            if let rawMode = filter["Mode"] {
+            if let (_, rawMode) = entry("Mode") {
                 if let value = rawMode as? String { mode = value }
                 else if let value = rawMode as? NSNumber {
-                    mode = CFGetTypeID(value) == CFBooleanGetTypeID() ? (value.boolValue ? "true" : "false") : value.stringValue
-                } else { mode = displayPropertyListValue(rawMode); warnings.append("plugin_filter.mode_unrecognized_type") }
+                    mode = CFGetTypeID(value) == CFBooleanGetTypeID()
+                        ? (value.boolValue ? "true" : "false") : value.stringValue
+                } else {
+                    mode = displayPropertyListValue(rawMode)
+                    warnings.append("plugin_filter.mode_unrecognized_type")
+                }
             } else { mode = nil }
-            let known: Set<String> = ["Bundles", "Executables", "Classes", "Mode"]
-            let unknown = filter.keys.filter { !known.contains($0) }.sorted()
+
+            let known: Set<String> = ["bundles", "executables", "classes", "mode"]
+            let unknown = filter.keys.filter { !known.contains($0.lowercased()) }.sorted()
             return PluginFilterConfiguration(parseState: warnings.isEmpty ? .valid : .partial,
                 containerKey: containerKey, bundles: bundles, executables: executables,
                 classes: classes, modeDescription: mode, unknownKeys: unknown, warnings: warnings)

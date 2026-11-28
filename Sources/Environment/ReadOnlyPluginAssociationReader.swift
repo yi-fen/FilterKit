@@ -21,8 +21,9 @@ final class ReadOnlyPluginAssociationReader: PluginAssociationReadingProvider {
         } else {
             installedApps = try await appDiscoveryProvider.scanInstalledApps()
         }
-        let appsByBundleID = Dictionary(installedApps.map { ($0.bundleIdentifier, $0) },
-                                        uniquingKeysWith: { first, _ in first })
+        let appsByBundleID = Dictionary(installedApps.map {
+            (HelperBundleIdentifierKey.make($0.bundleIdentifier), $0)
+        }, uniquingKeysWith: { first, _ in first })
         var snapshots: [PluginAssociationSnapshot] = []
         var skipped: [String] = []
 
@@ -34,14 +35,22 @@ final class ReadOnlyPluginAssociationReader: PluginAssociationReadingProvider {
                 continue
             }
 
-            let normalizedSoftIDs = Set(item.softAssociatedBundleIdentifiers)
-                .filter { Self.isValidBundleIdentifier($0) && $0 != hardBoundID }
-            let hardBoundApp = appsByBundleID[hardBoundID]
-            let sortedSoftIDs = normalizedSoftIDs.sorted()
-            let softApps = sortedSoftIDs.compactMap { appsByBundleID[$0] }
-            let missingSoftIDs = sortedSoftIDs.filter { appsByBundleID[$0] == nil }
+            let ownerKey = HelperBundleIdentifierKey.make(hardBoundID)
+            let validSoftIDs = item.softAssociatedBundleIdentifiers.filter(Self.isValidBundleIdentifier)
+            let softKeys = validSoftIDs.map(HelperBundleIdentifierKey.make)
+            guard Set(softKeys).count == softKeys.count,
+                  !softKeys.contains(ownerKey) else {
+                skipped.append(item.id)
+                continue
+            }
+            let hardBoundApp = appsByBundleID[ownerKey]
+            let sortedSoftIDs = validSoftIDs.sorted()
+            let softApps = sortedSoftIDs.compactMap { appsByBundleID[HelperBundleIdentifierKey.make($0)] }
+            let missingSoftIDs = sortedSoftIDs.filter {
+                appsByBundleID[HelperBundleIdentifierKey.make($0)] == nil
+            }
             var effectiveIDs: [String] = []
-            if hardBoundApp != nil { effectiveIDs.append(hardBoundID) }
+            if let hardBoundApp { effectiveIDs.append(hardBoundApp.bundleIdentifier) }
             effectiveIDs.append(contentsOf: softApps.map(\.bundleIdentifier))
 
             snapshots.append(PluginAssociationSnapshot(

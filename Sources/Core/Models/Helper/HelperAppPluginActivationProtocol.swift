@@ -16,6 +16,19 @@ struct HelperAppPluginActivationCommand: Codable, Equatable {
     let snapshotRevision: UInt64
     let createdAt: Date
 
+    /// Structural validation for a locally persisted recovery hint. Unlike a fresh IPC
+    /// command, an old command is expected to be outside the transport clock-skew window.
+    func validatesForRecoveryHint() -> Bool {
+        requestID != UUID(uuidString: "00000000-0000-0000-0000-000000000000") &&
+        pluginID != UUID(uuidString: "00000000-0000-0000-0000-000000000000") &&
+        Self.validBundleIdentifier(targetBundleIdentifier) &&
+        HelperPolicy.isSafeLeafName(dylibFileName) && dylibFileName.lowercased().hasSuffix(".dylib") &&
+        HelperPolicy.isSafeLeafName(plistFileName) && plistFileName.lowercased().hasSuffix(".plist") &&
+        String(dylibFileName.dropLast(6)).lowercased() == String(plistFileName.dropLast(6)).lowercased() &&
+        HelperPolicy.isValidHash(expectedFilterSHA256) && HelperPolicy.isValidHash(expectedManifestSHA256) &&
+        snapshotRevision > 0
+    }
+
     func validate(now: Date = Date(), clockSkewLimit: TimeInterval = 120) -> Bool {
         guard requestID != UUID(uuidString: "00000000-0000-0000-0000-000000000000"),
               pluginID != UUID(uuidString: "00000000-0000-0000-0000-000000000000"),

@@ -34,7 +34,7 @@ final class PluginFilterConfigurationTests: XCTestCase {
     func testInvalidContainerAndWrongFieldTypesAreNotManageable() throws {
         let badContainer = try PropertyListSerialization.data(fromPropertyList: ["Filter": "bad"], format: .xml, options: 0)
         XCTAssertEqual(PluginFilterConfiguration.parse(badContainer).parseState, .invalid)
-        let wrongArray = try PropertyListSerialization.data(fromPropertyList: ["Bundles": "not-array"], format: .xml, options: 0)
+        let wrongArray = try PropertyListSerialization.data(fromPropertyList: ["Bundles": 42], format: .xml, options: 0)
         XCTAssertEqual(PluginFilterConfiguration.parse(wrongArray).parseState, .partial)
     }
 
@@ -46,9 +46,7 @@ final class PluginFilterConfigurationTests: XCTestCase {
         ]]
         let data = try PropertyListSerialization.data(fromPropertyList: source, format: .xml, options: 0)
         let parsed = PluginFilterConfiguration.parse(data)
-        XCTAssertEqual(parsed.executables.count, 2)
-        XCTAssertEqual(parsed.executables[0], "Example")
-        XCTAssertTrue(parsed.executables[1].contains("integer"))
+        XCTAssertEqual(parsed.executables, ["Example"])
         XCTAssertEqual(parsed.modeDescription, "true")
         XCTAssertEqual(parsed.classes, ["ExampleClass"])
         XCTAssertEqual(parsed.parseState, .partial, "Non-string values are shown but remain a warning")
@@ -70,5 +68,57 @@ final class PluginFilterConfigurationTests: XCTestCase {
         let malformed = PluginManagementPermission.evaluate(ownership: .filterKit, pairing: .invalid,
             binaryKind: .machO, verifiedPluginID: verifiedID, filterConfiguration: config)
         XCTAssertFalse(malformed.canModify)
+    }
+
+    func testAcceptsCaseInsensitiveKeysAndSingleStringTarget() throws {
+        let source: [String: Any] = ["filter": [
+            "bundles": "com.example.reader",
+            "executables": "Reader"
+        ]]
+        let data = try PropertyListSerialization.data(fromPropertyList: source, format: .xml, options: 0)
+        let parsed = PluginFilterConfiguration.parse(data)
+        XCTAssertEqual(parsed.parseState, .valid)
+        XCTAssertEqual(parsed.bundles, ["com.example.reader"])
+        XCTAssertEqual(parsed.executables, ["Reader"])
+    }
+
+    func testMissingTargetFieldsAreUnknownRatherThanIndependent() throws {
+        let source: [String: Any] = ["Filter": ["Classes": ["ExampleClass"], "Mode": "Any"]]
+        let data = try PropertyListSerialization.data(fromPropertyList: source, format: .xml, options: 0)
+        let parsed = PluginFilterConfiguration.parse(data)
+        XCTAssertEqual(parsed.parseState, .partial)
+        let plugin = PluginScanItem(id: "sample.dylib", baseName: "Sample", dylibFileName: "sample.dylib",
+            plistFileName: "sample.plist", manifestFileName: nil, pairingState: .paired,
+            binaryKind: .machO, ownership: .unknown, filterKitPluginID: nil, packageIdentifier: nil,
+            dylibSHA256: nil, plistSHA256: nil, hardBoundBundleIdentifier: nil,
+            softAssociatedBundleIdentifiers: [], warnings: parsed.warnings, filterConfiguration: parsed,
+            managementPermission: nil)
+        XCTAssertEqual(PluginAppLoadStatus.resolve(plugin: plugin, appNamesByBundleID: [:],
+            appNamesByExecutable: [:]), .unknown)
+    }
+
+    func testExplicitEmptyTargetArraysCanRepresentIndependentPlugin() throws {
+        let source: [String: Any] = ["Filter": ["Bundles": [String](), "Executables": [String](), "Classes": ["ExampleClass"]]]
+        let data = try PropertyListSerialization.data(fromPropertyList: source, format: .xml, options: 0)
+        let parsed = PluginFilterConfiguration.parse(data)
+        XCTAssertEqual(parsed.parseState, .valid)
+        let plugin = PluginScanItem(id: "sample.dylib", baseName: "Sample", dylibFileName: "sample.dylib",
+            plistFileName: "sample.plist", manifestFileName: nil, pairingState: .paired,
+            binaryKind: .machO, ownership: .unknown, filterKitPluginID: nil, packageIdentifier: nil,
+            dylibSHA256: nil, plistSHA256: nil, hardBoundBundleIdentifier: nil,
+            softAssociatedBundleIdentifiers: [], warnings: [], filterConfiguration: parsed,
+            managementPermission: nil)
+        XCTAssertEqual(PluginAppLoadStatus.resolve(plugin: plugin, appNamesByBundleID: [:],
+            appNamesByExecutable: [:]), .independent)
+    }
+
+    func testCaseVariantDuplicateKeysAreMarkedPartial() throws {
+        let source: [String: Any] = ["Bundles": ["com.example.one"],
+                                     "bundles": ["com.example.two"],
+                                     "Executables": [String]()]
+        let data = try PropertyListSerialization.data(fromPropertyList: source, format: .xml, options: 0)
+        let parsed = PluginFilterConfiguration.parse(data)
+        XCTAssertEqual(parsed.parseState, .partial)
+        XCTAssertTrue(parsed.warnings.contains("plugin_filter.duplicate_key_bundles"))
     }
 }

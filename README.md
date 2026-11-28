@@ -212,3 +212,20 @@ APP Detail now orchestrates Helper Prepare, explicit confirmation, fail-closed C
 ## P2-39-R3 Runtime Diagnostics
 
 P2-39-R3 adds a Settings → Runtime Diagnostics screen and bounded local log persistence for the existing App Discovery and Plugin Inventory performance summaries. Logs are stored under the app sandbox's `Library/Application Support/FilterKit/Logs/`, rotated at approximately 1 MiB with one previous file retained, and can be exported or cleared from Settings. The diagnostics path is observational only and does not initiate scans or alter the Helper/Release Gate policies. See `Build/DeviceAcceptance/P2-39-R3-RUNTIME-DIAGNOSTICS.md` for device acceptance steps.
+
+
+## Runtime event records (P2-39-R4 foundation)
+
+FilterKit writes local-only structured JSON Lines records under the app container:
+
+`Library/Application Support/FilterKit/Logs/`
+
+- `runtime.jsonl`: developer-oriented runtime events, using OpenTelemetry-style timestamp, severity, resource, instrumentation-scope, event, trace/session, and attributes fields.
+- `runtime.previous.jsonl`: the previous bounded developer log segment.
+- `activity.jsonl`: user-facing events projected from the same event source; Settings > Activity History displays only these user-facing records.
+
+Developer runtime logs are not displayed in the FilterKit UI. They can be inspected through the app data container (for example, Filza). Logging is asynchronous, bounded, local-only, and must never initiate inventory scans or mutate plugin state.
+
+The current source instruments app launch/scene lifecycle and completed/failed plugin inventory scans. `RuntimeEventLogger.recordPluginOperation` is the required integration point for future import, activation, association, and uninstall implementations. Those operations must call it only after the real operation result is known. This source snapshot does not contain active end-to-end plugin import/uninstall flows, so it intentionally does not fabricate those history entries.
+
+An unconfirmed prior-session marker is reported as a *suspected/unconfirmed abnormal termination*, not a confirmed crash. iOS does not guarantee an app termination callback, and this app cannot assume it can read system `.ips` crash reports from its sandbox.

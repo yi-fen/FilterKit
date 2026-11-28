@@ -43,6 +43,77 @@ final class HelperAppPluginActivationCoordinatorTests: XCTestCase {
         }
     }
 
+    func testTransactionQueryUsesFreshTransportIDAndValidatesIdentity() async throws {
+        let command = makeCommand()
+        let encoder = JSONEncoder(); encoder.dateEncodingStrategy = .iso8601
+        let transport = ActivationMockTransport { envelope in
+            XCTAssertEqual(envelope.messageType, .appPluginActivationTransactionQueryRequest)
+            let decoder = JSONDecoder(); decoder.dateDecodingStrategy = .iso8601
+            let query = try decoder.decode(HelperAppPluginActivationTransactionQuery.self, from: envelope.payload!)
+            XCTAssertEqual(query.requestID, envelope.requestID)
+            XCTAssertEqual(query.commandRequestID, command.requestID)
+            let status = HelperAppPluginActivationTransactionStatus(queryRequestID: query.requestID,
+                commandRequestID: command.requestID, pluginID: command.pluginID,
+                targetBundleIdentifier: command.targetBundleIdentifier, state: .outcomeUnknown,
+                transactionID: UUID(), filterSHA256: nil, manifestSHA256: nil, checkedAt: Date())
+            return HelperIPCEnvelope(messageType: .appPluginActivationTransactionStatusResponse,
+                requestID: envelope.requestID, createdAt: Date(), nonce: envelope.nonce,
+                payload: try encoder.encode(status))
+        }
+        let coordinator = HelperDeploymentCoordinator(transport: transport)
+        let status = try await coordinator.queryAppPluginActivationTransaction(
+            commandRequestID: command.requestID, pluginID: command.pluginID,
+            targetBundleIdentifier: command.targetBundleIdentifier)
+        XCTAssertEqual(status.state, .outcomeUnknown)
+        XCTAssertEqual(transport.exchangeCount, 1)
+    }
+
+    func testExplicitReconciliationUsesSeparateConfirmedRequestAndValidatesStatus() async throws {
+        let command = makeCommand()
+        let encoder = JSONEncoder(); encoder.dateEncodingStrategy = .iso8601
+        let transport = ActivationMockTransport { envelope in
+            XCTAssertEqual(envelope.messageType, .appPluginActivationTransactionReconcileRequest)
+            let decoder = JSONDecoder(); decoder.dateDecodingStrategy = .iso8601
+            let request = try decoder.decode(HelperAppPluginActivationTransactionReconciliationRequest.self,
+                from: envelope.payload!)
+            XCTAssertEqual(request.requestID, envelope.requestID)
+            XCTAssertEqual(request.commandRequestID, command.requestID)
+            XCTAssertTrue(request.operatorConfirmed)
+            let status = HelperAppPluginActivationTransactionStatus(queryRequestID: request.requestID,
+                commandRequestID: command.requestID, pluginID: command.pluginID,
+                targetBundleIdentifier: command.targetBundleIdentifier, state: .committed,
+                transactionID: UUID(), filterSHA256: String(repeating: "c", count: 64),
+                manifestSHA256: String(repeating: "d", count: 64), checkedAt: Date())
+            return HelperIPCEnvelope(messageType: .appPluginActivationTransactionStatusResponse,
+                requestID: envelope.requestID, createdAt: Date(), nonce: envelope.nonce,
+                payload: try encoder.encode(status))
+        }
+        let coordinator = HelperDeploymentCoordinator(transport: transport)
+        let status = try await coordinator.reconcileAppPluginActivationTransaction(
+            commandRequestID: command.requestID, pluginID: command.pluginID,
+            targetBundleIdentifier: command.targetBundleIdentifier, userConfirmed: true)
+        XCTAssertEqual(status.state, .committed)
+        XCTAssertEqual(transport.exchangeCount, 1)
+    }
+
+    func testExplicitReconciliationRequiresUserConfirmation() async throws {
+        let command = makeCommand()
+        let transport = ActivationMockTransport { _ in
+            XCTFail("Reconciliation must not reach Helper without confirmation")
+            return HelperIPCEnvelope(messageType: .rejected)
+        }
+        let coordinator = HelperDeploymentCoordinator(transport: transport)
+        do {
+            _ = try await coordinator.reconcileAppPluginActivationTransaction(
+                commandRequestID: command.requestID, pluginID: command.pluginID,
+                targetBundleIdentifier: command.targetBundleIdentifier, userConfirmed: false)
+            XCTFail("Explicit reconciliation requires confirmation")
+        } catch let error as HelperDeploymentCoordinator.CoordinatorError {
+            XCTAssertEqual(error, .confirmationRequired)
+        }
+        XCTAssertEqual(transport.exchangeCount, 0)
+    }
+
     func testCommitRemainsClosedBeforeTransportSubmission() async throws {
         let command = makeCommand()
         let plan = makePlan(command: command)

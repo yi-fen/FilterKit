@@ -73,4 +73,17 @@ final class RootHideElleKitFilterStrategyTests: XCTestCase {
         let result = strategy.makePlan(originalData: input, targetBundleIdentifier: target, action: .disableForApp)
         XCTAssertEqual(result.disposition, .blocked)
     }
+    func testBundleIdentifiersAreMatchedWithoutCaseSensitivityAndDuplicatesFailClosed() throws {
+        let singleVariant = try plist(["Bundles": ["COM.EXAMPLE.APP"]])
+        let existing = strategy.makePlan(originalData: singleVariant,
+            targetBundleIdentifier: "com.example.app", action: .enableForApp)
+        XCTAssertEqual(existing.disposition, .alreadyAssociated)
+
+        let duplicates = try plist(["Bundles": ["COM.EXAMPLE.APP", "com.example.app"]])
+        let blocked = strategy.makePlan(originalData: duplicates,
+            targetBundleIdentifier: "com.example.app", action: .disableForApp)
+        XCTAssertEqual(blocked.disposition, .blocked)
+        XCTAssertTrue(blocked.blockers.contains(.duplicateBundleIdentifiers))
+    }
+
 }

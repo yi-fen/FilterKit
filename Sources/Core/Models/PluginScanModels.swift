@@ -81,7 +81,7 @@ struct PluginScanItem: Codable, Equatable, Identifiable {
     let manifestFileName: String?
     let pairingState: PluginPairingState
     let binaryKind: PluginBinaryKind?
-    let ownership: PluginOwnership
+    var ownership: PluginOwnership
     let filterKitPluginID: String?
     let packageIdentifier: String?
     let dylibSHA256: String?

@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "phase": "P2-44-R1",
+  "baseline": {
+    "archive": "FilterKit-P2-43-R17-Source.zip",
+    "sha256": "f1f190ba3d121301f43602ff9838686b12b6f69aba6bb56862cfef7bc221ea73"
+  },
+  "releaseGatesOpened": false,
+  "capabilities": [
+    {"id":"W-01","name":"helper_release_install_upgrade_activation_rollback","state":"closed","mutationDomain":"helper_release_files_and_launchd","gateRefs":["HelperInstallerExecutionGate","HelperRequestDispatcher.executionReleased"],"releasePhase":"P2-44-R7"},
+    {"id":"W-02","name":"plugin_first_injection_and_deployment_batch","state":"closed","mutationDomain":"plugin_dylib_filter_plist_manifest","gateRefs":["HelperDeploymentCoordinator.executionReleased","HelperRequestDispatcher.executionReleased","HelperProductionDeploymentBackend.executionReleased"],"releasePhase":"P2-44-R8"},
+    {"id":"W-03","name":"per_app_plugin_enable_disable","state":"closed","mutationDomain":"filter_plist_per_app_activation","gateRefs":["PluginToggleReleaseGate.productionMutationReleased","HelperDeploymentCoordinator.appPluginActivationCommitReleased"],"releasePhase":"P2-44-R9"},
+    {"id":"W-04","name":"additional_app_association_add_remove","state":"closed","mutationDomain":"filter_plist_and_manifest_topology","gateRefs":["HelperDeploymentCoordinator.pluginAssociationCommitReleased","HelperRequestDispatcher.pluginAssociationCommitReleased"],"releasePhase":"P2-44-R10"},
+    {"id":"W-05","name":"filterkit_owned_plugin_uninstall","state":"closed","mutationDomain":"plugin_dylib_filter_plist_manifest_quarantine","gateRefs":["HelperRequestDispatcher.pluginUninstallExecutionReleased"],"releasePhase":"P2-44-R11"},
+    {"id":"W-06","name":"backup_export","state":"partial_user_directed_export","mutationDomain":"user_selected_backup_archive_only","gateRefs":[],"releasePhase":"separate_qualification"},
+    {"id":"W-07","name":"backup_restore_and_redeployment","state":"closed","mutationDomain":"plugin_dylib_filter_plist_manifest","gateRefs":["normal_plugin_deployment_gates_W-02"],"releasePhase":"P2-44-R12"},
+    {"id":"W-08","name":"plugin_inventory_and_association_read","state":"read_only","mutationDomain":"none","gateRefs":[],"releasePhase":"no_write_release"}
+  ],
+  "crossCuttingClosedSwitches": [
+    "HelperRequestDispatcher.executionReleased",
+    "HelperRequestDispatcher.pluginAssociationCommitReleased",
+    "HelperRequestDispatcher.pluginUninstallExecutionReleased",
+    "HelperDeploymentCoordinator.executionReleased",
+    "HelperDeploymentCoordinator.pluginAssociationCommitReleased",
+    "HelperDeploymentCoordinator.appPluginActivationCommitReleased",
+    "HelperProductionDeploymentBackend.executionReleased",
+    "PluginToggleReleaseGate.productionMutationReleased"
+  ],
+  "invariants": [
+    "unknown_and_package_manager_owned_plugins_are_read_only",
+    "fixed_owner_is_immutable",
+    "no_privileged_filesystem_writes_from_ui",
+    "authenticated_helper_ipc_and_fresh_ownership_proof_required",
+    "dirty_or_ambiguous_journal_blocks_mutation",
+    "existing_three_file_transactions_are_preserved",
+    "single_plugin_inventory_and_scan_path_is_preserved",
+    "host_tests_alone_do_not_authorize_production_release"
+  ]
+}

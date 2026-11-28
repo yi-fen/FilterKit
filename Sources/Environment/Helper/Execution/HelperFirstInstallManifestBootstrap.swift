@@ -41,8 +41,10 @@ struct HelperFirstInstallManifestBootstrap {
               HelperPolicy.isSafeLeafName(plistFileName), plistFileName.lowercased().hasSuffix(".plist"),
               String(dylibFileName.dropLast(6)).lowercased() == String(plistFileName.dropLast(6)).lowercased(),
               Self.validBundleID(hardBoundBundleIdentifier),
-              Set(softAssociations.map(\.bundleIdentifier)).count == softAssociations.count,
-              !softAssociations.contains(where: { $0.bundleIdentifier == hardBoundBundleIdentifier }),
+              HelperBundleIdentifierKey.set(softAssociations.map(\.bundleIdentifier)).count == softAssociations.count,
+              !softAssociations.contains(where: {
+                  HelperBundleIdentifierKey.make($0.bundleIdentifier) == HelperBundleIdentifierKey.make(hardBoundBundleIdentifier)
+              }),
               softAssociations.allSatisfy({ Self.validBundleID($0.bundleIdentifier) }),
               dylibBytes.count > 0, dylibBytes.count <= 64 * 1024 * 1024,
               plistBytes.count > 0, plistBytes.count <= 4 * 1024 * 1024 else {
@@ -65,12 +67,14 @@ struct HelperFirstInstallManifestBootstrap {
         try validateDirectory(directoryFD)
         try requireAbsent(directoryFD, dylibFileName)
         try requireAbsent(directoryFD, plistFileName)
-        let manifest = FilterKitPluginManifest(schemaVersion: 3, pluginID: pluginID.uuidString,
-            dylibFileName: dylibFileName, plistFileName: plistFileName,
-            dylibSHA256: SHA256Digest.hex(dylibBytes), plistSHA256: SHA256Digest.hex(plistBytes),
-            hardBoundBundleIdentifier: hardBoundBundleIdentifier,
-            softAssociatedBundleIdentifiers: softAssociations.map(\.bundleIdentifier).sorted(),
-            machOIdentitySHA256: identity, softAssociations: softAssociations)
+        let manifest: FilterKitPluginManifest
+        do {
+            manifest = try PluginFirstInstallBindingPolicy.makeManifest(
+                pluginID: pluginID, dylibFileName: dylibFileName, plistFileName: plistFileName,
+                dylibSHA256: SHA256Digest.hex(dylibBytes), plistSHA256: SHA256Digest.hex(plistBytes),
+                machOIdentitySHA256: identity, fixedOwnerBundleIdentifier: hardBoundBundleIdentifier,
+                additionalAssociations: softAssociations, filterPlistData: plistBytes)
+        } catch { throw BootstrapError.invalidPayload }
         let data = try JSONEncoder().encode(manifest)
         let manifestLeaf = String(dylibFileName.dropLast(6)) + ".fk.json"
         guard HelperPolicy.isSafeLeafName(manifestLeaf) else { throw BootstrapError.invalidRequest }
@@ -101,7 +105,7 @@ struct HelperFirstInstallManifestBootstrap {
     private func makeProof(pluginID: UUID, dylibFileName: String, plistFileName: String,
                            dylibHash: String, plistHash: String, manifestData: Data) throws -> HelperOwnershipProof {
         try HelperOwnershipProof(pluginID: pluginID, dylibFileName: dylibFileName, plistFileName: plistFileName,
-            dylibSHA256: dylibHash, plistSHA256: plistHash, manifestSchemaVersion: 3,
+            dylibSHA256: dylibHash, plistSHA256: plistHash, manifestSchemaVersion: 4,
             manifestSHA256: SHA256Digest.hex(manifestData), binaryIdentityVerified: true,
             isFirstInstallAuthorization: true)
     }

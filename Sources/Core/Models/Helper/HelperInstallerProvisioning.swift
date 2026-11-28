@@ -19,6 +19,8 @@ struct HelperInstallerProvisioningBundle: Codable, Equatable {
     let stagingRootPath: String
     let socketPath: String
     let helperVersion: String
+    /// Supplied by the signing pipeline; nil intentionally prevents production Helper startup.
+    var teamIdentifier: String? = nil
 
     static let currentSchemaVersion = 2
 
@@ -71,7 +73,7 @@ struct HelperInstallerProvisioningBundle: Codable, Equatable {
         let pins = HelperTrustPinSet(schemaVersion: HelperTrustPinSet.currentSchemaVersion,
             bundleIdentifier: bundleIdentifier, allowedClientUIDs: [allowedClientUID],
             allowedAppCDHashes: [appCDHash.lowercased()], allowedHelperCDHashes: [helperCDHash.lowercased()],
-            generation: generation)
+            generation: generation, clientTeamIdentifier: teamIdentifier)
         return try pins.makeDisabledManifest(routeIdentifier: routeIdentifier, jbRootPath: jbRootPath,
             tweakInjectPath: tweakInjectPath, stagingRootPath: stagingRootPath, socketPath: socketPath,
             stagingOwnerUID: stagingOwnerUID, socketGroupID: socketGroupID)

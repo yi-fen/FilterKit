@@ -2,7 +2,7 @@ import Foundation
 
 /// Versioned, bounded IPC envelope. The transport is intentionally abstract in P1-19.
 enum HelperIPCMessageType: String, Codable {
-    case hello, helloAck, operationRequest, deploymentBatchRequest, deploymentBatchReceipt, operationReceipt, healthRequest, healthResponse, maintenanceRecoveryRequest, maintenanceRecoveryResponse, pluginFilterMutationPrepareRequest, pluginFilterMutationPrepared, pluginFilterMutationCommitRequest, pluginFilterMutationCommitted, pluginIdentityAttestationRequest, pluginIdentityAttestationResponse, appPluginActivationPrepareRequest, appPluginActivationPrepared, appPluginActivationCommitRequest, appPluginActivationCommitted, rejected
+    case hello, helloAck, operationRequest, deploymentBatchRequest, deploymentBatchReceipt, operationReceipt, healthRequest, healthResponse, maintenanceRecoveryRequest, maintenanceRecoveryResponse, pluginFilterMutationPrepareRequest, pluginFilterMutationPrepared, pluginFilterMutationCommitRequest, pluginFilterMutationCommitted, pluginIdentityAttestationRequest, pluginIdentityAttestationResponse, appPluginActivationPrepareRequest, appPluginActivationPrepared, appPluginActivationCommitRequest, appPluginActivationCommitted, appPluginActivationTransactionQueryRequest, appPluginActivationTransactionReconcileRequest, appPluginActivationTransactionStatusResponse, pluginUninstallRequest, pluginUninstallResponse, rejected
 }
 
 struct HelperIPCEnvelope: Codable, Equatable {
@@ -133,9 +133,16 @@ struct HelperPeerIdentity: Codable, Equatable {
     let auditSessionID: UInt32?
     /// SHA-256 of the kernel LOCAL_PEERTOKEN snapshot; never a caller-supplied value.
     let auditTokenDigest: String?
+    /// OS-verified code-signing identifier (normally the signed bundle identifier).
+    /// Never populated from an IPC payload. Nil means the platform adapter did not
+    /// obtain an independently verified identifier.
+    let verifiedCodeIdentifier: String?
+    /// OS-verified Team ID from the code signature; not inferred from CDHash.
+    let verifiedTeamIdentifier: String?
 
     init(uid: UInt32, gid: UInt32, pid: Int32, cdHashHex: String,
-         pidVersion: UInt64?, auditSessionID: UInt32?, auditTokenDigest: String? = nil) {
+         pidVersion: UInt64?, auditSessionID: UInt32?, auditTokenDigest: String? = nil,
+         verifiedCodeIdentifier: String? = nil, verifiedTeamIdentifier: String? = nil) {
         self.uid = uid
         self.gid = gid
         self.pid = pid
@@ -143,6 +150,8 @@ struct HelperPeerIdentity: Codable, Equatable {
         self.pidVersion = pidVersion
         self.auditSessionID = auditSessionID
         self.auditTokenDigest = auditTokenDigest
+        self.verifiedCodeIdentifier = verifiedCodeIdentifier
+        self.verifiedTeamIdentifier = verifiedTeamIdentifier
     }
 }
 
@@ -185,8 +194,8 @@ struct HelperDeploymentBatchMetadata: Codable, Equatable {
             }
         }
         return valid(hardBoundBundleIdentifier) &&
-            Set(softAssociations.map(\.bundleIdentifier)).count == softAssociations.count &&
-            !softAssociations.contains(where: { $0.bundleIdentifier == hardBoundBundleIdentifier }) &&
+            HelperBundleIdentifierKey.set(softAssociations.map(\.bundleIdentifier)).count == softAssociations.count &&
+            !softAssociations.contains(where: { HelperBundleIdentifierKey.make($0.bundleIdentifier) == HelperBundleIdentifierKey.make(hardBoundBundleIdentifier) }) &&
             softAssociations.allSatisfy { valid($0.bundleIdentifier) }
     }
 }

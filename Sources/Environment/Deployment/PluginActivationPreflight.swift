@@ -119,7 +119,8 @@ struct PluginActivationPreflight {
             return .unavailable
         }
         if configuration.bundles.contains("*") { return .globalFilter }
-        return configuration.bundles.contains(targetBundleIdentifier) ? .targetListed : .targetNotListed
+        let bundleKeys = HelperBundleIdentifierKey.set(configuration.bundles)
+        return bundleKeys.contains(HelperBundleIdentifierKey.make(targetBundleIdentifier)) ? .targetListed : .targetNotListed
     }
 
     private static func isValidBundleIdentifier(_ value: String) -> Bool {

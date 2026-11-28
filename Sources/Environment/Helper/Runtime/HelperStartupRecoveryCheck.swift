@@ -9,6 +9,7 @@ struct HelperStartupRecoveryCheck {
         case threeFileRecoveryRequired
         case bothRecoveryRequired
         case associationTransactionRecoveryRequired
+        case pluginUninstallRecoveryRequired
         case invalidJournal
     }
     enum Result: Equatable { case clean, recoveryRequired, invalidJournal }
@@ -37,9 +38,19 @@ struct HelperStartupRecoveryCheck {
                     committed: evidence.phase == .committed)
                 guard verdict == .matched || verdict == .artifactsConsistentPending else { return .invalidJournal }
             }
+            let uninstallPending = try HelperThreeFileUninstallTransaction(directoryPath: pluginDirectory)
+                .inspectPendingJournal()
             let associationPending = try HelperPluginFilterConfigurationTransaction(directoryPath: pluginDirectory)
                 .inspectPendingJournal()
-            if associationPending { return .associationTransactionRecoveryRequired }
+            if uninstallPending {
+                // Distinct journals in one plugin directory cannot be reconciled independently.
+                if legacyPending || threeFilePending || associationPending { return .invalidJournal }
+                return .pluginUninstallRecoveryRequired
+            }
+            if associationPending {
+                if legacyPending || threeFilePending { return .invalidJournal }
+                return .associationTransactionRecoveryRequired
+            }
             switch (legacyPending, threeFilePending) {
             case (false, false): return .clean
             case (true, false): return .legacyRecoveryRequired
@@ -54,7 +65,7 @@ struct HelperStartupRecoveryCheck {
     func inspect(pluginDirectory: String) -> Result {
         switch inspectDetailed(pluginDirectory: pluginDirectory) {
         case .clean: return .clean
-        case .legacyRecoveryRequired, .threeFileRecoveryRequired, .bothRecoveryRequired, .associationTransactionRecoveryRequired: return .recoveryRequired
+        case .legacyRecoveryRequired, .threeFileRecoveryRequired, .bothRecoveryRequired, .associationTransactionRecoveryRequired, .pluginUninstallRecoveryRequired: return .recoveryRequired
         case .invalidJournal: return .invalidJournal
         }
     }

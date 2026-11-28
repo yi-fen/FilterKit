@@ -15,6 +15,23 @@ final class AppPluginActivationStateResolverTests: XCTestCase {
         XCTAssertEqual(plugin.hardBoundBundleIdentifier, "com.example.source")
     }
 
+    func testBundleIdentifierMatchingIsCaseInsensitiveAcrossOwnerAssociationAndFilter() throws {
+        let ownerPlugin = makePlugin(hardBound: "com.example.source", bundles: ["COM.EXAMPLE.SOURCE"])
+        let owner = try XCTUnwrap(resolver.resolve(plugin: ownerPlugin, targetBundleIdentifier: "COM.EXAMPLE.SOURCE"))
+        XCTAssertEqual(owner.associationKind, .hardBound)
+        XCTAssertEqual(owner.observedState, .enabled)
+
+        let associatedPlugin = makePlugin(hardBound: "com.example.source",
+            soft: ["com.example.target"], softStates: [
+                FilterKitManifestSoftAssociation(bundleIdentifier: "com.example.target", isEnabled: true)
+            ], bundles: ["com.example.source", "COM.EXAMPLE.TARGET"])
+        let associated = try XCTUnwrap(resolver.resolve(plugin: associatedPlugin,
+            targetBundleIdentifier: "Com.Example.Target"))
+        XCTAssertEqual(associated.associationKind, .softAssociated)
+        XCTAssertEqual(associated.observedState, .enabled)
+        XCTAssertEqual(associated.crossCheck, .matched)
+    }
+
     func testSoftAssociationUsesManifestAndFilterCrossCheck() throws {
         let matching = makePlugin(hardBound: "com.example.source", soft: ["com.example.target"], softStates: [
             FilterKitManifestSoftAssociation(bundleIdentifier: "com.example.target", isEnabled: true)

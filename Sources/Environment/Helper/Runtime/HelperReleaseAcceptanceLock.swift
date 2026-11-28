@@ -37,7 +37,12 @@ enum HelperReleaseAcceptanceLock {
               (info.st_mode & mode_t(S_IFMT)) == mode_t(S_IFREG),
               info.st_uid == 0, info.st_gid == 0, info.st_nlink == 1,
               (info.st_mode & 0o777) == 0o600 else { throw Failure.unsafeLock }
-        guard flock(fd, LOCK_EX | LOCK_NB) == 0 else { throw Failure.busy(errno) }
+        // Blocking exclusive lock: startup acceptance and installer transactions serialize
+        // on the same root-owned inode instead of spuriously failing during normal contention.
+        while flock(fd, LOCK_EX) != 0 {
+            if errno == EINTR { continue }
+            throw Failure.busy(errno)
+        }
         defer { _ = flock(fd, LOCK_UN) }
         return try body()
         #else

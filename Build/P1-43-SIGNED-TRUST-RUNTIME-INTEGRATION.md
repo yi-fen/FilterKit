@@ -4,7 +4,7 @@
 
 - The production `FilterKitHelperRuntime.run()` path no longer calls the legacy unsigned/CDHash-only preflight. Before opening the IPC listener it calls `HelperSignedReleaseRuntimeLoader`.
 - The loader requires a non-empty compile-time `HelperReleaseTrustAnchors.keys` keyring; the checked-in default is intentionally empty and therefore fails closed until a release build provisions reviewed public keys.
-- Reads `release.signed.json` and `provisioning.json` from `JBROOT/Library/FilterKit/Helper` using the existing root-owned, no-follow reader. Both must be root:root regular files with mode `0600`.
+- Reads `release.signed.json` and `provisioning.signed.json` from `JBROOT/Library/FilterKit/Helper` using the existing root-owned, no-follow reader. Both must be root:root regular files with mode `0600`.
 - Verifies the signed Ed25519 envelope with CryptoKit on Apple platforms, validates release/provisioning/JBROOT/path binding, hashes the current executable image, compares its CDHash, and performs the existing read-only journal recovery assessment.
 - Persists accepted Generation through the Apple Keychain implementation. Non-Apple platforms have no production fallback and fail closed.
 - Serializes signed release acceptance with the same persistent `.filterkit-root-activation.lock` inode used by the multi-file activation executor. It does not create or unlink the lock; missing/unsafe/busy lock state fails closed.
@@ -16,10 +16,14 @@
 The root-owned Helper directory must contain:
 
 - `release.signed.json` — signed envelope, root:root `0600`.
-- `provisioning.json` — installer provisioning bundle, root:root `0600`.
+- `provisioning.signed.json` — signed installer provisioning envelope, root:root `0600`.
 - `manifest.json` — existing deployment manifest, root:root `0600`.
 
 The signed payload's release identifier, generation, bundle ID, Helper version and CDHash must agree with the provisioning bundle; the provisioning JBROOT and deployment paths must agree with the loaded deployment manifest. The running executable's SHA-256 and kernel-reported CDHash are checked against the signed payload.
+
+## P2-43-R8 persistence update
+
+P2-43-R8 supersedes the original P1-43 Provisioning read path with `HelperTrustedProvisioningStore`. It requires the pre-created Helper directory to be root:root `0700`, atomically writes the signed envelope through a fixed-leaf no-follow file store, records an append-only generation + exact-envelope-digest checkpoint in device-local Keychain, and reconciles `provisioning.pending.json` after interrupted replacement. Repin baselines are emitted only after signature and checkpoint validation. This does not add the privileged installer writer; production installation/repin remains gated.
 
 ## Key rotation procedure
 

@@ -51,6 +51,87 @@ struct HelperPackageOwnershipResolver {
             databaseDirectories: infoDirectories, databaseEvidenceSHA256: digest)
     }
 
+    /// Checks whether any dpkg-owned dylib in the managed injection directory already has
+    /// the candidate bytes. This is the Helper-side final duplicate guard; the App inventory
+    /// preview is advisory and cannot close the time-of-check/time-of-use window by itself.
+    func containsPackageManagedDylibSHA256(pluginDirectory: String, expectedSHA256: String,
+                                           infoDirectories: [String], maximumBytes: Int = 64 * 1024 * 1024) throws -> Bool {
+        guard geteuid() == 0 else { throw ResolutionError.notRoot }
+        guard HelperPolicy.isAbsoluteCleanPath(pluginDirectory), pluginDirectory != "/",
+              HelperPolicy.isValidHash(expectedSHA256), !infoDirectories.isEmpty,
+              infoDirectories.allSatisfy({ HelperPolicy.isAbsoluteCleanPath($0) }) else {
+            throw ResolutionError.invalidPath
+        }
+        guard let pluginFD = try openDirectoryIfPresent(pluginDirectory) else { return false }
+        defer { _ = close(pluginFD) }
+        try validatePluginDirectory(pluginFD)
+
+        var scannedAny = false
+        for infoPath in Set(infoDirectories).sorted() {
+            guard let infoFD = try openDirectoryIfPresent(infoPath) else { continue }
+            defer { _ = close(infoFD) }
+            try validateDatabaseDirectory(infoFD)
+            scannedAny = true
+            let duplicateFD = dup(infoFD)
+            guard duplicateFD >= 0, let stream = fdopendir(duplicateFD) else {
+                if duplicateFD >= 0 { _ = close(duplicateFD) }
+                throw ResolutionError.readFailed
+            }
+            defer { closedir(stream) }
+            while let entry = readdir(stream) {
+                let name = withUnsafePointer(to: &entry.pointee.d_name) {
+                    $0.withMemoryRebound(to: CChar.self, capacity: MemoryLayout.size(ofValue: entry.pointee.d_name)) { String(cString: $0) }
+                }
+                guard name.hasSuffix(".list"), HelperPolicy.isSafeLeafName(name) else { continue }
+                let data = try readRootFile(infoFD, name: name, maximumBytes: 4 * 1024 * 1024)
+                for rawLine in data.split(separator: 0x0a) {
+                    guard let path = String(data: rawLine, encoding: .utf8) else { continue }
+                    let prefix = pluginDirectory.hasSuffix("/") ? pluginDirectory : pluginDirectory + "/"
+                    guard path.hasPrefix(prefix) else { continue }
+                    let leaf = String(path.dropFirst(prefix.count))
+                    guard leaf.lowercased().hasSuffix(".dylib"), HelperPolicy.isSafeLeafName(leaf) else { continue }
+                    let fd = leaf.withCString { openat(pluginFD, $0, O_RDONLY | O_NOFOLLOW | O_CLOEXEC) }
+                    if fd < 0 {
+                        if errno == ENOENT { continue }
+                        throw ResolutionError.readFailed
+                    }
+                    defer { _ = close(fd) }
+                    var metadata = stat()
+                    guard fstat(fd, &metadata) == 0,
+                          (metadata.st_mode & mode_t(S_IFMT)) == mode_t(S_IFREG),
+                          metadata.st_uid == 0, metadata.st_gid == 0,
+                          (metadata.st_mode & 0o6022) == 0,
+                          metadata.st_size >= 0, metadata.st_size <= maximumBytes else {
+                        throw ResolutionError.unsafeDatabase
+                    }
+                    var bytes = Data(); bytes.reserveCapacity(Int(metadata.st_size))
+                    var buffer = [UInt8](repeating: 0, count: 64 * 1024)
+                    while true {
+                        let count = read(fd, &buffer, buffer.count)
+                        if count < 0 && errno == EINTR { continue }
+                        guard count >= 0 else { throw ResolutionError.readFailed }
+                        if count == 0 { break }
+                        bytes.append(contentsOf: buffer.prefix(count))
+                        guard bytes.count <= maximumBytes else { throw ResolutionError.unsafeDatabase }
+                    }
+                    if SHA256Digest.hex(bytes).caseInsensitiveCompare(expectedSHA256) == .orderedSame {
+                        return true
+                    }
+                }
+            }
+        }
+        guard scannedAny else { throw ResolutionError.noDatabase }
+        return false
+    }
+
+    private func validatePluginDirectory(_ fd: Int32) throws {
+        var info = stat()
+        guard fstat(fd, &info) == 0, (info.st_mode & mode_t(S_IFMT)) == mode_t(S_IFDIR),
+              info.st_uid == 0, info.st_gid == 0, (info.st_mode & 0o022) == 0 else {
+            throw ResolutionError.unsafeDatabase
+        }
+    }
+
     private func openDirectoryIfPresent(_ path: String) throws -> Int32? {
         var fd = open("/", O_RDONLY | O_DIRECTORY | O_CLOEXEC)
         guard fd >= 0 else { throw ResolutionError.unsafeDatabase }

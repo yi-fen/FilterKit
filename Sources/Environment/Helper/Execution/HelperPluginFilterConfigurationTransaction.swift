@@ -12,6 +12,15 @@ final class HelperPluginFilterConfigurationTransaction {
     enum Phase: String, Codable { case prepared, staged, backedUp, replacingPlist, replacingManifest, committed }
     enum Failure: Error, Equatable { case notRoot, invalidInput, unsafePath, conflict, hashMismatch, invalidJournal, manualIntervention, io(Int32), injectedCrash(Phase) }
     struct Receipt: Equatable { let transactionID: UUID; let pluginID: UUID; let plistSHA256: String; let manifestSHA256: String; let completedAt: Date }
+    enum ActivationEvidenceDisposition: Equatable { case committed, rolledBack, unknown }
+    struct ActivationEvidence: Equatable {
+        let transactionID: UUID
+        let pluginID: UUID
+        let disposition: ActivationEvidenceDisposition
+        let observedPlistSHA256: String?
+        let observedManifestSHA256: String?
+        let journalPhase: Phase
+    }
     private struct Journal: Codable {
         let schema: Int; let id: UUID; let pluginID: UUID; let plist: String; let manifest: String
         let oldP: String; let oldM: String; let newP: String; let newM: String; var phase: Phase
@@ -34,7 +43,8 @@ final class HelperPluginFilterConfigurationTransaction {
         path = directoryPath
     }
 
-    func execute(_ p: HelperPluginFilterMutationAuthorizer.PreparedMutation, simulateCrashAfter: Phase? = nil) throws -> Receipt {
+    func execute(_ p: HelperPluginFilterMutationAuthorizer.PreparedMutation, transactionID: UUID = UUID(),
+                 simulateCrashAfter: Phase? = nil, retainJournalForOutcomeReconciliation: Bool = false) throws -> Receipt {
         Self.lock.lock(); defer { Self.lock.unlock() }
         guard geteuid() == 0 else { throw Failure.notRoot }
         guard p.disposition == .preparedForAtomicCommit else { throw Failure.invalidInput }
@@ -49,13 +59,15 @@ final class HelperPluginFilterConfigurationTransaction {
               p.ownershipProof.pluginID == r.pluginID, p.ownershipProof.dylibFileName == r.dylibFileName,
               p.ownershipProof.plistFileName == plist, p.ownershipProof.plistSHA256 == r.expectedPlistSHA256.lowercased(),
               p.ownershipProof.manifestSHA256 == r.expectedManifestSHA256.lowercased(),
-              p.ownershipProof.manifestSchemaVersion == 3, p.ownershipProof.binaryIdentityVerified else { throw Failure.invalidInput }
+              (p.ownershipProof.manifestSchemaVersion == 3 || p.ownershipProof.manifestSchemaVersion == 4),
+              p.ownershipProof.binaryIdentityVerified else { throw Failure.invalidInput }
         let fd = try openDir(); defer { _ = close(fd) }; try validateDir(fd)
         guard try load(fd) == nil else { throw Failure.manualIntervention }
         guard try hash(fd, plist) == r.expectedPlistSHA256.lowercased(), try hash(fd, manifest) == r.expectedManifestSHA256.lowercased(),
               try read(fd, plist, 4*1024*1024) == p.previousPlistData,
               try read(fd, manifest, 64*1024) == p.previousManifestData else { throw Failure.conflict }
-        let id = UUID()
+        guard transactionID != UUID(uuidString: "00000000-0000-0000-0000-000000000000") else { throw Failure.invalidInput }
+        let id = transactionID
         var j = Journal(schema: 1, id: id, pluginID: r.pluginID, plist: plist, manifest: manifest,
             oldP: r.expectedPlistSHA256.lowercased(), oldM: r.expectedManifestSHA256.lowercased(),
             newP: SHA256Digest.hex(p.replacementPlistData), newM: SHA256Digest.hex(p.replacementManifestData), phase: .prepared)
@@ -67,11 +79,16 @@ final class HelperPluginFilterConfigurationTransaction {
             let stagedManifest = try? JSONDecoder().decode(FilterKitPluginManifest.self, from: read(fd, j.mTmp, 64*1024))
             guard try hash(fd,j.pTmp) == j.newP, try hash(fd,j.mTmp) == j.newM,
                   (try? PropertyListSerialization.propertyList(from: read(fd,j.pTmp,4*1024*1024),options:[],format:nil)) != nil,
-                  stagedManifest?.schemaVersion == 3,
+                  (stagedManifest?.schemaVersion == p.ownershipProof.manifestSchemaVersion ||
+                   (p.ownershipProof.manifestSchemaVersion == 3 && stagedManifest?.schemaVersion == 4)),
                   UUID(uuidString: stagedManifest?.pluginID ?? "") == r.pluginID,
                   stagedManifest?.dylibFileName == r.dylibFileName,
                   stagedManifest?.plistFileName == plist,
-                  stagedManifest?.plistSHA256.caseInsensitiveCompare(j.newP) == .orderedSame else { throw Failure.hashMismatch }
+                  stagedManifest?.plistSHA256.caseInsensitiveCompare(j.newP) == .orderedSame,
+                  Self.hasConsistentBindingMetadata(stagedManifest),
+                  Self.filterTargetsMatchBindingMetadata(try read(fd, j.pTmp, 4*1024*1024), stagedManifest) else {
+                throw Failure.hashMismatch
+            }
             j.phase = .staged; try save(j,fd); try crash(.staged,simulateCrashAfter)
             try copy(fd,plist,j.pBak); try copy(fd,manifest,j.mBak)
             guard try hash(fd,j.pBak) == j.oldP, try hash(fd,j.mBak) == j.oldM, fsync(fd) == 0 else { throw Failure.hashMismatch }
@@ -83,10 +100,118 @@ final class HelperPluginFilterConfigurationTransaction {
             try rename(fd,j.mTmp,manifest)
             guard try hash(fd,plist) == j.newP, try hash(fd,manifest) == j.newM, fsync(fd) == 0 else { throw Failure.hashMismatch }
             j.phase = .committed; try save(j,fd); try crash(.committed,simulateCrashAfter)
-            try cleanup(j,fd)
+            if !retainJournalForOutcomeReconciliation { try cleanup(j,fd) }
             return Receipt(transactionID:id,pluginID:r.pluginID,plistSHA256:j.newP,manifestSHA256:j.newM,completedAt:Date())
-        } catch let e as Failure { if case .injectedCrash = e { throw e }; _ = try reconcileLocked(fd); throw e }
-        catch { _ = try reconcileLocked(fd); throw Failure.io(errno) }
+        } catch let e as Failure {
+            if case .injectedCrash = e { throw e }
+            if !retainJournalForOutcomeReconciliation { _ = try reconcileLocked(fd) }
+            throw e
+        } catch {
+            if !retainJournalForOutcomeReconciliation { _ = try reconcileLocked(fd) }
+            throw Failure.io(errno)
+        }
+    }
+
+    /// Read-only, transaction-ID-bound evidence probe for APP activation recovery.
+    /// It never changes files or clears the journal. Any mismatch remains unknown.
+    func inspectActivationEvidence(transactionID: UUID, pluginID: UUID,
+                                   oldPlistSHA256: String, oldManifestSHA256: String,
+                                   newPlistSHA256: String, newManifestSHA256: String) throws -> ActivationEvidence? {
+        Self.lock.lock(); defer { Self.lock.unlock() }
+        guard geteuid() == 0 else { throw Failure.notRoot }
+        guard [oldPlistSHA256, oldManifestSHA256, newPlistSHA256, newManifestSHA256].allSatisfy(HelperPolicy.isValidHash),
+              transactionID != UUID(uuidString: "00000000-0000-0000-0000-000000000000") else { throw Failure.invalidInput }
+        let fd = try openDir(); defer { _ = close(fd) }; try validateDir(fd)
+        guard let j = try load(fd) else { return nil }
+        try j.validate()
+        guard j.id == transactionID, j.pluginID == pluginID,
+              j.oldP == oldPlistSHA256.lowercased(), j.oldM == oldManifestSHA256.lowercased(),
+              j.newP == newPlistSHA256.lowercased(), j.newM == newManifestSHA256.lowercased() else {
+            return nil
+        }
+        if try hash(fd, journalTempName) != nil {
+            guard let pendingData = try? read(fd, journalTempName, 64*1024),
+                  let pending = try? JSONDecoder().decode(Journal.self, from: pendingData),
+                  (try? pending.validate()) != nil, pending.id == j.id, pending.pluginID == j.pluginID,
+                  pending.oldP == j.oldP, pending.oldM == j.oldM, pending.newP == j.newP, pending.newM == j.newM else {
+                return ActivationEvidence(transactionID: j.id, pluginID: j.pluginID, disposition: .unknown,
+                    observedPlistSHA256: try hash(fd, j.plist), observedManifestSHA256: try hash(fd, j.manifest), journalPhase: j.phase)
+            }
+        }
+        let currentP = try hash(fd, j.plist), currentM = try hash(fd, j.manifest)
+        let backupP = try hash(fd, j.pBak), backupM = try hash(fd, j.mBak)
+        let tempP = try hash(fd, j.pTmp), tempM = try hash(fd, j.mTmp)
+        let artifactsValid = (backupP == nil || backupP == j.oldP) && (backupM == nil || backupM == j.oldM) &&
+            (tempP == nil || tempP == j.newP) && (tempM == nil || tempM == j.newM)
+        let disposition: ActivationEvidenceDisposition
+        if artifactsValid && j.phase == .committed && currentP == j.newP && currentM == j.newM {
+            disposition = .committed
+        } else if artifactsValid && j.phase != .committed && currentP == j.oldP && currentM == j.oldM {
+            disposition = .rolledBack
+        } else {
+            disposition = .unknown
+        }
+        return ActivationEvidence(transactionID: j.id, pluginID: j.pluginID, disposition: disposition,
+            observedPlistSHA256: currentP, observedManifestSHA256: currentM, journalPhase: j.phase)
+    }
+
+    /// Finalizes only a previously committed journal whose deployed bytes still match it.
+    /// Called after the durable activation ledger has recorded Committed.
+    func finalizeCommittedActivationJournal(transactionID: UUID, pluginID: UUID,
+                                            plistSHA256: String, manifestSHA256: String) throws {
+        Self.lock.lock(); defer { Self.lock.unlock() }
+        guard geteuid() == 0 else { throw Failure.notRoot }
+        let fd = try openDir(); defer { _ = close(fd) }; try validateDir(fd)
+        guard let j = try load(fd) else { return }
+        try j.validate()
+        guard j.id == transactionID, j.pluginID == pluginID, j.phase == .committed,
+              try hash(fd, journalTempName) == nil,
+              j.newP == plistSHA256.lowercased(), j.newM == manifestSHA256.lowercased(),
+              try hash(fd, j.plist) == j.newP, try hash(fd, j.manifest) == j.newM else {
+            throw Failure.manualIntervention
+        }
+        try cleanup(j,fd)
+    }
+
+    /// Removes only the journal and artifacts for a transaction whose terminal Ledger
+    /// disposition has already been durably persisted. This method never replaces either
+    /// deployed file. A mismatch leaves every artifact untouched for manual investigation.
+    func finalizeResolvedActivationJournal(transactionID: UUID, pluginID: UUID,
+                                           disposition: ActivationEvidenceDisposition,
+                                           plistSHA256: String, manifestSHA256: String) throws {
+        Self.lock.lock(); defer { Self.lock.unlock() }
+        guard geteuid() == 0 else { throw Failure.notRoot }
+        guard disposition != .unknown,
+              HelperPolicy.isValidHash(plistSHA256), HelperPolicy.isValidHash(manifestSHA256) else {
+            throw Failure.invalidInput
+        }
+        let fd = try openDir(); defer { _ = close(fd) }; try validateDir(fd)
+        guard let j = try load(fd) else { return }
+        try j.validate()
+        guard j.id == transactionID, j.pluginID == pluginID,
+              try hash(fd, journalTempName) == nil else { throw Failure.manualIntervention }
+        let currentP = try hash(fd, j.plist), currentM = try hash(fd, j.manifest)
+        let backupP = try hash(fd, j.pBak), backupM = try hash(fd, j.mBak)
+        let tempP = try hash(fd, j.pTmp), tempM = try hash(fd, j.mTmp)
+        guard (backupP == nil || backupP == j.oldP), (backupM == nil || backupM == j.oldM),
+              (tempP == nil || tempP == j.newP), (tempM == nil || tempM == j.newM) else {
+            throw Failure.manualIntervention
+        }
+        switch disposition {
+        case .committed:
+            guard j.phase == .committed, j.newP == plistSHA256.lowercased(),
+                  j.newM == manifestSHA256.lowercased(), currentP == j.newP, currentM == j.newM else {
+                throw Failure.manualIntervention
+            }
+        case .rolledBack:
+            guard j.phase != .committed, j.oldP == plistSHA256.lowercased(),
+                  j.oldM == manifestSHA256.lowercased(), currentP == j.oldP, currentM == j.oldM else {
+                throw Failure.manualIntervention
+            }
+        case .unknown:
+            throw Failure.invalidInput
+        }
+        try cleanup(j, fd)
     }
 
     /// Read-only probe; no automatic startup mutation.
@@ -129,6 +254,42 @@ final class HelperPluginFilterConfigurationTransaction {
         }
         guard fsync(fd) == 0 else { throw Failure.io(errno) }; try clear(fd); return true
     }
+    private static func hasConsistentBindingMetadata(_ manifest: FilterKitPluginManifest?) -> Bool {
+        guard let manifest else { return false }
+        let associations = manifest.softAssociations ?? []
+        let associationKeys = HelperBundleIdentifierKey.set(associations.map(\.bundleIdentifier))
+        guard associationKeys.count == associations.count,
+              associationKeys == HelperBundleIdentifierKey.set(manifest.softAssociatedBundleIdentifiers ?? []),
+              !associations.contains(where: { HelperBundleIdentifierKey.make($0.bundleIdentifier) == HelperBundleIdentifierKey.make(manifest.hardBoundBundleIdentifier ?? "") }) else { return false }
+        if manifest.schemaVersion == 3 { return manifest.hardBoundBundleIdentifier != nil && manifest.bindingTopology == nil }
+        guard manifest.schemaVersion == 4, let topology = manifest.bindingTopology else { return false }
+        return topology.schemaVersion == 1 && HelperBundleIdentifierKey.make(topology.fixedOwnerBundleIdentifier ?? "") == HelperBundleIdentifierKey.make(manifest.hardBoundBundleIdentifier ?? "") &&
+            topology.additionalAssociations.count == associations.count && topology.additionalAssociations.allSatisfy({ candidate in
+                associations.contains { HelperBundleIdentifierKey.make($0.bundleIdentifier) == HelperBundleIdentifierKey.make(candidate.bundleIdentifier) && $0.isEnabled == candidate.isEnabled }
+            }) &&
+            (topology.fixedOwnerBundleIdentifier != nil || !topology.additionalAssociations.isEmpty)
+    }
+
+    private static func filterTargetsMatchBindingMetadata(_ plistData: Data,
+                                                           _ manifest: FilterKitPluginManifest?) -> Bool {
+        guard let manifest,
+              let root = try? PropertyListSerialization.propertyList(from: plistData, options: [], format: nil) as? [String: Any],
+              let filter = root["Filter"] as? [String: Any] else { return false }
+        let bundles: [String]
+        if let raw = filter["Bundles"] {
+            guard let values = raw as? [String] else { return false }
+            bundles = values
+        } else { bundles = [] }
+        let expected: Set<String>
+        if manifest.schemaVersion == 3 {
+            guard let owner = manifest.hardBoundBundleIdentifier else { return false }
+            expected = Set([owner]).union((manifest.softAssociations ?? []).filter(\.isEnabled).map(\.bundleIdentifier))
+        } else if manifest.schemaVersion == 4, let topology = manifest.bindingTopology {
+            expected = topology.enabledBundleIdentifiers
+        } else { return false }
+        return HelperBundleIdentifierKey.set(bundles).count == bundles.count && HelperBundleIdentifierKey.set(bundles) == HelperBundleIdentifierKey.set(expected)
+    }
+
     private func openDir() throws -> Int32 {
         var fd=open("/",O_RDONLY|O_DIRECTORY|O_CLOEXEC); guard fd >= 0 else { throw Failure.unsafePath }
         for c in path.split(separator:"/").map(String.init) { let n=c.withCString{openat(fd,$0,O_RDONLY|O_DIRECTORY|O_NOFOLLOW|O_CLOEXEC)}; guard n >= 0 else {_ = close(fd);throw Failure.unsafePath}; _ = close(fd);fd=n }; return fd

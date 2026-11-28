@@ -16,6 +16,7 @@ struct HelperOwnershipProof: Equatable {
     let machOIdentitySHA256: String?
     let hardBoundBundleIdentifier: String?
     let softAssociations: [FilterKitManifestSoftAssociation]?
+    let bindingTopology: FilterKitManifestBindingTopology?
     let filterConfiguration: PluginFilterConfiguration?
 
     init(pluginID: UUID, dylibFileName: String, plistFileName: String,
@@ -25,6 +26,7 @@ struct HelperOwnershipProof: Equatable {
          machOIdentitySHA256: String? = nil,
          hardBoundBundleIdentifier: String? = nil,
          softAssociations: [FilterKitManifestSoftAssociation]? = nil,
+         bindingTopology: FilterKitManifestBindingTopology? = nil,
          filterConfiguration: PluginFilterConfiguration? = nil) throws {
         guard HelperPolicy.isSafeLeafName(dylibFileName), dylibFileName.lowercased().hasSuffix(".dylib"),
               HelperPolicy.isSafeLeafName(plistFileName), plistFileName.lowercased().hasSuffix(".plist"),
@@ -43,6 +45,7 @@ struct HelperOwnershipProof: Equatable {
         self.machOIdentitySHA256 = machOIdentitySHA256?.lowercased()
         self.hardBoundBundleIdentifier = hardBoundBundleIdentifier
         self.softAssociations = softAssociations
+        self.bindingTopology = bindingTopology
         self.filterConfiguration = filterConfiguration
     }
 }

@@ -1,5 +1,10 @@
 import Foundation
 
+enum PluginAssociationAvailability: String, Codable, Equatable {
+    case available
+    case unavailable
+}
+
 enum PluginAssociationReadState: String, Codable {
     case hardBoundAppInstalled
     case hardBoundAppMissing
@@ -20,6 +25,24 @@ struct PluginAssociationSnapshot: Codable, Equatable, Identifiable {
     var id: UUID { pluginID }
     var hasMissingAssociations: Bool {
         state == .hardBoundAppMissing || !missingSoftBundleIdentifiers.isEmpty
+    }
+
+    /// Availability is a projection of the latest App Inventory, never persisted
+    /// into the plugin manifest. Reinstalling the same Bundle ID therefore restores
+    /// availability without rewriting ownership or association topology.
+    func availability(for bundleIdentifier: String) -> PluginAssociationAvailability? {
+        let key = HelperBundleIdentifierKey.make(bundleIdentifier)
+        if let hardBoundBundleIdentifier,
+           HelperBundleIdentifierKey.make(hardBoundBundleIdentifier) == key {
+            return hardBoundApp == nil ? .unavailable : .available
+        }
+        guard softAssociatedApps.contains(where: { HelperBundleIdentifierKey.make($0.bundleIdentifier) == key })
+                || missingSoftBundleIdentifiers.contains(where: { HelperBundleIdentifierKey.make($0) == key }) else { return nil }
+        return missingSoftBundleIdentifiers.contains(where: { HelperBundleIdentifierKey.make($0) == key }) ? .unavailable : .available
+    }
+
+    var hasAnyAvailableAssociation: Bool {
+        !effectiveBundleIdentifiers.isEmpty
     }
 }
 

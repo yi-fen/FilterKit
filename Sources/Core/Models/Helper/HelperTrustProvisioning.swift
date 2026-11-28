@@ -47,13 +47,15 @@ struct HelperTrustPinSet: Codable, Equatable {
     let allowedAppCDHashes: [String]
     let allowedHelperCDHashes: [String]
     let generation: UInt64
+    /// Apple Developer Team ID recorded by the trusted signing/installer pipeline.
+    var clientTeamIdentifier: String? = nil
 
     static let currentSchemaVersion = 1
     static let maximumPinsPerRole = 4
 
     enum ValidationError: Error, Equatable {
         case unsupportedSchema, invalidBundleIdentifier, invalidUIDs
-        case missingPins, tooManyPins, malformedPin, duplicatePin, invalidGeneration
+        case missingPins, tooManyPins, malformedPin, duplicatePin, invalidGeneration, invalidTeamIdentifier
     }
 
     func makeDisabledManifest(routeIdentifier: String, jbRootPath: String, tweakInjectPath: String,
@@ -64,7 +66,8 @@ struct HelperTrustPinSet: Codable, Equatable {
             jbRootPath: jbRootPath, tweakInjectPath: tweakInjectPath,
             stagingRootPath: stagingRootPath, socketPath: socketPath,
             appCDHashes: allowedAppCDHashes, helperCDHashes: allowedHelperCDHashes,
-            allowedClientUIDs: allowedClientUIDs, stagingOwnerUID: stagingOwnerUID, socketGroupID: socketGroupID)
+            allowedClientUIDs: allowedClientUIDs, stagingOwnerUID: stagingOwnerUID, socketGroupID: socketGroupID,
+            allowedClientBundleIdentifier: bundleIdentifier, allowedClientTeamIdentifier: clientTeamIdentifier)
     }
 
     func validate() throws {
@@ -78,6 +81,11 @@ struct HelperTrustPinSet: Codable, Equatable {
               Set(allowedClientUIDs).count == allowedClientUIDs.count else { throw ValidationError.invalidUIDs }
         try Self.validatePins(allowedAppCDHashes)
         try Self.validatePins(allowedHelperCDHashes)
+        if let clientTeamIdentifier {
+            guard clientTeamIdentifier.range(of: "^[A-Z0-9]{10}$", options: .regularExpression) != nil else {
+                throw ValidationError.invalidTeamIdentifier
+            }
+        }
         guard generation > 0 else { throw ValidationError.invalidGeneration }
     }
 
@@ -109,6 +117,8 @@ struct HelperTrustPinSet: Codable, Equatable {
         try validate()
         guard manifest.schemaVersion == HelperDeploymentManifest.currentSchemaVersion,
               manifest.allowedClientUIDs == allowedClientUIDs,
+              manifest.allowedClientBundleIdentifier?.caseInsensitiveCompare(bundleIdentifier) == .orderedSame,
+              manifest.allowedClientTeamIdentifier == clientTeamIdentifier,
               Self.normalized(manifest.allowedAppCDHashes) == Self.normalized(allowedAppCDHashes),
               Self.normalized(manifest.allowedHelperCDHashes) == Self.normalized(allowedHelperCDHashes),
               manifest.executionEnabled == false else {

@@ -10,6 +10,26 @@ final class HelperAppPluginActivationProtocolTests: XCTestCase {
             expectedManifestSHA256: String(repeating: "b", count: 64), snapshotRevision: 7, createdAt: Date())
     }
 
+    func testOldCommandCanBeRestoredOnlyAsARecoveryHint() {
+        let value = command()
+        let old = HelperAppPluginActivationCommand(requestID: value.requestID, pluginID: value.pluginID,
+            targetBundleIdentifier: value.targetBundleIdentifier, desiredEnabled: value.desiredEnabled,
+            expectedEnabled: value.expectedEnabled, dylibFileName: value.dylibFileName,
+            plistFileName: value.plistFileName, expectedFilterSHA256: value.expectedFilterSHA256,
+            expectedManifestSHA256: value.expectedManifestSHA256, snapshotRevision: value.snapshotRevision,
+            createdAt: Date(timeIntervalSince1970: 1))
+        XCTAssertFalse(old.validate())
+        XCTAssertTrue(old.validatesForRecoveryHint())
+
+        let malformed = HelperAppPluginActivationCommand(requestID: value.requestID, pluginID: value.pluginID,
+            targetBundleIdentifier: value.targetBundleIdentifier, desiredEnabled: value.desiredEnabled,
+            expectedEnabled: value.expectedEnabled, dylibFileName: "../Sample.dylib",
+            plistFileName: value.plistFileName, expectedFilterSHA256: value.expectedFilterSHA256,
+            expectedManifestSHA256: value.expectedManifestSHA256, snapshotRevision: value.snapshotRevision,
+            createdAt: old.createdAt)
+        XCTAssertFalse(malformed.validatesForRecoveryHint())
+    }
+
     func testCommandIsSingleTargetAndHashBound() {
         let value = command()
         XCTAssertTrue(value.validate())

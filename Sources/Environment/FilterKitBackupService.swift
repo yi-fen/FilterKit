@@ -59,7 +59,6 @@ final class FilterKitBackupService {
                   let manifestName = item.manifestFileName,
                   let expectedDylibHash = item.dylibSHA256,
                   let expectedPlistHash = item.plistSHA256,
-                  let hardBound = item.hardBoundBundleIdentifier,
                   let uuid = UUID(uuidString: id.uuidString) else {
                 throw ServiceError.incompletePluginRecord(id)
             }
@@ -76,11 +75,11 @@ final class FilterKitBackupService {
                 throw ServiceError.fileChanged(plistName)
             }
             let decodedManifest = try JSONDecoder().decode(FilterKitPluginManifest.self, from: manifest)
-            guard (1...3).contains(decodedManifest.schemaVersion),
+            guard (1...4).contains(decodedManifest.schemaVersion),
                   decodedManifest.pluginID == id.uuidString,
                   decodedManifest.dylibFileName == dylibName,
                   decodedManifest.plistFileName == plistName,
-                  decodedManifest.hardBoundBundleIdentifier == hardBound,
+                  BackupBundleIdentity.matches(decodedManifest.hardBoundBundleIdentifier, item.hardBoundBundleIdentifier),
                   decodedManifest.dylibSHA256.caseInsensitiveCompare(expectedDylibHash) == .orderedSame,
                   decodedManifest.plistSHA256.caseInsensitiveCompare(expectedPlistHash) == .orderedSame else {
                 throw ServiceError.invalidManifest(manifestName)
@@ -92,34 +91,57 @@ final class FilterKitBackupService {
                     throw ServiceError.invalidManifest(manifestName)
                 }
             }
-            let manifestAssociations = decodedManifest.softAssociations ??
+            let manifestAssociations = decodedManifest.bindingTopology?.additionalAssociations ?? decodedManifest.softAssociations ??
                 (decodedManifest.softAssociatedBundleIdentifiers ?? []).map {
                     FilterKitManifestSoftAssociation(bundleIdentifier: $0, isEnabled: true)
                 }
-            guard Set(manifestAssociations.map(\.bundleIdentifier)) == Set(item.softAssociatedBundleIdentifiers),
-                  manifestAssociations.count == item.softAssociatedBundleIdentifiers.count,
-                  item.softAssociationStates == nil || item.softAssociationStates == manifestAssociations else {
+            guard BackupBundleIdentity.sameSet(manifestAssociations.map(\.bundleIdentifier), item.softAssociatedBundleIdentifiers),
+                  item.softAssociationStates.map({ states in BackupBundleIdentity.sameStates(
+                    states.map { (bundleIdentifier: $0.bundleIdentifier, isEnabled: $0.isEnabled) },
+                    manifestAssociations.map { (bundleIdentifier: $0.bundleIdentifier, isEnabled: $0.isEnabled) })
+                  }) ?? true else {
                 throw ServiceError.invalidManifest(manifestName)
             }
-            let stateByBundle = Dictionary(uniqueKeysWithValues: manifestAssociations.map { ($0.bundleIdentifier, $0.isEnabled) })
-            let associationStates = item.softAssociatedBundleIdentifiers.sorted().map {
-                FilterKitManifestSoftAssociation(bundleIdentifier: $0,
-                    isEnabled: stateByBundle[$0] ?? true)
+            let owner: String?
+            let ownerEnabled: Bool
+            if decodedManifest.schemaVersion == 4 {
+                guard let wire = decodedManifest.bindingTopology,
+                      wire.schemaVersion == 1,
+                      BackupBundleIdentity.matches(wire.fixedOwnerBundleIdentifier, item.hardBoundBundleIdentifier),
+                      BackupBundleIdentity.sameStates(
+                        wire.additionalAssociations.map { (bundleIdentifier: $0.bundleIdentifier, isEnabled: $0.isEnabled) },
+                        manifestAssociations.map { (bundleIdentifier: $0.bundleIdentifier, isEnabled: $0.isEnabled) }) else {
+                    throw ServiceError.invalidManifest(manifestName)
+                }
+                owner = wire.fixedOwnerBundleIdentifier
+                ownerEnabled = wire.fixedOwnerIsEnabled
+            } else {
+                guard let legacyOwner = decodedManifest.hardBoundBundleIdentifier,
+                      BackupBundleIdentity.matches(legacyOwner, item.hardBoundBundleIdentifier) else {
+                    throw ServiceError.invalidManifest(manifestName)
+                }
+                owner = legacyOwner
+                ownerEnabled = true
             }
+            let associationStates = manifestAssociations.sorted { $0.bundleIdentifier < $1.bundleIdentifier }
             let identityDigest = decodedManifest.machOIdentitySHA256
+            let topology = FilterKitManifestBindingTopology(schemaVersion: 1,
+                fixedOwnerBundleIdentifier: owner, fixedOwnerIsEnabled: ownerEnabled,
+                additionalAssociations: associationStates)
             return BackupPluginEntry(pluginIdentifier: uuid,
                 dylibFileName: dylibName, dylibDataBase64: dylib.base64EncodedString(),
                 dylibSHA256: SHA256Digest.hex(dylib),
                 plistFileName: plistName, plistDataBase64: plist.base64EncodedString(),
                 plistSHA256: SHA256Digest.hex(plist),
-                hardBoundBundleIdentifier: hardBound,
+                hardBoundBundleIdentifier: owner,
                 softAssociatedBundleIdentifiers: associationStates.map(\.bundleIdentifier),
                 softAssociations: associationStates,
+                bindingTopology: topology,
                 machOIdentitySHA256: identityDigest,
                 manifestDataBase64: manifest.base64EncodedString(),
                 manifestSHA256: SHA256Digest.hex(manifest))
         }
-        let document = FilterKitBackupDocument(schemaVersion: 2, plugins: entries)
+        let document = FilterKitBackupDocument(schemaVersion: 3, plugins: entries)
         return try codec.encode(document)
     }
 
@@ -132,20 +154,28 @@ final class FilterKitBackupService {
     }
 
     func restorePreview(at url: URL, installedBundleIdentifiers: Set<String>,
-                        existingFileNames: Set<String>, conflictingPluginIDs: Set<UUID> = []) throws -> BackupRestorePreview {
+                        existingFileNames: Set<String>, conflictingPluginIDs: Set<UUID> = [],
+                        packageManagedDylibSHA256s: Set<String> = [],
+                        filterToInstalledApps: Bool = true) throws -> BackupRestorePreview {
         try restorePreview(data: readBackupFile(at: url),
             installedBundleIdentifiers: installedBundleIdentifiers,
             existingFileNames: existingFileNames,
-            conflictingPluginIDs: conflictingPluginIDs)
+            conflictingPluginIDs: conflictingPluginIDs,
+            packageManagedDylibSHA256s: packageManagedDylibSHA256s,
+            filterToInstalledApps: filterToInstalledApps)
     }
 
     func restorePreview(data: Data, installedBundleIdentifiers: Set<String>,
-                        existingFileNames: Set<String>, conflictingPluginIDs: Set<UUID> = []) throws -> BackupRestorePreview {
+                        existingFileNames: Set<String>, conflictingPluginIDs: Set<UUID> = [],
+                        packageManagedDylibSHA256s: Set<String> = [],
+                        filterToInstalledApps: Bool = true) throws -> BackupRestorePreview {
         let validated = try codec.decodeAndValidate(data).plugins
         return BackupRestorePreviewBuilder().build(validated: validated,
             installedBundleIdentifiers: installedBundleIdentifiers,
             existingFileNames: existingFileNames,
-            conflictingPluginIDs: conflictingPluginIDs)
+            conflictingPluginIDs: conflictingPluginIDs,
+            packageManagedDylibSHA256s: packageManagedDylibSHA256s,
+            filterToInstalledApps: filterToInstalledApps)
     }
 
     private func readBackupFile(at url: URL) throws -> Data {

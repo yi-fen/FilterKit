@@ -6,10 +6,15 @@ import Foundation
 struct AppPluginActivationStateResolver {
     func resolve(plugin: PluginScanItem, targetBundleIdentifier: String,
                  targetAppIsAvailable: Bool = true, now: Date = Date()) -> AppPluginActivationState? {
-        let hardBound = plugin.hardBoundBundleIdentifier == targetBundleIdentifier
-        let softBound = plugin.softAssociatedBundleIdentifiers.contains(targetBundleIdentifier)
-        let filterMatches = plugin.filterConfiguration?.bundles.contains(targetBundleIdentifier) == true
-            || plugin.filterConfiguration?.bundles.contains("*") == true
+        let targetKey = HelperBundleIdentifierKey.make(targetBundleIdentifier)
+        let hardBound = plugin.hardBoundBundleIdentifier.map {
+            HelperBundleIdentifierKey.make($0) == targetKey
+        } ?? false
+        let softBound = plugin.softAssociatedBundleIdentifiers.contains {
+            HelperBundleIdentifierKey.make($0) == targetKey
+        }
+        let filterBundleKeys = HelperBundleIdentifierKey.set(plugin.filterConfiguration?.bundles ?? [])
+        let filterMatches = filterBundleKeys.contains(targetKey) || filterBundleKeys.contains("*")
         guard hardBound || softBound || filterMatches else { return nil }
 
         let kind: AppPluginAssociationKind = hardBound ? .hardBound : (softBound ? .softAssociated : .filterMatched)
@@ -23,7 +28,8 @@ struct AppPluginActivationStateResolver {
         let isGlobal = filterIsReadable && (filter?.bundles.contains("*") == true)
         let hasAlternateMatchDimensions = filterIsReadable
             && (!(filter?.classes.isEmpty ?? true) || !(filter?.executables.isEmpty ?? true))
-        let filterListsTarget = filterIsReadable && (filter?.bundles.contains(targetBundleIdentifier) == true)
+        let filterListsTarget = filterIsReadable
+            && HelperBundleIdentifierKey.set(filter?.bundles ?? []).contains(targetKey)
 
         var observed: AppPluginActivationObservedState = .unavailable
         var crossCheck: AppPluginActivationCrossCheck = .filterUnavailable
@@ -41,7 +47,7 @@ struct AppPluginActivationStateResolver {
             case .softAssociated:
                 let verifiedAssociations = plugin.helperIdentityAttestation?.softAssociations
                 let manifestStates = (verifiedAssociations ?? plugin.softAssociationStates ?? []).filter {
-                    $0.bundleIdentifier == targetBundleIdentifier
+                    HelperBundleIdentifierKey.make($0.bundleIdentifier) == targetKey
                 }
                 guard manifestStates.count == 1, let manifestState = manifestStates.first else {
                     observed = .inconsistent

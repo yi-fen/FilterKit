@@ -30,6 +30,14 @@ final class PluginAssociationPreviewPolicyTests: XCTestCase {
         XCTAssertTrue(result.blockers.contains(.hardBoundAppIsImmutable))
     }
 
+    func testBundleIdentifierIdentityIsCaseInsensitive() {
+        let result = PluginAssociationPreviewPolicy().evaluate(
+            plugin: item(hardBound: "com.example.target"), targetBundleIdentifier: "COM.EXAMPLE.TARGET",
+            installedBundleIdentifiers: ["com.example.target"], originalPlistIsReadable: true)
+        XCTAssertTrue(result.blockers.contains(.hardBoundAppIsImmutable))
+        XCTAssertFalse(result.blockers.contains(.targetAppUnavailable))
+    }
+
     func testMissingAppOrUnreadablePlistBlocksPreview() {
         let result = PluginAssociationPreviewPolicy().evaluate(
             plugin: item(), targetBundleIdentifier: "com.example.target",

@@ -20,6 +20,7 @@ enum RootHideFilterPlanBlocker: String, Codable, Equatable {
     case rootIsNotDictionary
     case filterDictionaryMissing
     case invalidBundlesType
+    case duplicateBundleIdentifiers
     case invalidClassesType
     case invalidExecutablesType
     case invalidCoreFoundationVersionType
@@ -77,6 +78,10 @@ struct RootHideElleKitFilterStrategy {
                 return blocked(action, targetBundleIdentifier, .invalidBundlesType)
             }
             bundles = values.compactMap { $0 as? String }
+            let bundleKeys = bundles.map(HelperBundleIdentifierKey.make)
+            guard Set(bundleKeys).count == bundleKeys.count else {
+                return blocked(action, targetBundleIdentifier, .duplicateBundleIdentifiers, before: bundles)
+            }
         } else { bundles = [] }
 
         let classes: [String]
@@ -104,7 +109,8 @@ struct RootHideElleKitFilterStrategy {
 
         let preservedRootKeys = root.keys.filter { $0 != "Filter" && $0 != "IsTweakManager" }.sorted()
         let preservedFilterKeys = filter.keys.filter { !knownFilterKeys.contains($0) }.sorted()
-        let existing = bundles.contains { $0 == targetBundleIdentifier }
+        let targetKey = HelperBundleIdentifierKey.make(targetBundleIdentifier)
+        let existing = bundles.contains { HelperBundleIdentifierKey.make($0) == targetKey }
 
         switch action {
         case .enableForApp:
@@ -135,7 +141,7 @@ struct RootHideElleKitFilterStrategy {
                 return blocked(action, targetBundleIdentifier, .alternateMatchDimensionsPreventSafeDisable,
                                before: bundles, rootKeys: preservedRootKeys, filterKeys: preservedFilterKeys)
             }
-            let updated = bundles.filter { $0 != targetBundleIdentifier }
+            let updated = bundles.filter { HelperBundleIdentifierKey.make($0) != targetKey }
             filter["Bundles"] = updated
             root["Filter"] = filter
             return serializedPlan(action, targetBundleIdentifier, .previewReady, [], bundles, updated,

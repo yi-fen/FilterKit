@@ -54,6 +54,12 @@ final class HelperIPCAndPolicyTests: XCTestCase {
         XCTAssertNil(decoded.desiredSoftAssociations)
     }
 
+    func testActivationTransactionQueryIsAllowedButStatusResponseIsNotARequest() {
+        XCTAssertTrue(HelperIPCServerRequestPolicy.allows(.appPluginActivationTransactionQueryRequest))
+        XCTAssertTrue(HelperIPCServerRequestPolicy.allows(.appPluginActivationTransactionReconcileRequest))
+        XCTAssertFalse(HelperIPCServerRequestPolicy.allows(.appPluginActivationTransactionStatusResponse))
+    }
+
     func testIPCFrameRejectsTrailingBytes() throws {
         let codec = HelperIPCFrameCodec()
         let envelope = HelperIPCEnvelope(messageType: .hello)
@@ -300,4 +306,36 @@ extension HelperIPCAndPolicyTests {
         XCTAssertTrue(guardValue.accept(second))
         XCTAssertFalse(guardValue.accept(first))
     }
+    func testPeerTrustRequiresOSVerifiedBundleAndTeamBindingWhenProvisioned() {
+        let hash = String(repeating: "d", count: 40)
+        let policy = HelperPeerTrustPolicy(allowedUIDs: [501], allowedCDHashes: [hash],
+            allowedGIDs: [501], expectedBundleIdentifier: "cn.yfen.filterkit",
+            expectedTeamIdentifier: "ABCDE12345")
+        let unbound = HelperPeerIdentity(uid: 501, gid: 501, pid: 77, cdHashHex: hash,
+            pidVersion: nil, auditSessionID: nil)
+        XCTAssertThrowsError(try policy.verify(unbound))
+
+        let wrongBundle = HelperPeerIdentity(uid: 501, gid: 501, pid: 77, cdHashHex: hash,
+            pidVersion: nil, auditSessionID: nil,
+            verifiedCodeIdentifier: "com.attacker.clone", verifiedTeamIdentifier: "ABCDE12345")
+        XCTAssertThrowsError(try policy.verify(wrongBundle))
+
+        let wrongTeam = HelperPeerIdentity(uid: 501, gid: 501, pid: 77, cdHashHex: hash,
+            pidVersion: nil, auditSessionID: nil,
+            verifiedCodeIdentifier: "cn.yfen.filterkit", verifiedTeamIdentifier: "ZZZZZ99999")
+        XCTAssertThrowsError(try policy.verify(wrongTeam))
+
+        let verified = HelperPeerIdentity(uid: 501, gid: 501, pid: 77, cdHashHex: hash,
+            pidVersion: nil, auditSessionID: nil,
+            verifiedCodeIdentifier: "CN.YFEN.FILTERKIT", verifiedTeamIdentifier: "ABCDE12345")
+        XCTAssertNoThrow(try policy.verify(verified))
+    }
+
+    func testCodeSigningIdentityCannotBeInferredFromCDHashOnly() {
+        let identity = HelperPeerIdentity(uid: 501, gid: 501, pid: 77,
+            cdHashHex: String(repeating: "e", count: 40), pidVersion: nil, auditSessionID: nil)
+        XCTAssertFalse(HelperPeerIdentityBindingPolicy.codeSigningIdentityMatches(identity,
+            bundleIdentifier: "cn.yfen.filterkit", teamIdentifier: "ABCDE12345"))
+    }
+
 }

@@ -47,7 +47,9 @@ final class FilterKitHelperRuntime {
         _ = startupPreflight // Dispatcher independently rechecks recovery status per request.
         let trust = HelperPeerTrustPolicy(allowedUIDs: Set(manifest.allowedClientUIDs),
                                           allowedCDHashes: Set(manifest.allowedAppCDHashes),
-                                          allowedGIDs: [manifest.socketGroupID ?? 0])
+                                          allowedGIDs: [manifest.socketGroupID ?? 0],
+                                          expectedBundleIdentifier: manifest.allowedClientBundleIdentifier,
+                                          expectedTeamIdentifier: manifest.allowedClientTeamIdentifier)
         let audit = HelperAuditFileSink(path: jbRoot + "/Library/FilterKit/Helper/audit.jsonl",
                                         maximumBytes: HelperLifecycleProfile.conservativePersistent.maximumAuditFileBytes,
                                         retainedFiles: HelperLifecycleProfile.conservativePersistent.retainedAuditFiles)
@@ -79,17 +81,29 @@ final class FilterKitHelperRuntime {
         let identityAttestorConfiguration = try HelperPluginIdentityAttestor.Configuration(
             pluginDirectory: manifest.tweakInjectPath, dpkgInfoDirectories: packageInfoDirectories)
         let identityAttestor = HelperPluginIdentityAttestor(configuration: identityAttestorConfiguration)
+        let uninstallConfiguration = try HelperPluginUninstallAuthorizer.Configuration(
+            pluginDirectory: manifest.tweakInjectPath, dpkgInfoDirectories: packageInfoDirectories)
+        let uninstallAuthorizer = HelperPluginUninstallAuthorizer(configuration: uninstallConfiguration)
+        let uninstallTransaction = try HelperThreeFileUninstallTransaction(directoryPath: manifest.tweakInjectPath)
         let associationTransaction = try HelperPluginFilterConfigurationTransaction(
             directoryPath: manifest.tweakInjectPath)
         let durableLedgerStore = try HelperDeploymentDurableLedgerStore(
             directoryPath: jbRoot + "/Library/FilterKit/Helper")
         let durableDeploymentLedger = HelperDeploymentIdempotencyLedger(durableStore: durableLedgerStore)
+        let activationTransactionLedgerStore = try HelperAppPluginActivationTransactionLedgerStore(
+            directoryPath: jbRoot + "/Library/FilterKit/Helper")
+        // Any transaction left Executing across a Helper restart is ambiguous. Persist
+        // Outcome Unknown before accepting IPC; never infer success from process termination.
+        try activationTransactionLedgerStore.markInterruptedExecutionsUnknown()
         let dispatcher = HelperRequestDispatcher(manifest: manifest, audit: audit,
             deploymentIdempotencyLedger: durableDeploymentLedger, deploymentLedgerStore: durableLedgerStore,
             deploymentPipeline: pipeline,
             pluginDirectory: manifest.tweakInjectPath, pluginFilterMutationAuthorizer: mutationAuthorizer,
             pluginAssociationTransaction: associationTransaction,
-            pluginIdentityAttestor: identityAttestor)
+            pluginIdentityAttestor: identityAttestor,
+            pluginUninstallAuthorizer: uninstallAuthorizer,
+            pluginUninstallTransaction: uninstallTransaction,
+            activationTransactionLedgerStore: activationTransactionLedgerStore)
         let server = UnixDomainSocketServer(socketPath: manifest.socketPath,
             maximumConnections: HelperLifecycleProfile.conservativePersistent.maximumConcurrentConnections,
             socketMode: 0o660, socketGroupID: manifest.socketGroupID ?? 0, identityProvider: identityProvider, trustEvaluator: trust,

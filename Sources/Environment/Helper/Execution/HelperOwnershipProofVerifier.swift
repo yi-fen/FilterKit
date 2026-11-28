@@ -53,21 +53,46 @@ struct HelperOwnershipProofVerifier {
         guard let manifest = try? JSONDecoder().decode(FilterKitPluginManifest.self, from: manifestData) else {
             throw VerificationError.invalidManifest
         }
-        guard manifest.schemaVersion == 3 else { throw VerificationError.unsupportedSchema }
+        guard (3...4).contains(manifest.schemaVersion) else { throw VerificationError.unsupportedSchema }
         guard let pluginID = UUID(uuidString: manifest.pluginID),
               manifest.dylibFileName == dylibFileName,
               manifest.plistFileName == plistFileName,
               let expectedIdentity = manifest.machOIdentitySHA256,
-              HelperPolicy.isValidHash(expectedIdentity),
-              let hardBound = manifest.hardBoundBundleIdentifier,
-              Self.isValidBundleIdentifier(hardBound),
-              let associations = manifest.softAssociations,
-              associations.allSatisfy({ Self.isValidBundleIdentifier($0.bundleIdentifier) }),
-              Set(associations.map(\.bundleIdentifier)).count == associations.count,
-              !associations.contains(where: { $0.bundleIdentifier == hardBound }),
-              Set(associations.map(\.bundleIdentifier)) == Set(manifest.softAssociatedBundleIdentifiers ?? []),
-              Set(manifest.softAssociatedBundleIdentifiers ?? []).count == (manifest.softAssociatedBundleIdentifiers ?? []).count else {
+              HelperPolicy.isValidHash(expectedIdentity) else {
             throw VerificationError.pluginIdentityMismatch
+        }
+        let hardBound: String?
+        let associations: [FilterKitManifestSoftAssociation]
+        if manifest.schemaVersion == 3 {
+            guard let owner = manifest.hardBoundBundleIdentifier,
+                  Self.isValidBundleIdentifier(owner),
+                  let saved = manifest.softAssociations,
+                  saved.allSatisfy({ Self.isValidBundleIdentifier($0.bundleIdentifier) }),
+                  HelperBundleIdentifierKey.set(saved.map(\.bundleIdentifier)).count == saved.count,
+                  !saved.contains(where: { HelperBundleIdentifierKey.make($0.bundleIdentifier) == HelperBundleIdentifierKey.make(owner) }),
+                  HelperBundleIdentifierKey.set(saved.map(\.bundleIdentifier)) == HelperBundleIdentifierKey.set(manifest.softAssociatedBundleIdentifiers ?? []),
+                  HelperBundleIdentifierKey.set(manifest.softAssociatedBundleIdentifiers ?? []).count == (manifest.softAssociatedBundleIdentifiers ?? []).count else {
+                throw VerificationError.pluginIdentityMismatch
+            }
+            hardBound = owner
+            associations = saved
+        } else {
+            guard let topology = manifest.bindingTopology, topology.schemaVersion == 1,
+                  topology.fixedOwnerBundleIdentifier.map(Self.isValidBundleIdentifier) ?? true,
+                  topology.additionalAssociations.allSatisfy({ Self.isValidBundleIdentifier($0.bundleIdentifier) }),
+                  HelperBundleIdentifierKey.set(topology.additionalAssociations.map(\.bundleIdentifier)).count == topology.additionalAssociations.count,
+                  !topology.additionalAssociations.contains(where: { HelperBundleIdentifierKey.make($0.bundleIdentifier) == HelperBundleIdentifierKey.make(topology.fixedOwnerBundleIdentifier ?? "") }),
+                  HelperBundleIdentifierKey.make(manifest.hardBoundBundleIdentifier ?? "") == HelperBundleIdentifierKey.make(topology.fixedOwnerBundleIdentifier ?? ""),
+                  topology.additionalAssociations.count == (manifest.softAssociations ?? []).count,
+                  topology.additionalAssociations.allSatisfy({ candidate in
+                      (manifest.softAssociations ?? []).contains { HelperBundleIdentifierKey.make($0.bundleIdentifier) == HelperBundleIdentifierKey.make(candidate.bundleIdentifier) && $0.isEnabled == candidate.isEnabled }
+                  }),
+                  HelperBundleIdentifierKey.set(manifest.softAssociatedBundleIdentifiers ?? []) == HelperBundleIdentifierKey.set(topology.additionalAssociations.map(\.bundleIdentifier)),
+                  HelperBundleIdentifierKey.set(manifest.softAssociatedBundleIdentifiers ?? []).count == (manifest.softAssociatedBundleIdentifiers ?? []).count else {
+                throw VerificationError.pluginIdentityMismatch
+            }
+            hardBound = topology.fixedOwnerBundleIdentifier
+            associations = topology.additionalAssociations
         }
 
         let dylibData = try readLeaf(directoryFD, name: dylibFileName,
@@ -96,7 +121,7 @@ struct HelperOwnershipProofVerifier {
             manifestSchemaVersion: manifest.schemaVersion, manifestSHA256: SHA256Digest.hex(manifestData),
             binaryIdentityVerified: true, machOIdentitySHA256: actualIdentity,
             hardBoundBundleIdentifier: hardBound, softAssociations: associations,
-            filterConfiguration: PluginFilterConfiguration.parse(plistData))
+            bindingTopology: manifest.bindingTopology, filterConfiguration: PluginFilterConfiguration.parse(plistData))
     }
 
     private static func isValidBundleIdentifier(_ value: String) -> Bool {

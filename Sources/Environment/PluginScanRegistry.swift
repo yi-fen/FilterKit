@@ -9,7 +9,8 @@ import SwiftUI
 ///
 /// This registry coordinates scan timing and snapshot retention. The scanner
 /// performs bounded, read-only Mach-O/plist inspection and SHA-256 hashing; it
-/// does not load plugins, query package ownership, write files, or invoke dpkg.
+/// does not load plugins, write files, or invoke dpkg. Optional package ownership
+/// evidence is read from the dpkg database without executing package-manager tools.
 private struct PluginInventoryScanOutput {
     let result: PluginScanResult
     let resolvedRootPath: String?
@@ -171,7 +172,9 @@ final class PluginScanRegistry: ObservableObject {
                 milliseconds: PluginInventoryPerformanceDiagnostics.elapsedMilliseconds(since: assessmentStart))
             let scanner: ReadOnlyPluginScanner
             if let assessment = report.pluginDirectoryAssessment {
-                scanner = ReadOnlyPluginScanner(assessmentProvider: { assessment })
+                let ownershipProvider = report.resolvedRootPath.map { DpkgFileOwnershipProvider(jbroot: $0) }
+                scanner = ReadOnlyPluginScanner(assessmentProvider: { assessment },
+                    packageOwnershipProvider: ownershipProvider)
             } else {
                 scanner = ReadOnlyPluginScanner()
             }
@@ -190,12 +193,25 @@ final class PluginScanRegistry: ObservableObject {
                 guard let self, self.scanGeneration.isCurrent(generation) else { return }
                 self.result = output.result
                 self.resolvedRootPath = output.resolvedRootPath
+                RuntimeEventLogger.record(level: .info, module: "PluginInventory",
+                    event: "plugin.inventory.scan.completed", message: "Plugin inventory scan completed.",
+                    traceID: generation.description,
+                    attributes: ["plugin_count": String(output.result.plugins.count),
+                                 "issue_count": String(output.result.issues.count),
+                                 "read_only": String(output.result.isReadOnly)],
+                    activityTitle: "activity.plugin_scan_completed",
+                    activityDetail: "\(output.result.plugins.count) plugins found; \(output.result.issues.count) diagnostic issues.")
                 // Inventory completion is independent of Helper IPC. Publish the
                 // snapshot and release the scan slot before starting attestation.
                 self.inFlight = nil
                 self.isLoading = false
                 await self.attachHelperIdentityAttestations(to: output.result, generation: generation)
             } catch {
+                RuntimeEventLogger.record(level: .error, module: "PluginInventory",
+                    event: "plugin.inventory.scan.failed", message: "Plugin inventory scan failed.",
+                    traceID: generation.description,
+                    attributes: ["error_type": String(describing: type(of: error))],
+                    activityTitle: "activity.plugin_scan_failed", activityDetail: "The previous successful inventory was retained.")
                 // Retain the last successful snapshot on failure.
             }
             guard let self, self.scanGeneration.isCurrent(generation) else { return }
@@ -235,6 +251,7 @@ final class PluginScanRegistry: ObservableObject {
             guard scanGeneration.isCurrent(generation),
                   enriched[index].helperIdentityAttestation == nil,
                   enriched[index].pairingState == .paired,
+                  enriched[index].ownership != .packageManager,
                   enriched[index].dylibFileName != nil,
                   enriched[index].plistFileName != nil,
                   enriched[index].filterKitPluginID != nil,
@@ -253,13 +270,35 @@ final class PluginScanRegistry: ObservableObject {
                 // and retried later by the bounded retry loop.
                 let outcome: PluginInventoryPerformanceDiagnostics.Outcome
                 switch attestation.status {
-                case .verified: outcome = .verified
+                case .verified where attestation.isVerified: outcome = .verified
                 case .unavailable: outcome = .unavailable
                 default: outcome = .rejected
                 }
                 PluginInventoryPerformanceDiagnostics.recordAttestation(milliseconds: elapsed, outcome: outcome)
                 guard attestation.status != .unavailable else { continue }
                 enriched[index].helperIdentityAttestation = attestation
+                if attestation.isVerified {
+                    // Helper proves a root-owned manifest/payload pair and re-checks
+                    // package ownership. Only this trusted result promotes unknown
+                    // inventory to FilterKit ownership.
+                    enriched[index].ownership = .filterKit
+                    let permission = PluginManagementPermission.evaluate(
+                        ownership: .filterKit, pairing: enriched[index].pairingState,
+                        binaryKind: enriched[index].binaryKind,
+                        verifiedPluginID: attestation.pluginID,
+                        filterConfiguration: enriched[index].filterConfiguration)
+                    enriched[index].managementPermission = PluginManagementPermission.restricting(
+                        permission, identityStatus: enriched[index].identityStatus,
+                        ownershipConflict: enriched[index].ownershipConflict)
+                } else if attestation.reasonCode == "package_manager_owned" {
+                    // Helper's root-side package database proof takes precedence if
+                    // the app-side inventory could not resolve the dpkg owner.
+                    enriched[index].ownership = .packageManager
+                    enriched[index].managementPermission = PluginManagementPermission.evaluate(
+                        ownership: .packageManager, pairing: enriched[index].pairingState,
+                        binaryKind: enriched[index].binaryKind, verifiedPluginID: nil,
+                        filterConfiguration: enriched[index].filterConfiguration)
+                }
             } catch {
                 PluginInventoryPerformanceDiagnostics.recordAttestation(
                     milliseconds: PluginInventoryPerformanceDiagnostics.elapsedMilliseconds(since: attestationStart),

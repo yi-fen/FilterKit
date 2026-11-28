@@ -102,59 +102,94 @@ struct HelperPluginFilterMutationAuthorizer {
             throw AuthorizationError.staleManifest
         }
         guard var manifest = try? JSONDecoder().decode(FilterKitPluginManifest.self, from: manifestData),
-              manifest.schemaVersion == 3,
+              (manifest.schemaVersion == 3 || manifest.schemaVersion == 4),
               UUID(uuidString: manifest.pluginID) == request.pluginID,
               manifest.dylibFileName == request.dylibFileName,
               manifest.plistFileName == request.plistFileName,
               let hardBound = manifest.hardBoundBundleIdentifier,
-              let savedAssociations = manifest.softAssociations,
+              let mirroredAssociations = manifest.softAssociations,
               manifest.softAssociatedBundleIdentifiers != nil else {
             throw AuthorizationError.manifestMismatch
         }
 
-        if request.action == .disableForApp && request.targetBundleIdentifier == hardBound {
-            throw AuthorizationError.hardBoundImmutable
+        let savedAssociations: [FilterKitManifestSoftAssociation]
+        let fixedOwnerIsEnabled: Bool
+        if manifest.schemaVersion == 3 {
+            savedAssociations = mirroredAssociations
+            fixedOwnerIsEnabled = true
+        } else {
+            guard let topology = manifest.bindingTopology,
+                  topology.schemaVersion == 1,
+                  HelperBundleIdentifierKey.make(topology.fixedOwnerBundleIdentifier ?? "") == HelperBundleIdentifierKey.make(hardBound),
+                  topology.additionalAssociations.count == mirroredAssociations.count,
+                  topology.additionalAssociations.allSatisfy({ candidate in
+                      mirroredAssociations.contains { HelperBundleIdentifierKey.make($0.bundleIdentifier) == HelperBundleIdentifierKey.make(candidate.bundleIdentifier) && $0.isEnabled == candidate.isEnabled }
+                  }),
+                  HelperBundleIdentifierKey.set(topology.additionalAssociations.map(\.bundleIdentifier)) == HelperBundleIdentifierKey.set(manifest.softAssociatedBundleIdentifiers ?? []),
+                  HelperBundleIdentifierKey.set(topology.additionalAssociations.map(\.bundleIdentifier)).count == topology.additionalAssociations.count else {
+                throw AuthorizationError.manifestMismatch
+            }
+            savedAssociations = topology.additionalAssociations
+            fixedOwnerIsEnabled = topology.fixedOwnerIsEnabled
         }
-        if request.targetBundleIdentifier == hardBound && request.action == .enableForApp {
-            // Hard-bound App is immutable; its presence is established by the signed ownership manifest.
-            throw AuthorizationError.hardBoundImmutable
-        }
-        guard Set(savedAssociations.map(\.bundleIdentifier)) == Set(manifest.softAssociatedBundleIdentifiers ?? []),
-              savedAssociations.count == Set(savedAssociations.map(\.bundleIdentifier)).count,
-              !savedAssociations.contains(where: { $0.bundleIdentifier == hardBound }) else {
+
+        guard HelperBundleIdentifierKey.set(savedAssociations.map(\.bundleIdentifier)) == HelperBundleIdentifierKey.set(manifest.softAssociatedBundleIdentifiers ?? []),
+              HelperBundleIdentifierKey.set(savedAssociations.map(\.bundleIdentifier)).count == savedAssociations.count,
+              !savedAssociations.contains(where: { HelperBundleIdentifierKey.make($0.bundleIdentifier) == HelperBundleIdentifierKey.make(hardBound) }) else {
             throw AuthorizationError.associationMetadataMismatch
         }
 
+        let activationTarget: HelperAppPluginActivationTargetPolicy.Target?
         if request.action == .replaceSoftAssociations {
-            guard request.targetBundleIdentifier == hardBound,
+            activationTarget = nil
+        } else {
+            do {
+                activationTarget = try HelperAppPluginActivationTargetPolicy.validate(
+                    targetBundleIdentifier: request.targetBundleIdentifier,
+                    fixedOwnerBundleIdentifier: hardBound,
+                    additionalAssociations: savedAssociations)
+            } catch {
+                // APP controls activation only. It cannot manufacture an association by
+                // sending an enable request for an App that Plugin has not associated.
+                throw AuthorizationError.associationMetadataMismatch
+            }
+        }
+
+        if request.action == .replaceSoftAssociations {
+            guard HelperBundleIdentifierKey.make(request.targetBundleIdentifier) == HelperBundleIdentifierKey.make(hardBound),
                   let desired = request.desiredSoftAssociations else { throw AuthorizationError.invalidRequest }
-            let oldByID = Dictionary(uniqueKeysWithValues: savedAssociations.map { ($0.bundleIdentifier, $0.isEnabled) })
-            let desiredByID = Dictionary(uniqueKeysWithValues: desired.map { ($0.bundleIdentifier, $0.isEnabled) })
-            guard desired.allSatisfy({ $0.bundleIdentifier != hardBound }),
-                  desired.allSatisfy({ item in oldByID[item.bundleIdentifier].map { $0 == item.isEnabled } ?? !item.isEnabled }),
-                  savedAssociations.allSatisfy({ desiredByID[$0.bundleIdentifier] != nil || !$0.isEnabled }) else {
+            let associationPlan: HelperPluginAssociationFilterMutationPlanner.Plan
+            do {
+                associationPlan = try HelperPluginAssociationFilterMutationPlanner().makePlan(
+                    originalData: plistData, fixedOwnerBundleIdentifier: hardBound,
+                    fixedOwnerIsEnabled: fixedOwnerIsEnabled,
+                    original: savedAssociations.map { HelperPluginSoftAssociation(bundleIdentifier: $0.bundleIdentifier, isEnabled: $0.isEnabled) },
+                    desired: desired.map { HelperPluginSoftAssociation(bundleIdentifier: $0.bundleIdentifier, isEnabled: $0.isEnabled) })
+            } catch {
                 throw AuthorizationError.associationMetadataMismatch
             }
-            let currentPlan = filterStrategy.makePlan(originalData: plistData,
-                targetBundleIdentifier: hardBound, action: .enableForApp)
-            guard currentPlan.isPreviewable,
-                  Set(currentPlan.beforeBundles) == Set([hardBound] + savedAssociations.filter(\.isEnabled).map(\.bundleIdentifier)) else {
-                throw AuthorizationError.associationMetadataMismatch
-            }
+            let replacementPlist = associationPlan.replacementData
             let normalized = desired.sorted { $0.bundleIdentifier < $1.bundleIdentifier }.map {
                 FilterKitManifestSoftAssociation(bundleIdentifier: $0.bundleIdentifier, isEnabled: $0.isEnabled)
             }
+            let updatedTopology: FilterKitManifestBindingTopology? = manifest.schemaVersion == 4
+                ? FilterKitManifestBindingTopology(schemaVersion: 1,
+                    fixedOwnerBundleIdentifier: hardBound,
+                    fixedOwnerIsEnabled: fixedOwnerIsEnabled,
+                    additionalAssociations: normalized)
+                : nil
             manifest = FilterKitPluginManifest(schemaVersion: manifest.schemaVersion, pluginID: manifest.pluginID,
                 dylibFileName: manifest.dylibFileName, plistFileName: manifest.plistFileName,
-                dylibSHA256: manifest.dylibSHA256, plistSHA256: manifest.plistSHA256,
+                dylibSHA256: manifest.dylibSHA256, plistSHA256: SHA256Digest.hex(replacementPlist),
                 hardBoundBundleIdentifier: hardBound,
                 softAssociatedBundleIdentifiers: normalized.map(\.bundleIdentifier),
-                machOIdentitySHA256: manifest.machOIdentitySHA256, softAssociations: normalized)
+                machOIdentitySHA256: manifest.machOIdentitySHA256, softAssociations: normalized,
+                bindingTopology: updatedTopology)
             let encoder = JSONEncoder(); encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
             let replacementManifest = try encoder.encode(manifest)
-            let unchanged = replacementManifest == manifestData
+            let unchanged = replacementManifest == manifestData && replacementPlist == plistData
             return PreparedMutation(request: request, ownershipProof: proof,
-                previousPlistData: plistData, replacementPlistData: plistData,
+                previousPlistData: plistData, replacementPlistData: unchanged ? plistData : replacementPlist,
                 previousManifestData: manifestData, replacementManifestData: unchanged ? manifestData : replacementManifest,
                 disposition: unchanged ? .alreadyInRequestedState : .preparedForAtomicCommit)
         }
@@ -167,36 +202,60 @@ struct HelperPluginFilterMutationAuthorizer {
         }
 
         let requestedEnabledState = request.action == .enableForApp
-        let existingAssociation = savedAssociations.first(where: { $0.bundleIdentifier == request.targetBundleIdentifier })
-        let alreadyInRequestedState = existingAssociation?.isEnabled == requestedEnabledState &&
-            ((request.action == .enableForApp && plan.disposition == .alreadyAssociated) ||
-             (request.action == .disableForApp && plan.disposition == .alreadyNotAssociated))
-
+        let targetKey = HelperBundleIdentifierKey.make(request.targetBundleIdentifier)
+        let isFixedOwnerTarget = activationTarget == .fixedOwner
         var associations = savedAssociations
-        if let index = associations.firstIndex(where: { $0.bundleIdentifier == request.targetBundleIdentifier }) {
-            associations[index] = FilterKitManifestSoftAssociation(bundleIdentifier: request.targetBundleIdentifier,
+        var ownerEnabledAfter = fixedOwnerIsEnabled
+        let existingAssociation = savedAssociations.first(where: { HelperBundleIdentifierKey.make($0.bundleIdentifier) == targetKey })
+
+        if isFixedOwnerTarget {
+            // Schema 3 implicitly means the fixed owner is enabled. Disabling it upgrades
+            // the manifest to schema 4 so the per-App activation bit becomes durable.
+            ownerEnabledAfter = requestedEnabledState
+        } else if let index = associations.firstIndex(where: { HelperBundleIdentifierKey.make($0.bundleIdentifier) == targetKey }) {
+            // Preserve the Manifest's original Bundle ID spelling. The request spelling is
+            // used only as an identity key; toggling must not rewrite binding topology.
+            let storedBundleIdentifier = associations[index].bundleIdentifier
+            associations[index] = FilterKitManifestSoftAssociation(bundleIdentifier: storedBundleIdentifier,
                 isEnabled: requestedEnabledState)
-        } else if request.action == .enableForApp {
-            associations.append(FilterKitManifestSoftAssociation(bundleIdentifier: request.targetBundleIdentifier, isEnabled: true))
         } else {
-            // Disabling an association that is absent from the ownership manifest is not authorized.
+            // APP activation must never create topology. Plugin-page association management
+            // is the sole path that can add an Additional App Association.
             throw AuthorizationError.associationMetadataMismatch
         }
         associations.sort { $0.bundleIdentifier < $1.bundleIdentifier }
 
-        // Ensure the current Bundle list agrees with the manifest's effective desired state before
-        // changing it. Unknown/global filter semantics are not silently normalized by this writer.
-        let expectedCurrent = Set([hardBound] + savedAssociations.filter(\.isEnabled).map(\.bundleIdentifier))
-        guard Set(plan.beforeBundles) == expectedCurrent else { throw AuthorizationError.associationMetadataMismatch }
-        let expectedAfter = Set([hardBound] + associations.filter(\.isEnabled).map(\.bundleIdentifier))
-        guard Set(plan.afterBundles) == expectedAfter else { throw AuthorizationError.associationMetadataMismatch }
+        // The authoritative target set includes the schema-4 fixed-owner activation bit.
+        // Schema 3 retains its historical always-enabled owner semantics.
+        let ownerEnabledBefore = manifest.schemaVersion == 3 ? true : fixedOwnerIsEnabled
+        let resultingSchemaVersion = manifest.schemaVersion == 3 && isFixedOwnerTarget && !requestedEnabledState
+            ? 4 : manifest.schemaVersion
+        let ownerEnabledEffectiveAfter = resultingSchemaVersion == 3 ? true : ownerEnabledAfter
+        let expectedCurrent = (ownerEnabledBefore ? Set([hardBound]) : Set<String>())
+            .union(savedAssociations.filter(\.isEnabled).map(\.bundleIdentifier))
+        guard HelperBundleIdentifierKey.set(plan.beforeBundles) == HelperBundleIdentifierKey.set(expectedCurrent) else { throw AuthorizationError.associationMetadataMismatch }
+        let expectedAfter = (ownerEnabledEffectiveAfter ? Set([hardBound]) : Set<String>())
+            .union(associations.filter(\.isEnabled).map(\.bundleIdentifier))
+        guard HelperBundleIdentifierKey.set(plan.afterBundles) == HelperBundleIdentifierKey.set(expectedAfter) else { throw AuthorizationError.associationMetadataMismatch }
 
-        manifest = FilterKitPluginManifest(schemaVersion: manifest.schemaVersion, pluginID: manifest.pluginID,
+        let updatedTopology: FilterKitManifestBindingTopology? = resultingSchemaVersion == 4
+            ? FilterKitManifestBindingTopology(schemaVersion: 1,
+                fixedOwnerBundleIdentifier: hardBound,
+                fixedOwnerIsEnabled: ownerEnabledEffectiveAfter,
+                additionalAssociations: associations)
+            : nil
+        manifest = FilterKitPluginManifest(schemaVersion: resultingSchemaVersion, pluginID: manifest.pluginID,
             dylibFileName: manifest.dylibFileName, plistFileName: manifest.plistFileName,
             dylibSHA256: manifest.dylibSHA256, plistSHA256: SHA256Digest.hex(replacementPlist),
             hardBoundBundleIdentifier: hardBound,
             softAssociatedBundleIdentifiers: associations.map(\.bundleIdentifier).sorted(),
-            machOIdentitySHA256: manifest.machOIdentitySHA256, softAssociations: associations)
+            machOIdentitySHA256: manifest.machOIdentitySHA256, softAssociations: associations,
+            bindingTopology: updatedTopology)
+        let alreadyInRequestedState = (isFixedOwnerTarget
+            ? ownerEnabledBefore == requestedEnabledState
+            : existingAssociation?.isEnabled == requestedEnabledState) &&
+            ((request.action == .enableForApp && plan.disposition == .alreadyAssociated) ||
+             (request.action == .disableForApp && plan.disposition == .alreadyNotAssociated))
         let encoder = JSONEncoder(); encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
         let replacementManifest = alreadyInRequestedState ? manifestData : try encoder.encode(manifest)
         let effectiveReplacementPlist = alreadyInRequestedState ? plistData : replacementPlist

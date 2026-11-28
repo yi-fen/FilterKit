@@ -10,12 +10,12 @@ final class HelperInstallerDurableStoreTests: XCTestCase {
         let store = HelperInstallerDurableJournalStore(directoryPath: directory)
         var journal = try HelperInstallerTransactionJournal(action: .install,
             releaseIdentifier: "1.0.0-p136", generation: 11)
-        try journal.apply(.verifyArtifacts)
+        try journal.apply(.intentVerifyArtifacts)
         try store.save(journal)
         let loaded = try store.load(transactionID: journal.transactionID)
         XCTAssertEqual(loaded, journal)
         let assessment = try HelperInstallerRecoveryAssessment.assess(loaded)
-        XCTAssertEqual(assessment.recommendation, .resumeVerification)
+        XCTAssertEqual(assessment.recommendation, .reconcilePendingOperation(.verifyArtifacts))
     }
 
     func testDurableStoreRejectsNonRootOwnedOrNon0700Directory() throws {
@@ -32,7 +32,7 @@ final class HelperInstallerDurableStoreTests: XCTestCase {
     func testRecoveryAssessmentRejectsCorruptJournal() throws {
         var journal = try HelperInstallerTransactionJournal(action: .install,
             releaseIdentifier: "1.0.0-p136", generation: 11)
-        try journal.apply(.verifyArtifacts)
+        try journal.apply(.intentVerifyArtifacts)
         var encoded = try JSONEncoder().encode(journal)
         var object = try XCTUnwrap(JSONSerialization.jsonObject(with: encoded) as? [String: Any])
         var entries = try XCTUnwrap(object["entries"] as? [[String: Any]])
@@ -42,4 +42,13 @@ final class HelperInstallerDurableStoreTests: XCTestCase {
         let corrupt = try JSONDecoder().decode(HelperInstallerTransactionJournal.self, from: encoded)
         XCTAssertThrowsError(try HelperInstallerRecoveryAssessment.assess(corrupt))
     }
+    func testManualInterventionTakesPrecedenceOverPendingIntent() throws {
+        var journal = try HelperInstallerTransactionJournal(action: .install,
+            releaseIdentifier: "1.0.0-p136", generation: 11)
+        try journal.apply(.intentVerifyArtifacts)
+        try journal.apply(.requireManualIntervention)
+        let assessment = try HelperInstallerRecoveryAssessment.assess(journal)
+        XCTAssertEqual(assessment.recommendation, .manualIntervention)
+    }
+
 }

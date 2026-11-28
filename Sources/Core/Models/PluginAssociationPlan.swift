@@ -24,9 +24,12 @@ struct PluginAssociationPlan: Codable, Equatable {
     /// the current compatibility interpretation is that each recorded soft association is desired enabled.
     init?(snapshot: PluginAssociationSnapshot) {
         guard let hardBound = snapshot.hardBoundBundleIdentifier else { return nil }
-        let softIDs = Set(snapshot.softAssociatedApps.map(\.bundleIdentifier) + snapshot.missingSoftBundleIdentifiers)
+        let ownerKey = HelperBundleIdentifierKey.make(hardBound)
+        var seen = Set<String>()
+        let softIDs = (snapshot.softAssociatedApps.map(\.bundleIdentifier) + snapshot.missingSoftBundleIdentifiers)
+            .filter { let key = HelperBundleIdentifierKey.make($0); return key != ownerKey && seen.insert(key).inserted }
         self.init(pluginID: snapshot.pluginID, hardBoundBundleIdentifier: hardBound,
-                  softAssociations: softIDs.filter { $0 != hardBound }.map {
+                  softAssociations: softIDs.map {
                       PluginSoftAssociation(bundleIdentifier: $0, isEnabled: true)
                   })
     }
@@ -61,27 +64,32 @@ struct PluginAssociationPlanResolver {
         }
 
         var seen = Set<String>()
+        let ownerKey = HelperBundleIdentifierKey.make(plan.hardBoundBundleIdentifier)
+        let installedKeys = HelperBundleIdentifierKey.set(installedBundleIdentifiers)
         for association in plan.softAssociations {
+            let key = HelperBundleIdentifierKey.make(association.bundleIdentifier)
             if !Self.isValidBundleIdentifier(association.bundleIdentifier) {
                 issues.append(.invalidSoftBundleIdentifier)
             }
-            if association.bundleIdentifier == plan.hardBoundBundleIdentifier {
+            if key == ownerKey {
                 issues.append(.hardBoundCannotBeSoftAssociated)
             }
-            if !seen.insert(association.bundleIdentifier).inserted {
+            if !seen.insert(key).inserted {
                 issues.append(.duplicateSoftAssociation)
             }
         }
 
         let hardIsValid = Self.isValidBundleIdentifier(plan.hardBoundBundleIdentifier)
-        let hardInstalled = hardIsValid && installedBundleIdentifiers.contains(plan.hardBoundBundleIdentifier)
+        let hardInstalled = hardIsValid && installedKeys.contains(ownerKey)
         let enabled = plan.softAssociations
-            .filter { $0.isEnabled && Self.isValidBundleIdentifier($0.bundleIdentifier) && installedBundleIdentifiers.contains($0.bundleIdentifier) }
+            .filter { $0.isEnabled && Self.isValidBundleIdentifier($0.bundleIdentifier)
+                && installedKeys.contains(HelperBundleIdentifierKey.make($0.bundleIdentifier)) }
             .map(\.bundleIdentifier).sorted()
         let disabled = plan.softAssociations
             .filter { !$0.isEnabled && Self.isValidBundleIdentifier($0.bundleIdentifier) }.map(\.bundleIdentifier).sorted()
         let missing = plan.softAssociations
-            .filter { Self.isValidBundleIdentifier($0.bundleIdentifier) && !installedBundleIdentifiers.contains($0.bundleIdentifier) }
+            .filter { Self.isValidBundleIdentifier($0.bundleIdentifier)
+                && !installedKeys.contains(HelperBundleIdentifierKey.make($0.bundleIdentifier)) }
             .map(\.bundleIdentifier).sorted()
         var effective = Set(enabled)
         if hardInstalled { effective.insert(plan.hardBoundBundleIdentifier) }
@@ -110,11 +118,12 @@ struct PluginAssociationPlanResolver {
     }
 }
 
+/// Plugin-page edit surface is intentionally limited to association membership.
+/// Per-App injection enable/disable is owned exclusively by the Apps feature.
 enum PluginAssociationEdit: Equatable {
     case addSoft(bundleIdentifier: String)
     /// Re-adds a relationship removed earlier in the same draft while preserving its prior activation bit.
     case restoreSoft(association: PluginSoftAssociation)
-    case setSoftEnabled(bundleIdentifier: String, isEnabled: Bool)
     case removeSoft(bundleIdentifier: String)
 }
 
@@ -137,28 +146,26 @@ struct PluginAssociationPlanEditor {
         switch edit {
         case .addSoft(let bundleID):
             guard PluginAssociationPlanResolver.isValidBundleIdentifier(bundleID) else { return .failure(.invalidBundleIdentifier) }
-            guard bundleID != plan.hardBoundBundleIdentifier else { return .failure(.hardBoundIsImmutable) }
-            guard installedBundleIdentifiers.contains(bundleID) else { return .failure(.appNotInstalled) }
-            guard !plan.softAssociations.contains(where: { $0.bundleIdentifier == bundleID }) else { return .failure(.duplicateAssociation) }
+            let bundleKey = HelperBundleIdentifierKey.make(bundleID)
+            guard bundleKey != HelperBundleIdentifierKey.make(plan.hardBoundBundleIdentifier) else { return .failure(.hardBoundIsImmutable) }
+            guard HelperBundleIdentifierKey.set(installedBundleIdentifiers).contains(bundleKey) else { return .failure(.appNotInstalled) }
+            guard !plan.softAssociations.contains(where: { HelperBundleIdentifierKey.make($0.bundleIdentifier) == bundleKey }) else { return .failure(.duplicateAssociation) }
             // Creating a relationship must never implicitly activate injection.
             // The per-App activation state is controlled only from the App detail page.
             updated.softAssociations.append(PluginSoftAssociation(bundleIdentifier: bundleID, isEnabled: false))
         case .restoreSoft(let association):
             let bundleID = association.bundleIdentifier
             guard PluginAssociationPlanResolver.isValidBundleIdentifier(bundleID) else { return .failure(.invalidBundleIdentifier) }
-            guard bundleID != plan.hardBoundBundleIdentifier else { return .failure(.hardBoundIsImmutable) }
-            guard installedBundleIdentifiers.contains(bundleID) else { return .failure(.appNotInstalled) }
-            guard !plan.softAssociations.contains(where: { $0.bundleIdentifier == bundleID }) else { return .failure(.duplicateAssociation) }
+            let bundleKey = HelperBundleIdentifierKey.make(bundleID)
+            guard bundleKey != HelperBundleIdentifierKey.make(plan.hardBoundBundleIdentifier) else { return .failure(.hardBoundIsImmutable) }
+            guard HelperBundleIdentifierKey.set(installedBundleIdentifiers).contains(bundleKey) else { return .failure(.appNotInstalled) }
+            guard !plan.softAssociations.contains(where: { HelperBundleIdentifierKey.make($0.bundleIdentifier) == bundleKey }) else { return .failure(.duplicateAssociation) }
             updated.softAssociations.append(association)
-        case .setSoftEnabled(let bundleID, let enabled):
-            guard bundleID != plan.hardBoundBundleIdentifier else { return .failure(.hardBoundIsImmutable) }
-            guard let index = updated.softAssociations.firstIndex(where: { $0.bundleIdentifier == bundleID }) else { return .failure(.associationNotFound) }
-            guard installedBundleIdentifiers.contains(bundleID) else { return .failure(.appNotInstalled) }
-            updated.softAssociations[index].isEnabled = enabled
         case .removeSoft(let bundleID):
-            guard bundleID != plan.hardBoundBundleIdentifier else { return .failure(.hardBoundIsImmutable) }
-            guard updated.softAssociations.contains(where: { $0.bundleIdentifier == bundleID }) else { return .failure(.associationNotFound) }
-            updated.softAssociations.removeAll { $0.bundleIdentifier == bundleID }
+            let bundleKey = HelperBundleIdentifierKey.make(bundleID)
+            guard bundleKey != HelperBundleIdentifierKey.make(plan.hardBoundBundleIdentifier) else { return .failure(.hardBoundIsImmutable) }
+            guard updated.softAssociations.contains(where: { HelperBundleIdentifierKey.make($0.bundleIdentifier) == bundleKey }) else { return .failure(.associationNotFound) }
+            updated.softAssociations.removeAll { HelperBundleIdentifierKey.make($0.bundleIdentifier) == bundleKey }
         }
         updated.softAssociations.sort { $0.bundleIdentifier < $1.bundleIdentifier }
         return .success(updated)

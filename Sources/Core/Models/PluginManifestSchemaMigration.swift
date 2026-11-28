@@ -11,7 +11,7 @@ struct PluginManifestMigrationPreview: Equatable {
     init(sourceSchemaVersion: Int, migratedManifest: FilterKitPluginManifest,
          warnings: [String], requiresBinaryIdentityVerification: Bool) {
         self.sourceSchemaVersion = sourceSchemaVersion
-        self.targetSchemaVersion = 3
+        self.targetSchemaVersion = migratedManifest.schemaVersion
         self.migratedManifest = migratedManifest
         self.warnings = warnings
         self.requiresBinaryIdentityVerification = requiresBinaryIdentityVerification
@@ -32,6 +32,8 @@ enum PluginManifestMigrationError: Error, Equatable {
     case fileHashMismatch
     case missingHardBoundBundleIdentifier
     case inconsistentSchemaThreeAssociations
+    case inconsistentSchemaFourBindingTopology
+    case emptyBindingTopology
 }
 
 /// Pure schema decoder/migrator. It never writes the manifest or plugin files.
@@ -66,6 +68,59 @@ struct PluginManifestSchemaMigrator {
         )
     }
 
+    /// Creates the schema-4 wire manifest used by the fixed-owner / additional-association model.
+    /// A nil fixed owner is valid only when at least one additional App association exists.
+    func makeSchemaFourManifest(pluginID: UUID, dylibFileName: String, plistFileName: String,
+                                dylibSHA256: String, plistSHA256: String,
+                                machOIdentitySHA256: String,
+                                topology: PluginBindingTopology) throws -> FilterKitPluginManifest {
+        guard topology.pluginID == pluginID else { throw PluginManifestMigrationError.invalidPluginIdentifier }
+        guard Self.isSafeFileName(dylibFileName), Self.isSafeFileName(plistFileName) else {
+            throw PluginManifestMigrationError.invalidFileName
+        }
+        guard Self.isSHA256(dylibSHA256), Self.isSHA256(plistSHA256) else {
+            throw PluginManifestMigrationError.invalidSHA256
+        }
+        guard Self.isSHA256(machOIdentitySHA256) else { throw PluginManifestMigrationError.missingBinaryIdentity }
+        guard PluginBindingTopologyValidator().validate(topology).isEmpty else {
+            throw PluginManifestMigrationError.inconsistentSchemaFourBindingTopology
+        }
+        guard topology.fixedOwnerBundleIdentifier != nil || !topology.additionalAssociations.isEmpty else {
+            throw PluginManifestMigrationError.emptyBindingTopology
+        }
+        let states = topology.additionalAssociations.map {
+            FilterKitManifestSoftAssociation(bundleIdentifier: $0.bundleIdentifier, isEnabled: $0.isEnabled)
+        }.sorted { $0.bundleIdentifier < $1.bundleIdentifier }
+        let wireTopology = FilterKitManifestBindingTopology(schemaVersion: 1,
+            fixedOwnerBundleIdentifier: topology.fixedOwnerBundleIdentifier,
+            fixedOwnerIsEnabled: topology.fixedOwnerIsEnabled,
+            additionalAssociations: states)
+        return FilterKitPluginManifest(schemaVersion: 4, pluginID: pluginID.uuidString,
+            dylibFileName: dylibFileName, plistFileName: plistFileName,
+            dylibSHA256: dylibSHA256.lowercased(), plistSHA256: plistSHA256.lowercased(),
+            hardBoundBundleIdentifier: topology.fixedOwnerBundleIdentifier,
+            softAssociatedBundleIdentifiers: states.map(\.bundleIdentifier),
+            machOIdentitySHA256: machOIdentitySHA256.lowercased(),
+            softAssociations: states, bindingTopology: wireTopology)
+    }
+
+    func encodeSchemaFourManifest(_ manifest: FilterKitPluginManifest) throws -> Data {
+        guard manifest.schemaVersion == 4, let topology = manifest.bindingTopology,
+              topology.schemaVersion == 1,
+              topology.fixedOwnerBundleIdentifier == manifest.hardBoundBundleIdentifier,
+              topology.additionalAssociations == (manifest.softAssociations ?? []),
+              Set(topology.additionalAssociations.map(\.bundleIdentifier)) == Set(manifest.softAssociatedBundleIdentifiers ?? []) else {
+            throw PluginManifestMigrationError.inconsistentSchemaFourBindingTopology
+        }
+        try validateAssociations(topology.additionalAssociations, hardBound: topology.fixedOwnerBundleIdentifier)
+        guard topology.fixedOwnerBundleIdentifier != nil || !topology.additionalAssociations.isEmpty else {
+            throw PluginManifestMigrationError.emptyBindingTopology
+        }
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        return try encoder.encode(manifest)
+    }
+
     func encodeSchemaThreeManifest(_ manifest: FilterKitPluginManifest) throws -> Data {
         guard manifest.schemaVersion == 3,
               let states = manifest.softAssociations,
@@ -83,7 +138,7 @@ struct PluginManifestSchemaMigrator {
                                  actualPlistSHA256: String,
                                  machOIdentitySHA256: String?) throws -> PluginManifestMigrationPreview {
         let manifest = try JSONDecoder().decode(FilterKitPluginManifest.self, from: data)
-        guard (1...3).contains(manifest.schemaVersion) else {
+        guard (1...4).contains(manifest.schemaVersion) else {
             throw PluginManifestMigrationError.unsupportedSchema(manifest.schemaVersion)
         }
         try validateCommon(manifest)
@@ -91,8 +146,11 @@ struct PluginManifestSchemaMigrator {
               manifest.plistSHA256.lowercased() == actualPlistSHA256.lowercased() else {
             throw PluginManifestMigrationError.fileHashMismatch
         }
-        guard let hardBound = manifest.hardBoundBundleIdentifier,
-              PluginAssociationPlanResolver.isValidBundleIdentifier(hardBound) else {
+        let hardBound = manifest.hardBoundBundleIdentifier
+        if let hardBound, !PluginAssociationPlanResolver.isValidBundleIdentifier(hardBound) {
+            throw PluginManifestMigrationError.invalidHardBoundBundleIdentifier
+        }
+        if manifest.schemaVersion < 4 && hardBound == nil {
             throw PluginManifestMigrationError.missingHardBoundBundleIdentifier
         }
         guard let identity = machOIdentitySHA256, Self.isSHA256(identity) else {
@@ -105,7 +163,17 @@ struct PluginManifestSchemaMigrator {
         }
         let associations: [FilterKitManifestSoftAssociation]
         var warnings: [String] = []
-        if manifest.schemaVersion == 3 {
+        if manifest.schemaVersion == 4 {
+            guard let topology = manifest.bindingTopology, topology.schemaVersion == 1,
+                  topology.fixedOwnerBundleIdentifier == hardBound,
+                  topology.additionalAssociations == (manifest.softAssociations ?? []),
+                  Set(topology.additionalAssociations.map(\.bundleIdentifier)) == Set(manifest.softAssociatedBundleIdentifiers ?? []),
+                  topology.additionalAssociations.count == Set(topology.additionalAssociations.map(\.bundleIdentifier)).count,
+                  hardBound != nil || !topology.additionalAssociations.isEmpty else {
+                throw PluginManifestMigrationError.inconsistentSchemaFourBindingTopology
+            }
+            associations = topology.additionalAssociations
+        } else if manifest.schemaVersion == 3 {
             guard let saved = manifest.softAssociations else {
                 throw PluginManifestMigrationError.inconsistentSchemaThreeAssociations
             }
@@ -122,7 +190,11 @@ struct PluginManifestSchemaMigrator {
                 warnings.append("legacy_soft_associations_interpreted_as_enabled")
             }
         }
-        try validateAssociations(associations, hardBound: manifest.hardBoundBundleIdentifier)
+        try validateAssociations(associations, hardBound: hardBound)
+        if manifest.schemaVersion == 4 {
+            return PluginManifestMigrationPreview(sourceSchemaVersion: manifest.schemaVersion, migratedManifest: manifest,
+                warnings: warnings, requiresBinaryIdentityVerification: false)
+        }
         let upgraded = FilterKitPluginManifest(
             schemaVersion: 3,
             pluginID: manifest.pluginID,

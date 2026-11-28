@@ -57,8 +57,59 @@ final class FilterKitBackupServiceTests: XCTestCase {
         XCTAssertEqual(decoded.plugins.count, 1)
         XCTAssertEqual(decoded.plugins[0].dylibData, dylib)
         XCTAssertEqual(decoded.plugins[0].plistData, plist)
-        XCTAssertEqual(decoded.plugins[0].associationPlan.softAssociations.first?.isEnabled, false)
+        XCTAssertEqual(decoded.plugins[0].bindingTopology.additionalAssociations.first?.isEnabled, false)
         XCTAssertEqual(decoded.plugins[0].manifestData, manifestData)
+    }
+
+    func testExportsSchemaFourAdditionalAssociationOnlyPlugin() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let pluginDirectory = root.appendingPathComponent("ElleKit", isDirectory: true)
+        try FileManager.default.createDirectory(at: pluginDirectory, withIntermediateDirectories: true)
+
+        let pluginID = UUID()
+        let dylib = Data([0xca, 0xfe, 0xba, 0xbe, 9, 8, 7])
+        let plist = try PropertyListSerialization.data(fromPropertyList: ["Filter": ["Bundles": ["com.example.target"]]], format: .xml, options: 0)
+        let dylibName = "Additional.dylib", plistName = "Additional.plist", manifestName = "Additional.fk.json"
+        let dylibHash = SHA256Digest.hex(dylib), plistHash = SHA256Digest.hex(plist)
+        let association = FilterKitManifestSoftAssociation(bundleIdentifier: "com.example.target", isEnabled: true)
+        let identity = PluginIdentityAnalyzer.fingerprint(installNames: ["@rpath/Additional.dylib"],
+            uuids: ["aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"], cdHashes: ["0123456789abcdef"], architectures: ["arm64"])!
+        let topology = FilterKitManifestBindingTopology(schemaVersion: 1, fixedOwnerBundleIdentifier: nil,
+            fixedOwnerIsEnabled: true, additionalAssociations: [association])
+        let manifest = FilterKitPluginManifest(schemaVersion: 4, pluginID: pluginID.uuidString,
+            dylibFileName: dylibName, plistFileName: plistName, dylibSHA256: dylibHash, plistSHA256: plistHash,
+            hardBoundBundleIdentifier: nil, softAssociatedBundleIdentifiers: [association.bundleIdentifier],
+            machOIdentitySHA256: identity, softAssociations: [association], bindingTopology: topology)
+        let manifestData = try JSONEncoder().encode(manifest)
+        try dylib.write(to: pluginDirectory.appendingPathComponent(dylibName))
+        try plist.write(to: pluginDirectory.appendingPathComponent(plistName))
+        try manifestData.write(to: pluginDirectory.appendingPathComponent(manifestName))
+
+        let item = PluginScanItem(id: dylibName, baseName: "Additional", dylibFileName: dylibName,
+            plistFileName: plistName, manifestFileName: manifestName, pairingState: .paired, binaryKind: .machO,
+            ownership: .filterKit, filterKitPluginID: pluginID.uuidString, packageIdentifier: nil,
+            dylibSHA256: dylibHash, plistSHA256: plistHash, hardBoundBundleIdentifier: nil,
+            softAssociatedBundleIdentifiers: [association.bundleIdentifier], warnings: [],
+            filterConfiguration: PluginFilterConfiguration.parse(plist),
+            managementPermission: PluginManagementPermission(access: .manageable, reasonKey: "test"),
+            machOInstallName: "@rpath/Additional.dylib", machOUUIDs: ["aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"],
+            machOArchitectures: ["arm64"], machOCDHashes: ["0123456789abcdef"],
+            identityFingerprint: identity, identityStatus: .unique, softAssociationStates: [association],
+            dylibPath: pluginDirectory.appendingPathComponent(dylibName).path,
+            plistPath: pluginDirectory.appendingPathComponent(plistName).path,
+            manifestPath: pluginDirectory.appendingPathComponent(manifestName).path)
+        let scan = PluginScanResult(scannedAt: Date(), scannedDirectory: root.path,
+            directoryState: .resolved, plugins: [item], issues: [], isReadOnly: true,
+            scannedDirectories: [root.path, pluginDirectory.path])
+        let archive = try FilterKitBackupService().makeBackup(scan: scan, pluginIDs: [pluginID])
+        let decoded = try FilterKitBackupCodec().decodeAndValidate(archive)
+        XCTAssertEqual(decoded.document.schemaVersion, 3)
+        XCTAssertNil(decoded.plugins.first?.bindingTopology.fixedOwnerBundleIdentifier)
+        XCTAssertEqual(decoded.plugins.first?.bindingTopology.additionalAssociations, [
+            PluginBindingAssociation(bundleIdentifier: "com.example.target", isEnabled: true)
+        ])
     }
 
     func testRejectsNonFilterKitOwnership() throws {

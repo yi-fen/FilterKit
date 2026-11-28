@@ -2,17 +2,21 @@ import Foundation
 
 /// Scans the supported third-party plugin directories reported by PluginDirectoryLocator.
 /// It never writes, renames, chmods, or deletes files and never invokes dpkg.
+/// Optional package ownership evidence is read from the existing dpkg database index.
 final class ReadOnlyPluginScanner: PluginDiscoveryProvider {
     private let fileManager: FileManager
     private let assessmentProvider: (() -> PluginDirectoryAssessment)?
+    private let packageOwnershipProvider: PackageOwnershipProviding?
     private let maximumManifestBytes = 64 * 1024
     private let maximumDylibBytes: UInt64 = 128 * 1024 * 1024
     private let maximumPlistBytes: UInt64 = 2 * 1024 * 1024
 
     init(fileManager: FileManager = .default,
-         assessmentProvider: (() -> PluginDirectoryAssessment)? = nil) {
+         assessmentProvider: (() -> PluginDirectoryAssessment)? = nil,
+         packageOwnershipProvider: PackageOwnershipProviding? = nil) {
         self.fileManager = fileManager
         self.assessmentProvider = assessmentProvider
+        self.packageOwnershipProvider = packageOwnershipProvider
     }
 
     func scanPlugins() async throws -> PluginScanResult {
@@ -136,7 +140,29 @@ final class ReadOnlyPluginScanner: PluginDiscoveryProvider {
                 warnings.append("plugin_scan.duplicate_case_insensitive_basename")
                 issues.append(issue("duplicate-\(normalizedStem)", "plugin_scan.duplicate_case_insensitive_basename", stem))
             }
-            let ownership = PluginOwnership.unknown
+            var ownership = PluginOwnership.unknown
+            var ownershipConflict: PluginOwnershipConflict = .none
+            var packageIdentifier: String?
+            var dylibPackageIdentifier: String?
+            var plistPackageIdentifier: String?
+            if let packageOwnershipProvider {
+                let dylibEvidence: PackageOwnershipEvidence?
+                let plistEvidence: PackageOwnershipEvidence?
+                if let dylib { dylibEvidence = try? packageOwnershipProvider.ownershipEvidence(for: dylib) }
+                else { dylibEvidence = nil }
+                if let plist { plistEvidence = try? packageOwnershipProvider.ownershipEvidence(for: plist) }
+                else { plistEvidence = nil }
+                dylibPackageIdentifier = dylibEvidence?.packageIdentifier
+                plistPackageIdentifier = plistEvidence?.packageIdentifier
+                let owners = Set([dylibPackageIdentifier, plistPackageIdentifier].compactMap { $0 })
+                if owners.count > 1 {
+                    ownershipConflict = .multiplePackageOwners
+                    ownership = .packageManager
+                } else if !owners.isEmpty {
+                    ownership = .packageManager
+                    packageIdentifier = owners.first
+                }
+            }
             let manifestIdentityBinding: PluginManifestIdentityBinding = manifest == nil ? .notPresent : .unverified
             var hardBound: String?
             // A manifest UUID is only a lookup hint for the Helper attestation request.
@@ -256,7 +282,7 @@ final class ReadOnlyPluginScanner: PluginDiscoveryProvider {
             items.append(PluginScanItem(id: itemID, baseName: stem,
                 dylibFileName: dylib?.lastPathComponent, plistFileName: plist?.lastPathComponent,
                 manifestFileName: manifest?.lastPathComponent, pairingState: pairing,
-                binaryKind: binaryKind, ownership: ownership, filterKitPluginID: filterKitPluginID, packageIdentifier: nil,
+                binaryKind: binaryKind, ownership: ownership, filterKitPluginID: filterKitPluginID, packageIdentifier: packageIdentifier,
                 dylibSHA256: dylibHash, plistSHA256: plistHash,
                 hardBoundBundleIdentifier: hardBound,
                 softAssociatedBundleIdentifiers: soft, warnings: warnings,
@@ -265,8 +291,8 @@ final class ReadOnlyPluginScanner: PluginDiscoveryProvider {
                 machOInstallName: installName, machOCurrentVersion: currentVersion, machOCompatibilityVersion: compatibilityVersion,
                 machOUUID: uuids.first, machOUUIDs: Array(Set(uuids)).sorted(), machOArchitectures: Array(Set(architectures)).sorted(), machOCDHashes: Array(Set(cdHashes)).sorted(),
                 codeSignatureStates: signatureStates, machOSliceDetails: signatureDetails,
-                dylibPackageIdentifier: nil, plistPackageIdentifier: nil,
-                ownershipConflict: .none,
+                dylibPackageIdentifier: dylibPackageIdentifier, plistPackageIdentifier: plistPackageIdentifier,
+                ownershipConflict: ownershipConflict,
                 manifestIdentityBinding: manifestIdentityBinding,
                 manifestSHA256: manifestHash,
                 dylibFileObservation: dylibObservation, plistFileObservation: plistObservation,

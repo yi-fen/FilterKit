@@ -12,9 +12,9 @@ check('Home dashboard replaces placeholder', 'home.overview' in home and 'home.p
 check('Home summarizes installed apps and discovered plugins', all(x in home for x in ['home.apps', 'home.plugins', 'installedAppCount', 'pluginCount']))
 check('Home summarizes Filter health and associations', all(x in home for x in ['home.filter.parsed', 'home.filter.invalid', 'associatedAppCount']))
 check('Home environment status is explicitly qualified', all(x in home for x in ['home.status.ellekit_detected', 'home.status.root_detected_ellekit_uncertain', 'home.status.environment_unresolved']))
-check('First-time dylib/plist import exists on App detail', 'apps.detail.import_plugin' in apps and 'fileImporter(isPresented: $isImportingPlugin' in apps)
+check('First-time dylib/plist import exists on App detail', 'apps.detail.inject_plugin' in apps and 'fileImporter(isPresented: $isImportingPlugin' in apps)
 check('App detail computes plugin relationships for selected Bundle ID', all(x in apps for x in ['hardBoundBundleIdentifier == app.bundleIdentifier', 'softAssociatedBundleIdentifiers.contains(app.bundleIdentifier)']))
-check('Plugins page has no dylib/plist importer', 'isImportingPlugin' not in plugins and 'apps.detail.import_plugin' not in plugins and 'plugins.import.button' not in plugins)
+check('Plugins page has no dylib/plist importer', 'isImportingPlugin' not in plugins and 'apps.detail.inject_plugin' not in plugins and 'plugins.import.button' not in plugins)
 plugin_screen = plugins[plugins.index('struct PluginsView: View'):plugins.index('private struct BackupRestoreReview')]
 check('Plugins page only imports FilterKit backup data', 'isImportingBackup' in plugin_screen and 'filterkitbackup' in plugin_screen and 'fileImporter(isPresented: $isImportingBackup' in plugin_screen and 'fileImporter(isPresented: $isImportingPlugin' not in plugin_screen and 'filenameExtension: \"dylib\"' not in plugin_screen)
 check('Plugins page exposes no enable/disable mutation controls', 'PluginAssociationPreviewSection(plugin: plugin)' not in plugins and 'plugins.management.actions' not in plugins)

@@ -179,6 +179,67 @@ final class HelperDeploymentCoordinator {
         return proof
     }
 
+    /// Read-only lookup by the original APP command ID. A fresh transport request ID is used
+    /// for every query so replay protection does not prevent reconnect/status recovery.
+    func queryAppPluginActivationTransaction(commandRequestID: UUID, pluginID: UUID,
+                                             targetBundleIdentifier: String) async throws -> HelperAppPluginActivationTransactionStatus {
+        let now = Date()
+        let query = HelperAppPluginActivationTransactionQuery(requestID: UUID(),
+            commandRequestID: commandRequestID, pluginID: pluginID,
+            targetBundleIdentifier: targetBundleIdentifier, createdAt: now)
+        guard query.validate(now: now, clockSkewLimit: clockSkewLimit) else {
+            throw CoordinatorError.mutationRejected
+        }
+        let encoder = JSONEncoder(); encoder.dateEncodingStrategy = .iso8601
+        let envelope = HelperIPCEnvelope(messageType: .appPluginActivationTransactionQueryRequest,
+            requestID: query.requestID, createdAt: now, payload: try encoder.encode(query))
+        let response = try await transport.exchange(envelope)
+        guard response.protocolVersion == HelperIPCEnvelope.currentVersion,
+              response.messageType == .appPluginActivationTransactionStatusResponse,
+              response.requestID == query.requestID, let payload = response.payload else {
+            throw CoordinatorError.invalidStatus
+        }
+        let decoder = JSONDecoder(); decoder.dateDecodingStrategy = .iso8601
+        let status = try decoder.decode(HelperAppPluginActivationTransactionStatus.self, from: payload)
+        guard status.matches(query),
+              abs(Date().timeIntervalSince(status.checkedAt)) <= clockSkewLimit else {
+            throw CoordinatorError.invalidStatus
+        }
+        return status
+    }
+
+    /// Explicitly asks Helper to reconcile a pending Outcome Unknown activation. The request
+    /// cannot replay Commit; Helper may only resolve the Ledger from its matching journal and
+    /// observed file hashes, then clean that journal after the terminal Ledger write.
+    func reconcileAppPluginActivationTransaction(commandRequestID: UUID, pluginID: UUID,
+                                                  targetBundleIdentifier: String,
+                                                  userConfirmed: Bool) async throws -> HelperAppPluginActivationTransactionStatus {
+        guard userConfirmed else { throw CoordinatorError.confirmationRequired }
+        let now = Date()
+        let request = HelperAppPluginActivationTransactionReconciliationRequest(
+            requestID: UUID(), commandRequestID: commandRequestID, pluginID: pluginID,
+            targetBundleIdentifier: targetBundleIdentifier, createdAt: now, operatorConfirmed: true)
+        guard request.validate(now: now, clockSkewLimit: clockSkewLimit) else {
+            throw CoordinatorError.mutationRejected
+        }
+        let encoder = JSONEncoder(); encoder.dateEncodingStrategy = .iso8601
+        let envelope = HelperIPCEnvelope(messageType: .appPluginActivationTransactionReconcileRequest,
+            requestID: request.requestID, createdAt: now, payload: try encoder.encode(request))
+        let response = try await transport.exchange(envelope)
+        guard response.protocolVersion == HelperIPCEnvelope.currentVersion,
+              response.messageType == .appPluginActivationTransactionStatusResponse,
+              response.requestID == request.requestID, let payload = response.payload else {
+            throw CoordinatorError.invalidStatus
+        }
+        let decoder = JSONDecoder(); decoder.dateDecodingStrategy = .iso8601
+        let status = try decoder.decode(HelperAppPluginActivationTransactionStatus.self, from: payload)
+        guard status.matches(request.statusQuery),
+              abs(Date().timeIntervalSince(status.checkedAt)) <= clockSkewLimit else {
+            throw CoordinatorError.invalidStatus
+        }
+        return status
+    }
+
     static let appPluginActivationCommitReleased = false
 
     /// Constructs the single-envelope batch protocol. This is also used by offline protocol tests;

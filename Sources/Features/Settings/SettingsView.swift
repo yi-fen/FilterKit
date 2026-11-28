@@ -3,6 +3,7 @@ import SwiftUI
 struct SettingsView: View {
     @EnvironmentObject private var language: LanguagePreference
     @AppStorage("filterkit.showSystemApps") private var showingSystemApps = false
+    @AppStorage("filterkit.restore.onlyInstalledAssociatedApps") private var restoreOnlyForInstalledApps = true
     @ObservedObject private var pluginRegistry = PluginScanRegistry.shared
     @State private var appBinaryIdentity: AppBinaryIdentitySnapshot?
     @State private var elleKitProfileStatusKey = "settings.filter.not_checked"
@@ -28,6 +29,13 @@ struct SettingsView: View {
                 Section(header: Text("settings.apps")) {
                     Toggle("settings.show_system_apps", isOn: $showingSystemApps)
                         .accessibilityIdentifier("settings.showSystemApps.toggle")
+                }
+
+                Section(header: Text("settings.backup")) {
+                    Toggle("settings.backup.only_installed_apps", isOn: $restoreOnlyForInstalledApps)
+                        .accessibilityIdentifier("settings.backup.onlyInstalledApps.toggle")
+                    Text("settings.backup.only_installed_apps.note")
+                        .font(.footnote).foregroundColor(.secondary)
                 }
 
                 Section(header: Text("settings.filter")) {
@@ -87,9 +95,12 @@ struct SettingsView: View {
                     .disabled(helperCoordinator == nil || isRefreshingHelper)
                 }
 
-                Section(header: Text("diagnostics.title")) {
-                    NavigationLink(destination: RuntimeDiagnosticsView()) {
-                        Label("diagnostics.open", systemImage: "waveform.path.ecg")
+                Section(header: Text("activity.title")) {
+                    NavigationLink(destination: ActivityHistoryView()) {
+                        Label("activity.open", systemImage: "clock.arrow.circlepath")
+                    }
+                    NavigationLink(destination: DeveloperLogsView()) {
+                        Label("logs.developer.open", systemImage: "stethoscope")
                     }
                 }
 
@@ -158,9 +169,17 @@ struct SettingsView: View {
         do {
             helperStatus = try await helperCoordinator.fetchStatus()
             helperStatusUnavailable = false
+            RuntimeEventLogger.record(level: .info, module: "HelperStatus",
+                event: "helper.status.fetch.completed", message: "Helper status request completed.",
+                attributes: ["recovery_status": helperStatus?.recoveryStatus.rawValue ?? "unknown"],
+                activityTitle: "activity.helper_status_checked", activityDetail: "")
         } catch {
             helperStatus = nil
             helperStatusUnavailable = true
+            RuntimeEventLogger.record(level: .error, module: "HelperStatus",
+                event: "helper.status.fetch.failed", message: "Helper status request failed.",
+                attributes: ["error_type": String(describing: type(of: error))],
+                activityTitle: "activity.helper_status_failed", activityDetail: "")
         }
     }
 }

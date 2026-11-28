@@ -2,19 +2,18 @@ import XCTest
 @testable import FilterKit
 
 final class PluginAssociationPlanTests: XCTestCase {
-    func testHardBoundRemainsEffectiveAndCannotBeDisabled() throws {
-        let plan = PluginAssociationPlan(
-            pluginID: UUID(),
-            hardBoundBundleIdentifier: "com.example.source",
-            softAssociations: [PluginSoftAssociation(bundleIdentifier: "com.example.secondary", isEnabled: true)]
-        )
+    func testAssociationEditorHasNoPerAppActivationEditAndPreservesExistingBits() throws {
+        let active = PluginSoftAssociation(bundleIdentifier: "com.example.active", isEnabled: true)
+        let inactive = PluginSoftAssociation(bundleIdentifier: "com.example.inactive", isEnabled: false)
+        let plan = PluginAssociationPlan(pluginID: UUID(), hardBoundBundleIdentifier: "com.example.source",
+            softAssociations: [active, inactive])
         let editor = PluginAssociationPlanEditor()
-        let result = editor.applying(.setSoftEnabled(bundleIdentifier: "com.example.source", isEnabled: false),
-                                     to: plan,
-                                     installedBundleIdentifiers: ["com.example.source", "com.example.secondary"],
-                                     pluginIsManageable: true)
-        if case .failure(let error) = result { XCTAssertEqual(error, .hardBoundIsImmutable) }
-        else { XCTFail("Hard-bound App must not be toggleable") }
+        let added = try editor.applying(.addSoft(bundleIdentifier: "com.example.new"), to: plan,
+            installedBundleIdentifiers: ["com.example.active", "com.example.inactive", "com.example.new"],
+            pluginIsManageable: true).get()
+        XCTAssertEqual(added.softAssociations.first(where: { $0.bundleIdentifier == active.bundleIdentifier })?.isEnabled, true)
+        XCTAssertEqual(added.softAssociations.first(where: { $0.bundleIdentifier == inactive.bundleIdentifier })?.isEnabled, false)
+        XCTAssertEqual(added.softAssociations.first(where: { $0.bundleIdentifier == "com.example.new" })?.isEnabled, false)
     }
 
     func testDisabledSoftAssociationIsNotEffectiveButRemainsInPlan() {
@@ -89,6 +88,37 @@ final class PluginAssociationPlanTests: XCTestCase {
         XCTAssertTrue(resolution.issues.contains(.hardBoundCannotBeSoftAssociated))
         XCTAssertTrue(resolution.issues.contains(.duplicateSoftAssociation))
         XCTAssertEqual(resolution.effectiveBundleIdentifiers, ["com.example.other", "com.example.source"])
+    }
+
+    func testBundleIdentifierIdentityIsCaseInsensitiveForResolutionAndDuplicateDetection() {
+        let plan = PluginAssociationPlan(pluginID: UUID(), hardBoundBundleIdentifier: "com.example.source",
+            softAssociations: [
+                PluginSoftAssociation(bundleIdentifier: "com.example.target", isEnabled: true),
+                PluginSoftAssociation(bundleIdentifier: "COM.EXAMPLE.TARGET", isEnabled: false),
+                PluginSoftAssociation(bundleIdentifier: "COM.EXAMPLE.SOURCE", isEnabled: true)
+            ])
+        let result = PluginAssociationPlanResolver().resolve(plan, installedBundleIdentifiers: [
+            "COM.EXAMPLE.SOURCE", "COM.EXAMPLE.TARGET"
+        ])
+        XCTAssertFalse(result.isValid)
+        XCTAssertTrue(result.issues.contains(.duplicateSoftAssociation))
+        XCTAssertTrue(result.issues.contains(.hardBoundCannotBeSoftAssociated))
+        XCTAssertTrue(result.hardBoundIsInstalled)
+    }
+
+    func testAssociationEditorUsesCanonicalBundleIdentity() throws {
+        let editor = PluginAssociationPlanEditor()
+        let plan = PluginAssociationPlan(pluginID: UUID(), hardBoundBundleIdentifier: "com.example.source",
+            softAssociations: [PluginSoftAssociation(bundleIdentifier: "com.example.target", isEnabled: true)])
+        let installed: Set<String> = ["COM.EXAMPLE.SOURCE", "COM.EXAMPLE.TARGET"]
+        let duplicate = editor.applying(.addSoft(bundleIdentifier: "COM.EXAMPLE.TARGET"), to: plan,
+            installedBundleIdentifiers: installed, pluginIsManageable: true)
+        if case .failure(let error) = duplicate { XCTAssertEqual(error, .duplicateAssociation) }
+        else { XCTFail("Case-variant duplicate must be rejected") }
+
+        let removed = try editor.applying(.removeSoft(bundleIdentifier: "COM.EXAMPLE.TARGET"), to: plan,
+            installedBundleIdentifiers: installed, pluginIsManageable: true).get()
+        XCTAssertTrue(removed.softAssociations.isEmpty)
     }
 
     func testSoftAssociationAddAndRemoveArePlanOnlyOperations() throws {

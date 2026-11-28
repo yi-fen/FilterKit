@@ -26,13 +26,12 @@ final class HelperPluginAssociationMutationPolicyTests: XCTestCase {
             desired: desired, hardBoundBundleIdentifier: hardBound))
     }
 
-    func testEnabledAssociationCannotBeRemovedBeforeAppDetailDisablesIt() {
+    func testEnabledAssociationCanBeRemovedByPluginPageTransaction() throws {
         let original = [PluginSoftAssociation(bundleIdentifier: a, isEnabled: true)]
-        XCTAssertThrowsError(try HelperPluginAssociationMutationPolicy.validate(original: original,
-            desired: [], hardBoundBundleIdentifier: hardBound)) { error in
-                XCTAssertEqual(error as? HelperPluginAssociationMutationPolicy.PolicyError,
-                               .enabledAssociationMustBeDisabledFirst)
-            }
+        XCTAssertTrue(try HelperPluginAssociationMutationPolicy.validate(original: original,
+            desired: [], hardBoundBundleIdentifier: hardBound).isEmpty)
+        // The Helper transaction is responsible for removing the active Bundle filter
+        // together with the Manifest relationship; this policy does not toggle activation.
     }
 
     func testDisabledAssociationCanBeRemoved() throws {

@@ -1,4 +1,8 @@
 name: FilterKit
+packages:
+  ZIPFoundation:
+    url: https://github.com/weichsel/ZIPFoundation.git
+    from: 0.9.19
 options:
   bundleIdPrefix: cn.yfen
   deploymentTarget:
@@ -26,6 +30,8 @@ targets:
   FilterKit:
     type: application
     platform: iOS
+    dependencies:
+      - package: ZIPFoundation
     sources:
       - path: App
       - path: Sources/Core
@@ -61,6 +67,7 @@ targets:
       - path: Sources/Environment/Helper/Transport/UnixDomainSocketTransport.swift
       - path: Sources/Environment/Helper/Transport/DarwinPeerIdentityProvider.swift
       - path: Sources/Environment/Helper/Transport/HelperPeerAuthenticationDiagnostics.swift
+      - path: Sources/Environment/Helper/Transport/HelperCodeSigningIdentityBindingPolicy.swift
       - path: Sources/Environment/Helper/HelperDeploymentCoordinator.swift
       - path: Sources/Environment/Helper/Runtime
       - path: Sources/Environment/Helper/Execution

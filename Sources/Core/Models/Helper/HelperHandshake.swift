@@ -76,11 +76,15 @@ protocol HelperPeerTrustEvaluating {
 }
 
 struct HelperPeerTrustPolicy: HelperPeerTrustEvaluating {
-    enum TrustError: Swift.Error { case uidNotAllowed, gidNotAllowed, invalidCDHash, cdHashNotAllowed, invalidPID }
+    enum TrustError: Swift.Error { case uidNotAllowed, gidNotAllowed, invalidCDHash, cdHashNotAllowed, invalidPID, codeSigningIdentityUnavailable }
     let allowedUIDs: Set<UInt32>
     let allowedCDHashes: Set<String>
     /// When supplied, the kernel-reported peer GID must also match. Production callers set this.
     var allowedGIDs: Set<UInt32> = []
+    /// When set, requires an independently OS-verified code identifier. A matching
+    /// CDHash alone is not treated as a Bundle ID assertion.
+    var expectedBundleIdentifier: String? = nil
+    var expectedTeamIdentifier: String? = nil
 
     func verify(_ identity: HelperPeerIdentity) throws {
         guard identity.pid > 0 else { throw TrustError.invalidPID }
@@ -89,6 +93,13 @@ struct HelperPeerTrustPolicy: HelperPeerTrustEvaluating {
         guard identity.cdHashHex.range(of: "^[0-9a-fA-F]{40}$", options: .regularExpression) != nil else { throw TrustError.invalidCDHash }
         guard allowedCDHashes.contains(where: { $0.caseInsensitiveCompare(identity.cdHashHex) == .orderedSame }) else {
             throw TrustError.cdHashNotAllowed
+        }
+        if expectedBundleIdentifier != nil || expectedTeamIdentifier != nil {
+            guard let expectedBundleIdentifier, let expectedTeamIdentifier,
+                  HelperPeerIdentityBindingPolicy.codeSigningIdentityMatches(identity,
+                    bundleIdentifier: expectedBundleIdentifier, teamIdentifier: expectedTeamIdentifier) else {
+                throw TrustError.codeSigningIdentityUnavailable
+            }
         }
     }
 }
@@ -158,7 +169,9 @@ enum HelperIPCServerRequestPolicy {
         .pluginFilterMutationPrepareRequest,
         .pluginFilterMutationCommitRequest,
         .appPluginActivationPrepareRequest,
-        .appPluginActivationCommitRequest
+        .appPluginActivationCommitRequest,
+        .appPluginActivationTransactionQueryRequest,
+        .appPluginActivationTransactionReconcileRequest
     ]
 
     static func allows(_ messageType: HelperIPCMessageType) -> Bool {

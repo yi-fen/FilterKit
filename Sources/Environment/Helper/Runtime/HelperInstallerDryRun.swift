@@ -2,14 +2,23 @@ import Foundation
 /// Validation-only boundary for the future privileged installer. It never writes files,
 /// changes ownership, invokes launchctl, or modifies the running Helper.
 struct HelperInstallerDryRun {
-    enum DryRunError: Error, Equatable { case invalidBundle, invalidArtifactDigest }
+    enum DryRunError: Error, Equatable { case invalidBundle, invalidArtifactDigest, repinBaselineRequired, invalidRepinTransition }
 
     func validate(bundle: HelperInstallerProvisioningBundle,
                   artifactDigests: [HelperInstallerArtifactDigest],
-                  action: HelperInstallerTransactionPlan.Action) throws -> HelperInstallerDryRunReport {
+                  action: HelperInstallerTransactionPlan.Action,
+                  trustedBaseline: HelperVerifiedProvisioningBaseline? = nil) throws -> HelperInstallerDryRunReport {
         // Deliberately unprivileged: this API validates and renders artifacts only.
         // The production installer must independently enforce root and signed-package provenance.
         try bundle.validate()
+        if action == .repin {
+            guard let trustedBaseline else { throw DryRunError.repinBaselineRequired }
+            do {
+                try HelperClientCodeIdentityRotationPolicy.validate(previous: trustedBaseline.payload, next: bundle)
+            } catch {
+                throw DryRunError.invalidRepinTransition
+            }
+        }
         let artifactPaths = Set(artifactDigests.map(\.relativePath))
         guard !artifactDigests.isEmpty, artifactDigests.allSatisfy({ $0.validate() }),
               artifactPaths.count == artifactDigests.count,

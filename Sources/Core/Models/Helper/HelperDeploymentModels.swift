@@ -15,6 +15,10 @@ struct HelperDeploymentManifest: Codable, Equatable {
     /// Explicit owner of the staging root; it is not inferred from the set of allowed clients.
     var stagingOwnerUID: UInt32? = nil
     let executionEnabled: Bool
+    /// Root-owned installer binding. Optional only for decoding legacy manifests;
+    /// production trust rejects a missing value once client identity binding is required.
+    var allowedClientBundleIdentifier: String? = nil
+    var allowedClientTeamIdentifier: String? = nil
 
     static let currentSchemaVersion = 2
 
@@ -23,12 +27,16 @@ struct HelperDeploymentManifest: Codable, Equatable {
                                  stagingRootPath: String, socketPath: String,
                                  appCDHashes: [String] = [], helperCDHashes: [String] = [],
                                  allowedClientUIDs: [UInt32] = [501],
-                                 stagingOwnerUID: UInt32? = nil, socketGroupID: UInt32 = 501) -> Self {
+                                 stagingOwnerUID: UInt32? = nil, socketGroupID: UInt32 = 501,
+                                 allowedClientBundleIdentifier: String? = nil,
+                                 allowedClientTeamIdentifier: String? = nil) -> Self {
         Self(schemaVersion: currentSchemaVersion, routeIdentifier: routeIdentifier,
              jbRootPath: jbRootPath, tweakInjectPath: tweakInjectPath,
              stagingRootPath: stagingRootPath, socketPath: socketPath,
              allowedAppCDHashes: appCDHashes, allowedHelperCDHashes: helperCDHashes,
-             allowedClientUIDs: allowedClientUIDs, socketGroupID: socketGroupID, stagingOwnerUID: stagingOwnerUID, executionEnabled: false)
+             allowedClientUIDs: allowedClientUIDs, socketGroupID: socketGroupID, stagingOwnerUID: stagingOwnerUID, executionEnabled: false,
+             allowedClientBundleIdentifier: allowedClientBundleIdentifier,
+             allowedClientTeamIdentifier: allowedClientTeamIdentifier)
     }
 }
 
@@ -63,6 +71,12 @@ struct HelperPolicy {
               let provisionedSocketGID = manifest.socketGroupID,
               peer.gid == provisionedSocketGID else { throw HelperPolicyError.untrustedPeer }
         guard Self.isValidCDHash(peer.cdHashHex), manifest.allowedAppCDHashes.contains(where: { $0.caseInsensitiveCompare(peer.cdHashHex) == .orderedSame }) else { throw HelperPolicyError.untrustedPeer }
+        guard let expectedBundleID = manifest.allowedClientBundleIdentifier,
+              let expectedTeamID = manifest.allowedClientTeamIdentifier,
+              HelperPeerIdentityBindingPolicy.codeSigningIdentityMatches(peer,
+                bundleIdentifier: expectedBundleID, teamIdentifier: expectedTeamID) else {
+            throw HelperPolicyError.untrustedPeer
+        }
         guard Self.isValidCDHash(helperCDHashHex), manifest.allowedHelperCDHashes.contains(where: { $0.caseInsensitiveCompare(helperCDHashHex) == .orderedSame }) else { throw HelperPolicyError.helperIdentityMismatch }
         guard Self.isSafeLeafName(request.targetFileName) else { throw HelperPolicyError.invalidFileName }
 
@@ -103,6 +117,9 @@ struct HelperPolicy {
         !value.isEmpty && !value.hasPrefix("/") && !value.contains("\\") && !value.contains("\0") &&
         value.split(separator: "/", omittingEmptySubsequences: false)
             .allSatisfy { !$0.isEmpty && $0 != "." && $0 != ".." }
+    }
+    static func bundleIdentifiersEqual(_ lhs: String, _ rhs: String) -> Bool {
+        lhs.caseInsensitiveCompare(rhs) == .orderedSame
     }
     static func isValidHash(_ value: String) -> Bool { value.range(of: "^[0-9a-fA-F]{64}$", options: .regularExpression) != nil }
     static func isValidCDHash(_ value: String) -> Bool { value.range(of: "^[0-9a-fA-F]{40}$", options: .regularExpression) != nil }

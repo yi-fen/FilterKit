@@ -107,22 +107,38 @@ final class HelperProductionDeploymentBackend: HelperDeploymentPipelineBackend {
         try requireTargetAbsent(pair.plist.targetFileName)
 
         let payloads = try readAndValidatePayloads(pair: pair)
+        do {
+            if try packageResolver.containsPackageManagedDylibSHA256(pluginDirectory: configuration.pluginDirectory,
+                expectedSHA256: SHA256Digest.hex(payloads.dylib), infoDirectories: configuration.dpkgInfoDirectories) {
+                throw BackendError.packageOwned
+            }
+        } catch let error as BackendError { throw error }
+        catch { throw BackendError.packageOwnershipUnavailable }
         guard packageProof.validates(directory: configuration.pluginDirectory,
             fileNames: [pair.dylib.targetFileName, pair.plist.targetFileName]) else {
             throw BackendError.packageOwnershipUnavailable
         }
-        let manifest = FilterKitPluginManifest(schemaVersion: 3, pluginID: batch.pluginID.uuidString,
-            dylibFileName: pair.dylib.targetFileName, plistFileName: pair.plist.targetFileName,
-            dylibSHA256: SHA256Digest.hex(payloads.dylib), plistSHA256: SHA256Digest.hex(payloads.plist),
-            hardBoundBundleIdentifier: metadata.hardBoundBundleIdentifier,
-            softAssociatedBundleIdentifiers: metadata.softAssociations.map(\.bundleIdentifier).sorted(),
-            machOIdentitySHA256: payloads.identity, softAssociations: metadata.softAssociations)
+        let manifest: FilterKitPluginManifest
+        do {
+            manifest = try PluginFirstInstallBindingPolicy.makeManifest(
+                pluginID: batch.pluginID,
+                dylibFileName: pair.dylib.targetFileName,
+                plistFileName: pair.plist.targetFileName,
+                dylibSHA256: SHA256Digest.hex(payloads.dylib),
+                plistSHA256: SHA256Digest.hex(payloads.plist),
+                machOIdentitySHA256: payloads.identity,
+                fixedOwnerBundleIdentifier: metadata.hardBoundBundleIdentifier,
+                additionalAssociations: metadata.softAssociations,
+                filterPlistData: payloads.plist)
+        } catch {
+            throw BackendError.invalidPlist
+        }
         let encoder = JSONEncoder(); encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
         let manifestBytes = try encoder.encode(manifest)
         let proof = try HelperOwnershipProof(pluginID: batch.pluginID,
             dylibFileName: pair.dylib.targetFileName, plistFileName: pair.plist.targetFileName,
             dylibSHA256: SHA256Digest.hex(payloads.dylib), plistSHA256: SHA256Digest.hex(payloads.plist),
-            manifestSchemaVersion: 3, manifestSHA256: SHA256Digest.hex(manifestBytes),
+            manifestSchemaVersion: 4, manifestSHA256: SHA256Digest.hex(manifestBytes),
             binaryIdentityVerified: true, isFirstInstallAuthorization: true)
         return HelperAuthorizedDeployment(proof: proof, plans: makePlans(pair),
             dylibData: payloads.dylib, plistData: payloads.plist, manifestData: manifestBytes)
@@ -155,24 +171,53 @@ final class HelperProductionDeploymentBackend: HelperDeploymentPipelineBackend {
         let oldManifestHash = SHA256Digest.hex(oldManifestData)
         guard oldProof.manifestSHA256.caseInsensitiveCompare(oldManifestHash) == .orderedSame,
               let oldManifest = try? JSONDecoder().decode(FilterKitPluginManifest.self, from: oldManifestData),
-              oldManifest.schemaVersion == 3,
+              (oldManifest.schemaVersion == 3 || oldManifest.schemaVersion == 4),
               UUID(uuidString: oldManifest.pluginID) == batch.pluginID,
               oldManifest.dylibFileName == pair.dylib.targetFileName,
               oldManifest.plistFileName == pair.plist.targetFileName,
               let hardBound = oldManifest.hardBoundBundleIdentifier else { throw BackendError.manifestMismatch }
-        let updatedManifest = FilterKitPluginManifest(schemaVersion: 3, pluginID: batch.pluginID.uuidString,
-            dylibFileName: pair.dylib.targetFileName, plistFileName: pair.plist.targetFileName,
-            dylibSHA256: SHA256Digest.hex(payloads.dylib), plistSHA256: SHA256Digest.hex(payloads.plist),
-            hardBoundBundleIdentifier: hardBound,
-            softAssociatedBundleIdentifiers: oldManifest.softAssociatedBundleIdentifiers ?? [],
-            machOIdentitySHA256: payloads.identity,
-            softAssociations: oldManifest.softAssociations ?? [])
+        let existingAssociations = oldManifest.softAssociations ?? []
+        let updatedManifest: FilterKitPluginManifest
+        if oldManifest.schemaVersion == 4 {
+            guard let oldTopology = oldManifest.bindingTopology,
+                  oldTopology.schemaVersion == 1,
+                  HelperBundleIdentifierKey.make(oldTopology.fixedOwnerBundleIdentifier ?? "") == HelperBundleIdentifierKey.make(hardBound),
+                  oldTopology.additionalAssociations.count == existingAssociations.count,
+                  oldTopology.additionalAssociations.allSatisfy({ topologyAssociation in
+                      existingAssociations.contains {
+                          HelperBundleIdentifierKey.make($0.bundleIdentifier) == HelperBundleIdentifierKey.make(topologyAssociation.bundleIdentifier) &&
+                          $0.isEnabled == topologyAssociation.isEnabled
+                      }
+                  }) else { throw BackendError.manifestMismatch }
+            let normalized = oldTopology.additionalAssociations.sorted {
+                HelperBundleIdentifierKey.make($0.bundleIdentifier) < HelperBundleIdentifierKey.make($1.bundleIdentifier)
+            }
+            updatedManifest = FilterKitPluginManifest(schemaVersion: 4, pluginID: batch.pluginID.uuidString,
+                dylibFileName: pair.dylib.targetFileName, plistFileName: pair.plist.targetFileName,
+                dylibSHA256: SHA256Digest.hex(payloads.dylib), plistSHA256: SHA256Digest.hex(payloads.plist),
+                hardBoundBundleIdentifier: hardBound,
+                softAssociatedBundleIdentifiers: normalized.map(\.bundleIdentifier),
+                machOIdentitySHA256: payloads.identity,
+                softAssociations: normalized,
+                bindingTopology: FilterKitManifestBindingTopology(schemaVersion: 1,
+                    fixedOwnerBundleIdentifier: hardBound,
+                    fixedOwnerIsEnabled: oldTopology.fixedOwnerIsEnabled,
+                    additionalAssociations: normalized))
+        } else {
+            updatedManifest = FilterKitPluginManifest(schemaVersion: 3, pluginID: batch.pluginID.uuidString,
+                dylibFileName: pair.dylib.targetFileName, plistFileName: pair.plist.targetFileName,
+                dylibSHA256: SHA256Digest.hex(payloads.dylib), plistSHA256: SHA256Digest.hex(payloads.plist),
+                hardBoundBundleIdentifier: hardBound,
+                softAssociatedBundleIdentifiers: oldManifest.softAssociatedBundleIdentifiers ?? [],
+                machOIdentitySHA256: payloads.identity,
+                softAssociations: existingAssociations)
+        }
         let encoder = JSONEncoder(); encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
         let manifestBytes = try encoder.encode(updatedManifest)
         let proof = try HelperOwnershipProof(pluginID: batch.pluginID,
             dylibFileName: pair.dylib.targetFileName, plistFileName: pair.plist.targetFileName,
             dylibSHA256: SHA256Digest.hex(payloads.dylib), plistSHA256: SHA256Digest.hex(payloads.plist),
-            manifestSchemaVersion: 3, manifestSHA256: SHA256Digest.hex(manifestBytes),
+            manifestSchemaVersion: updatedManifest.schemaVersion, manifestSHA256: SHA256Digest.hex(manifestBytes),
             binaryIdentityVerified: true, isFirstInstallAuthorization: false)
         return HelperAuthorizedDeployment(proof: proof, plans: makePlans(pair),
             dylibData: payloads.dylib, plistData: payloads.plist, manifestData: manifestBytes,
@@ -194,12 +239,32 @@ final class HelperProductionDeploymentBackend: HelperDeploymentPipelineBackend {
             packageProof = try packageResolver.resolve(pluginDirectory: configuration.pluginDirectory,
                 fileNames: [prepared.proof.dylibFileName, prepared.proof.plistFileName],
                 infoDirectories: configuration.dpkgInfoDirectories)
+        } catch HelperPackageOwnershipProof.ProofError.packageOwned {
+            // Package ownership is re-read at the last privileged boundary. Never collapse this
+            // into a generic I/O failure: it is an explicit external-owner denial.
+            throw BackendError.packageOwned
         } catch { throw BackendError.packageOwnershipUnavailable }
         guard packageProof.validates(directory: configuration.pluginDirectory,
             fileNames: [prepared.proof.dylibFileName, prepared.proof.plistFileName]) else {
             throw BackendError.packageOwnershipUnavailable
         }
+        do {
+            if try packageResolver.containsPackageManagedDylibSHA256(pluginDirectory: configuration.pluginDirectory,
+                expectedSHA256: prepared.proof.dylibSHA256, infoDirectories: configuration.dpkgInfoDirectories) {
+                throw BackendError.packageOwned
+            }
+        } catch let error as BackendError { throw error }
+        catch { throw BackendError.packageOwnershipUnavailable }
         let route: HelperThreeFileTransactionExecutor.Route = prepared.proof.isFirstInstallAuthorization ? .firstInstall : .update
+        if route == .firstInstall {
+            // Re-check all destination leaves immediately before transaction creation. The
+            // transaction independently enforces absent dylib/plist/manifest under its lock.
+            guard try !manifestExistsSafely(Self.manifestName(for: prepared.proof.dylibFileName)) else {
+                throw BackendError.manifestStateUnsafe
+            }
+            try requireTargetAbsent(prepared.proof.dylibFileName)
+            try requireTargetAbsent(prepared.proof.plistFileName)
+        }
         let expectedPrevious: (dylib: String, plist: String, manifest: String)?
         if route == .update {
             guard let expected = prepared.expectedPrevious else { throw BackendError.manifestMismatch }

@@ -8,6 +8,8 @@ final class HelperRequestDispatcher {
     static let executionReleased = false
     /// Association writes remain independently locked pending RootHide device validation.
     static let pluginAssociationCommitReleased = false
+    /// Uninstall IPC is integrated but remains fail-closed pending signed release and device acceptance.
+    static let pluginUninstallExecutionReleased = false
 
     enum RejectionCode: String, Codable {
         case invalidSession = "invalid_session"
@@ -35,7 +37,13 @@ final class HelperRequestDispatcher {
         case malformedIdentityAttestation = "malformed_identity_attestation"
         case malformedAppPluginActivation = "malformed_app_plugin_activation"
         case appPluginActivationAuthorizationFailed = "app_plugin_activation_authorization_failed"
+        case appPluginActivationLedgerUnavailable = "app_plugin_activation_ledger_unavailable"
+        case appPluginActivationTransactionConflict = "app_plugin_activation_transaction_conflict"
         case identityAttestationUnavailable = "identity_attestation_unavailable"
+        case malformedPluginUninstall = "malformed_plugin_uninstall"
+        case pluginUninstallAuthorizationFailed = "plugin_uninstall_authorization_failed"
+        case pluginUninstallRecoveryRequired = "plugin_uninstall_recovery_required"
+        case pluginUninstallAuditUnavailable = "plugin_uninstall_audit_unavailable"
     }
 
     struct Rejection: Codable, Equatable {
@@ -43,6 +51,9 @@ final class HelperRequestDispatcher {
         let message: String
     }
 
+    /// The Helper serves one shared plugin-directory Journal. Serialize dispatcher work so
+    /// two concurrent requests cannot both pass the clean-recovery check and race that Journal.
+    private let dispatchSerializationLock = NSRecursiveLock()
     private let manifest: HelperDeploymentManifest
     private let audit: HelperAuditSink
     private let replayGuard: HelperRequestReplayGuard
@@ -54,6 +65,9 @@ final class HelperRequestDispatcher {
     private let pluginFilterMutationAuthorizer: HelperPluginFilterMutationAuthorizer?
     private let pluginAssociationTransaction: HelperPluginFilterConfigurationTransaction?
     private let pluginIdentityAttestor: HelperPluginIdentityAttestor?
+    private let pluginUninstallAuthorizer: HelperPluginUninstallAuthorizer?
+    private let pluginUninstallTransaction: HelperThreeFileUninstallTransaction?
+    private let activationTransactionLedgerStore: HelperAppPluginActivationTransactionLedgerStore?
     /// Test-injectable only; production construction leaves activation writes disabled.
     private let activationCommitExecutionEnabled: Bool
 
@@ -68,6 +82,9 @@ final class HelperRequestDispatcher {
          pluginFilterMutationAuthorizer: HelperPluginFilterMutationAuthorizer? = nil,
          pluginAssociationTransaction: HelperPluginFilterConfigurationTransaction? = nil,
          pluginIdentityAttestor: HelperPluginIdentityAttestor? = nil,
+         pluginUninstallAuthorizer: HelperPluginUninstallAuthorizer? = nil,
+         pluginUninstallTransaction: HelperThreeFileUninstallTransaction? = nil,
+         activationTransactionLedgerStore: HelperAppPluginActivationTransactionLedgerStore? = nil,
          activationCommitExecutionEnabled: Bool = false) {
         self.manifest = manifest
         self.audit = audit
@@ -80,12 +97,16 @@ final class HelperRequestDispatcher {
         self.pluginFilterMutationAuthorizer = pluginFilterMutationAuthorizer
         self.pluginAssociationTransaction = pluginAssociationTransaction
         self.pluginIdentityAttestor = pluginIdentityAttestor
+        self.pluginUninstallAuthorizer = pluginUninstallAuthorizer
+        self.pluginUninstallTransaction = pluginUninstallTransaction
+        self.activationTransactionLedgerStore = activationTransactionLedgerStore
         self.activationCommitExecutionEnabled = activationCommitExecutionEnabled
     }
 
     func dispatch(_ envelope: HelperIPCEnvelope,
                   context: HelperAuthenticatedPeerContext,
                   now: Date = Date()) -> HelperIPCEnvelope {
+        dispatchSerializationLock.lock(); defer { dispatchSerializationLock.unlock() }
         guard envelope.protocolVersion == HelperIPCEnvelope.currentVersion,
               let nonce = envelope.nonce, nonce == context.sessionNonce,
               context.peer.uid == context.identity.uid,
@@ -196,6 +217,105 @@ final class HelperRequestDispatcher {
             return HelperIPCEnvelope(messageType: .pluginIdentityAttestationResponse,
                 requestID: envelope.requestID, createdAt: now, nonce: context.sessionNonce, payload: data)
 
+        case .appPluginActivationTransactionQueryRequest:
+            guard let payload = envelope.payload,
+                  let query = Self.decodeAppPluginActivationTransactionQuery(payload),
+                  query.requestID == envelope.requestID,
+                  abs(query.createdAt.timeIntervalSince(envelope.createdAt)) <= 5,
+                  query.validate(now: now, clockSkewLimit: clockSkewLimit) else {
+                return reject(envelope, code: .malformedAppPluginActivation, operation: nil, peer: context.identity)
+            }
+            guard let ledger = activationTransactionLedgerStore else {
+                return reject(envelope, code: .appPluginActivationLedgerUnavailable, operation: nil, peer: context.identity)
+            }
+            do {
+                // A status query is strictly read-only. It never resolves Ledger state or
+                // removes transaction artifacts; explicit reconciliation has its own request.
+                let record = try ledger.record(commandRequestID: query.commandRequestID,
+                    pluginID: query.pluginID, targetBundleIdentifier: query.targetBundleIdentifier)
+                let status = Self.makeActivationTransactionStatus(query: query, record: record, checkedAt: now)
+                guard status.matches(query) else {
+                    return reject(envelope, code: .appPluginActivationTransactionConflict, operation: nil, peer: context.identity)
+                }
+                let encoder = JSONEncoder(); encoder.dateEncodingStrategy = .iso8601
+                guard let data = try? encoder.encode(status) else {
+                    return reject(envelope, code: .malformedAppPluginActivation, operation: nil, peer: context.identity)
+                }
+                try audit.append(HelperAuditRecord(requestID: envelope.requestID, peer: context.identity,
+                    outcome: .accepted, reasonCode: record == nil ? "app_plugin_activation_transaction_not_found" : "app_plugin_activation_transaction_queried"))
+                return HelperIPCEnvelope(messageType: .appPluginActivationTransactionStatusResponse,
+                    requestID: envelope.requestID, createdAt: now, nonce: context.sessionNonce, payload: data)
+            } catch {
+                return reject(envelope, code: .appPluginActivationLedgerUnavailable, operation: nil, peer: context.identity)
+            }
+
+        case .appPluginActivationTransactionReconcileRequest:
+            guard let payload = envelope.payload,
+                  let request = Self.decodeAppPluginActivationTransactionReconciliationRequest(payload),
+                  request.requestID == envelope.requestID,
+                  abs(request.createdAt.timeIntervalSince(envelope.createdAt)) <= 5,
+                  request.validate(now: now, clockSkewLimit: clockSkewLimit) else {
+                return reject(envelope, code: .malformedAppPluginActivation, operation: nil, peer: context.identity)
+            }
+            guard let ledger = activationTransactionLedgerStore,
+                  let transaction = pluginAssociationTransaction else {
+                return reject(envelope, code: .appPluginActivationLedgerUnavailable, operation: nil, peer: context.identity)
+            }
+            do {
+                var record = try ledger.record(commandRequestID: request.commandRequestID,
+                    pluginID: request.pluginID, targetBundleIdentifier: request.targetBundleIdentifier)
+                if let current = record, current.state == .outcomeUnknown {
+                    let evidence = try transaction.inspectActivationEvidence(
+                        transactionID: current.transactionID, pluginID: current.pluginID,
+                        oldPlistSHA256: current.filterBeforeSHA256,
+                        oldManifestSHA256: current.manifestBeforeSHA256,
+                        newPlistSHA256: current.filterAfterSHA256,
+                        newManifestSHA256: current.manifestAfterSHA256)
+                    if let evidence, evidence.transactionID == current.transactionID,
+                       evidence.pluginID == current.pluginID, evidence.disposition != .unknown,
+                       let observedPlist = evidence.observedPlistSHA256,
+                       let observedManifest = evidence.observedManifestSHA256 {
+                        record = try ledger.resolveUnknown(commandRequestID: current.commandRequestID,
+                            transactionID: current.transactionID, pluginID: current.pluginID,
+                            targetBundleIdentifier: current.targetBundleIdentifier,
+                            disposition: evidence.disposition, observedPlistSHA256: observedPlist,
+                            observedManifestSHA256: observedManifest, now: now)
+                    }
+                }
+                // Ledger terminal state is persisted before journal cleanup. If cleanup fails
+                // or Helper crashes here, a repeated explicit request safely retries cleanup only.
+                if let terminal = record {
+                    switch terminal.state {
+                    case .committed:
+                        try transaction.finalizeResolvedActivationJournal(
+                            transactionID: terminal.transactionID, pluginID: terminal.pluginID,
+                            disposition: .committed, plistSHA256: terminal.filterAfterSHA256,
+                            manifestSHA256: terminal.manifestAfterSHA256)
+                    case .rolledBack:
+                        try transaction.finalizeResolvedActivationJournal(
+                            transactionID: terminal.transactionID, pluginID: terminal.pluginID,
+                            disposition: .rolledBack, plistSHA256: terminal.filterBeforeSHA256,
+                            manifestSHA256: terminal.manifestBeforeSHA256)
+                    case .executing, .outcomeUnknown: break
+                    }
+                }
+                let query = request.statusQuery
+                let status = Self.makeActivationTransactionStatus(query: query, record: record, checkedAt: now)
+                guard status.matches(query) else {
+                    return reject(envelope, code: .appPluginActivationTransactionConflict, operation: nil, peer: context.identity)
+                }
+                let encoder = JSONEncoder(); encoder.dateEncodingStrategy = .iso8601
+                guard let data = try? encoder.encode(status) else {
+                    return reject(envelope, code: .malformedAppPluginActivation, operation: nil, peer: context.identity)
+                }
+                try audit.append(HelperAuditRecord(requestID: envelope.requestID, peer: context.identity,
+                    outcome: .accepted, reasonCode: "app_plugin_activation_transaction_reconciled"))
+                return HelperIPCEnvelope(messageType: .appPluginActivationTransactionStatusResponse,
+                    requestID: envelope.requestID, createdAt: now, nonce: context.sessionNonce, payload: data)
+            } catch {
+                return reject(envelope, code: .appPluginActivationLedgerUnavailable, operation: nil, peer: context.identity)
+            }
+
         case .appPluginActivationPrepareRequest:
             guard let payload = envelope.payload,
                   let command = Self.decodeAppPluginActivationCommand(payload),
@@ -220,12 +340,10 @@ final class HelperRequestDispatcher {
                 }
                 guard let currentManifest = try? JSONDecoder().decode(FilterKitPluginManifest.self,
                     from: prepared.previousManifestData),
-                    let currentAssociations = currentManifest.softAssociations else {
+                    let actualPreviousEnabled = HelperAppPluginActivationStateReader.enabledState(
+                        in: currentManifest, targetBundleIdentifier: command.targetBundleIdentifier) else {
                     return reject(envelope, code: .appPluginActivationAuthorizationFailed, operation: nil, peer: context.identity)
                 }
-                let actualPreviousEnabled = currentAssociations.first(where: {
-                    $0.bundleIdentifier == command.targetBundleIdentifier
-                })?.isEnabled ?? false
                 guard actualPreviousEnabled == command.expectedEnabled else {
                     return reject(envelope, code: .appPluginActivationAuthorizationFailed, operation: nil, peer: context.identity)
                 }
@@ -274,12 +392,10 @@ final class HelperRequestDispatcher {
                 let prepared = try authorizer.prepare(command.makeMutationRequest(), now: now)
                 guard let currentManifest = try? JSONDecoder().decode(FilterKitPluginManifest.self,
                     from: prepared.previousManifestData),
-                    let currentAssociations = currentManifest.softAssociations else {
+                    let actualEnabled = HelperAppPluginActivationStateReader.enabledState(
+                        in: currentManifest, targetBundleIdentifier: command.targetBundleIdentifier) else {
                     return reject(envelope, code: .appPluginActivationAuthorizationFailed, operation: nil, peer: context.identity)
                 }
-                let actualEnabled = currentAssociations.first(where: {
-                    $0.bundleIdentifier == command.targetBundleIdentifier
-                })?.isEnabled ?? false
                 guard actualEnabled == command.expectedEnabled,
                       let filterBefore = prepared.response.previousPlistSHA256,
                       let filterAfter = prepared.response.proposedPlistSHA256,
@@ -302,6 +418,17 @@ final class HelperRequestDispatcher {
                 guard activationCommitExecutionEnabled else {
                     return reject(envelope, code: .executionDisabled, operation: nil, peer: context.identity)
                 }
+                guard let activationLedger = activationTransactionLedgerStore else {
+                    return reject(envelope, code: .appPluginActivationLedgerUnavailable, operation: nil, peer: context.identity)
+                }
+                do {
+                    if try activationLedger.record(commandRequestID: command.requestID,
+                        pluginID: command.pluginID, targetBundleIdentifier: command.targetBundleIdentifier) != nil {
+                        return reject(envelope, code: .appPluginActivationTransactionConflict, operation: nil, peer: context.identity)
+                    }
+                } catch {
+                    return reject(envelope, code: .appPluginActivationLedgerUnavailable, operation: nil, peer: context.identity)
+                }
                 do {
                     try audit.append(HelperAuditRecord(requestID: envelope.requestID, peer: context.identity,
                         outcome: .accepted, reasonCode: "app_plugin_activation_commit_authorized"))
@@ -315,12 +442,40 @@ final class HelperRequestDispatcher {
                         enabled: command.desiredEnabled, filterSHA256: filterBefore,
                         manifestSHA256: manifestBefore, transactionID: nil, completedAt: now)
                 } else {
-                    let receipt = try transaction.execute(prepared)
-                    proof = HelperAppPluginActivationProof(requestID: command.requestID,
-                        pluginID: command.pluginID, targetBundleIdentifier: command.targetBundleIdentifier,
-                        enabled: command.desiredEnabled, filterSHA256: receipt.plistSHA256,
-                        manifestSHA256: receipt.manifestSHA256, transactionID: receipt.transactionID,
-                        completedAt: receipt.completedAt)
+                    let transactionID = UUID()
+                    let ledgerRecord = try HelperAppPluginActivationTransactionRecord(
+                        command: command, plan: freshPlan, transactionID: transactionID)
+                    try activationLedger.insertExecuting(ledgerRecord)
+                    do {
+                        let receipt = try transaction.execute(prepared, transactionID: transactionID,
+                            retainJournalForOutcomeReconciliation: true)
+                        guard receipt.transactionID == transactionID else {
+                            _ = try activationLedger.transition(commandRequestID: command.requestID,
+                                pluginID: command.pluginID, targetBundleIdentifier: command.targetBundleIdentifier,
+                                to: .outcomeUnknown)
+                            return reject(envelope, code: .appPluginActivationTransactionConflict, operation: nil, peer: context.identity)
+                        }
+                        _ = try activationLedger.transition(commandRequestID: command.requestID,
+                            pluginID: command.pluginID, targetBundleIdentifier: command.targetBundleIdentifier,
+                            to: .committed, now: receipt.completedAt)
+                        // The durable ledger is authoritative before journal cleanup. If cleanup
+                        // fails, retain the committed journal for startup recovery inspection.
+                        try? transaction.finalizeCommittedActivationJournal(transactionID: transactionID,
+                            pluginID: command.pluginID, plistSHA256: receipt.plistSHA256,
+                            manifestSHA256: receipt.manifestSHA256)
+                        proof = HelperAppPluginActivationProof(requestID: command.requestID,
+                            pluginID: command.pluginID, targetBundleIdentifier: command.targetBundleIdentifier,
+                            enabled: command.desiredEnabled, filterSHA256: receipt.plistSHA256,
+                            manifestSHA256: receipt.manifestSHA256, transactionID: receipt.transactionID,
+                            completedAt: receipt.completedAt)
+                    } catch {
+                        // A thrown transaction may have crashed between file replacement and
+                        // reconciliation. Preserve ambiguity; never claim rollback without proof.
+                        _ = try? activationLedger.transition(commandRequestID: command.requestID,
+                            pluginID: command.pluginID, targetBundleIdentifier: command.targetBundleIdentifier,
+                            to: .outcomeUnknown)
+                        throw error
+                    }
                 }
                 guard proof.validates(command: command, now: Date(), maximumAge: 125) else {
                     // A committed transaction must never be misreported as a successful IPC proof.
@@ -427,6 +582,67 @@ final class HelperRequestDispatcher {
                     createdAt: now, nonce: context.sessionNonce, payload: responseData)
             } catch {
                 return reject(envelope, code: .pluginMutationAuthorizationFailed, operation: nil, peer: context.identity)
+            }
+
+        case .pluginUninstallRequest:
+            guard let payload = envelope.payload,
+                  let request = Self.decodePluginUninstall(payload),
+                  request.requestID == envelope.requestID,
+                  abs(request.createdAt.timeIntervalSince(envelope.createdAt)) <= 5,
+                  request.validate(now: now, clockSkewLimit: clockSkewLimit),
+                  request.operatorConfirmed else {
+                return reject(envelope, code: .malformedPluginUninstall, operation: nil, peer: context.identity)
+            }
+            guard recoveryStatus() == .clean else {
+                return reject(envelope, code: .pluginUninstallRecoveryRequired, operation: nil, peer: context.identity)
+            }
+            guard let authorizer = pluginUninstallAuthorizer,
+                  let transaction = pluginUninstallTransaction else {
+                return reject(envelope, code: .dispatchNotConfigured, operation: nil, peer: context.identity)
+            }
+            do {
+                _ = try HelperRecoveryAuthorization.authorize(context: context,
+                    transactionID: request.requestID, requestNonce: request.requestID,
+                    operatorConfirmed: request.operatorConfirmed, now: now,
+                    clockSkewLimit: clockSkewLimit)
+                _ = try authorizer.prepare(request, now: now)
+                do {
+                    try audit.append(HelperAuditRecord(requestID: envelope.requestID, peer: context.identity,
+                        outcome: .accepted, reasonCode: "plugin_uninstall_authorized_read_only"))
+                } catch {
+                    return reject(envelope, code: .pluginUninstallAuditUnavailable, operation: nil, peer: context.identity)
+                }
+                guard Self.pluginUninstallExecutionReleased else {
+                    let response = HelperPluginUninstallResponse(requestID: request.requestID,
+                        pluginID: request.pluginID, status: .executionNotReleased,
+                        reasonCode: "uninstall_authorized_execution_gate_closed", transactionID: nil, completedAt: now)
+                    let encoder = JSONEncoder(); encoder.dateEncodingStrategy = .iso8601
+                    return HelperIPCEnvelope(messageType: .pluginUninstallResponse, requestID: envelope.requestID,
+                        createdAt: now, nonce: context.sessionNonce, payload: try? encoder.encode(response))
+                }
+                // Rebuild ownership, hashes and filter/association consistency immediately
+                // before transaction entry; no UI-provided activation state is trusted.
+                let fresh = try authorizer.prepare(request, now: now)
+                let receipt = try transaction.execute(proof: fresh.ownershipProof,
+                    transactionID: request.requestID,
+                    preMutationAuthorization: {
+                        let lastCheck = try authorizer.prepare(request, now: Date())
+                        guard lastCheck.ownershipProof == fresh.ownershipProof else {
+                            throw HelperPluginUninstallAuthorizer.AuthorizationError.associationStateMismatch
+                        }
+                    })
+                let response = HelperPluginUninstallResponse(requestID: request.requestID,
+                    pluginID: request.pluginID, status: .uninstalled, reasonCode: "three_file_uninstall_committed",
+                    transactionID: receipt.transactionID, completedAt: now)
+                try? audit.append(HelperAuditRecord(requestID: envelope.requestID, peer: context.identity,
+                    outcome: .succeeded, reasonCode: "plugin_uninstall_committed",
+                    changedRelativePaths: [request.dylibFileName, request.plistFileName,
+                        String(request.dylibFileName.dropLast(6)) + ".fk.json"]))
+                let encoder = JSONEncoder(); encoder.dateEncodingStrategy = .iso8601
+                return HelperIPCEnvelope(messageType: .pluginUninstallResponse, requestID: envelope.requestID,
+                    createdAt: now, nonce: context.sessionNonce, payload: try? encoder.encode(response))
+            } catch {
+                return reject(envelope, code: .pluginUninstallAuthorizationFailed, operation: nil, peer: context.identity)
             }
 
         case .deploymentBatchRequest:
@@ -548,8 +764,46 @@ final class HelperRequestDispatcher {
         case .threeFileRecoveryRequired: return .threeFileRecoveryRequired
         case .bothRecoveryRequired: return .bothRecoveryRequired
         case .associationTransactionRecoveryRequired: return .associationTransactionRecoveryRequired
+        case .pluginUninstallRecoveryRequired: return .threeFileRecoveryRequired
         case .invalidJournal: return .invalidJournal
         }
+    }
+
+    private static func decodeAppPluginActivationTransactionQuery(_ data: Data) -> HelperAppPluginActivationTransactionQuery? {
+        let decoder = JSONDecoder(); decoder.dateDecodingStrategy = .iso8601
+        return try? decoder.decode(HelperAppPluginActivationTransactionQuery.self, from: data)
+    }
+
+    private static func decodeAppPluginActivationTransactionReconciliationRequest(_ data: Data) -> HelperAppPluginActivationTransactionReconciliationRequest? {
+        let decoder = JSONDecoder(); decoder.dateDecodingStrategy = .iso8601
+        return try? decoder.decode(HelperAppPluginActivationTransactionReconciliationRequest.self, from: data)
+    }
+
+    private static func makeActivationTransactionStatus(
+        query: HelperAppPluginActivationTransactionQuery,
+        record: HelperAppPluginActivationTransactionRecord?, checkedAt: Date
+    ) -> HelperAppPluginActivationTransactionStatus {
+        let filterHash: String? = {
+            guard let record else { return nil }
+            switch record.state {
+            case .committed: return record.filterAfterSHA256
+            case .rolledBack: return record.filterBeforeSHA256
+            case .executing, .outcomeUnknown: return nil
+            }
+        }()
+        let manifestHash: String? = {
+            guard let record else { return nil }
+            switch record.state {
+            case .committed: return record.manifestAfterSHA256
+            case .rolledBack: return record.manifestBeforeSHA256
+            case .executing, .outcomeUnknown: return nil
+            }
+        }()
+        return HelperAppPluginActivationTransactionStatus(queryRequestID: query.requestID,
+            commandRequestID: query.commandRequestID, pluginID: query.pluginID,
+            targetBundleIdentifier: record?.targetBundleIdentifier ?? query.targetBundleIdentifier,
+            state: record?.state, transactionID: record?.transactionID,
+            filterSHA256: filterHash, manifestSHA256: manifestHash, checkedAt: checkedAt)
     }
 
     private static func decodeAppPluginActivationCommand(_ data: Data) -> HelperAppPluginActivationCommand? {
@@ -571,6 +825,11 @@ final class HelperRequestDispatcher {
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
         return try? decoder.decode(HelperPluginFilterMutationRequest.self, from: data)
+    }
+
+    private static func decodePluginUninstall(_ data: Data) -> HelperPluginUninstallRequest? {
+        let decoder = JSONDecoder(); decoder.dateDecodingStrategy = .iso8601
+        return try? decoder.decode(HelperPluginUninstallRequest.self, from: data)
     }
 
     private static func decodeMaintenanceRequest(_ data: Data) -> HelperMaintenanceRecoveryRequest? {

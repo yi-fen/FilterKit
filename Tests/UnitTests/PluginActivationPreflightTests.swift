@@ -39,6 +39,15 @@ final class PluginActivationPreflightTests: XCTestCase {
         XCTAssertTrue(report.blockers.contains(.mutationReleaseClosed))
     }
 
+    func testFilterObservationUsesCaseInsensitiveBundleIdentity() {
+        let configuration = PluginFilterConfiguration(
+            parseState: .valid, containerKey: "Filter", bundles: ["COM.EXAMPLE.TARGET"],
+            executables: [], classes: [], modeDescription: nil, unknownKeys: [], warnings: [])
+        let report = PluginActivationPreflight().evaluate(
+            makeInput(configuration: configuration), desiredState: .enabled)
+        XCTAssertEqual(report.filterObservation, .targetListed)
+    }
+
     func testHardBoundActivationIsAllowedByPolicyButUncleanRecoveryStillBlocks() {
         let report = PluginActivationPreflight().evaluate(
             makeInput(isHardBound: true, recoveryIsClean: false), desiredState: .disabled)

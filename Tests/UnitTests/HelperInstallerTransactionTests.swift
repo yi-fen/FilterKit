@@ -40,27 +40,32 @@ final class HelperInstallerTransactionTests: XCTestCase {
     func testJournalEnforcesOrderedUpgradeAndRollback() throws {
         var journal = try HelperInstallerTransactionJournal(action: .upgrade,
             releaseIdentifier: "1.0.0-p135", generation: 10)
+        try journal.apply(.intentVerifyArtifacts)
         try journal.apply(.verifyArtifacts)
+        try journal.apply(.intentPreservePreviousRelease)
         try journal.apply(.preservePreviousRelease)
+        try journal.apply(.intentStageRelease)
         try journal.apply(.stageRelease)
+        try journal.apply(.intentActivateRelease)
         try journal.apply(.activateRelease)
         try journal.apply(.beginRollback)
         try journal.apply(.completeRollback)
         try journal.validateChain()
         XCTAssertEqual(journal.state, .rolledBack)
-        XCTAssertEqual(journal.sequence, 6)
+        XCTAssertEqual(journal.sequence, 10)
     }
 
     func testJournalRejectsOutOfOrderActivation() throws {
         var journal = try HelperInstallerTransactionJournal(action: .install,
             releaseIdentifier: "1.0.0-p135", generation: 10)
         XCTAssertThrowsError(try journal.apply(.activateRelease))
+        XCTAssertThrowsError(try journal.apply(.stageRelease))
     }
 
     func testJournalDetectsTamperedEventHash() throws {
         var journal = try HelperInstallerTransactionJournal(action: .install,
             releaseIdentifier: "1.0.0-p135", generation: 10)
-        try journal.apply(.verifyArtifacts)
+        try journal.apply(.intentVerifyArtifacts)
         var encoded = try JSONEncoder().encode(journal)
         var object = try XCTUnwrap(JSONSerialization.jsonObject(with: encoded) as? [String: Any])
         var entries = try XCTUnwrap(object["entries"] as? [[String: Any]])
@@ -69,6 +74,17 @@ final class HelperInstallerTransactionTests: XCTestCase {
         encoded = try JSONSerialization.data(withJSONObject: object)
         let tampered = try JSONDecoder().decode(HelperInstallerTransactionJournal.self, from: encoded)
         XCTAssertThrowsError(try tampered.validateChain())
+    }
+
+    func testLegacyJournalSchemaIsRejectedForExplicitRecovery() throws {
+        let journal = try HelperInstallerTransactionJournal(action: .install,
+            releaseIdentifier: "1.0.0-p135", generation: 10)
+        let encoded = try JSONEncoder().encode(journal)
+        var object = try XCTUnwrap(JSONSerialization.jsonObject(with: encoded) as? [String: Any])
+        object["schemaVersion"] = 1
+        let legacy = try JSONDecoder().decode(HelperInstallerTransactionJournal.self,
+            from: JSONSerialization.data(withJSONObject: object))
+        XCTAssertThrowsError(try legacy.validateChain())
     }
 
     func testExecutionGateAlwaysBlocksUnreleasedPlan() throws {

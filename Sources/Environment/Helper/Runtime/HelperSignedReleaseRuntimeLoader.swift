@@ -1,7 +1,7 @@
 import Foundation
 
-/// Loads signed release metadata from root-owned files, then verifies the current executable
-/// bytes and kernel-reported CDHash. It is read-only except for the accepted-generation Keychain update.
+/// Loads signed release metadata from root-owned files, reconciles any interrupted provisioning
+/// commit, then verifies the current executable bytes and kernel-reported CDHash.
 struct HelperSignedReleaseRuntimeLoader {
     enum Failure: Error, Equatable {
         case releaseAnchorsNotConfigured, executablePathUnavailable, provisioningInvalid
@@ -24,12 +24,17 @@ struct HelperSignedReleaseRuntimeLoader {
             let base = jbRoot + "/Library/FilterKit/Helper"
             let signedData = try secureStore.readRootOwnedFile(
                 path: base + "/release.signed.json", requiredMode: 0o600)
-            let provisioningData = try secureStore.readRootOwnedFile(
-                path: base + "/provisioning.json", requiredMode: 0o600)
             let signed = try JSONDecoder().decode(HelperSignedReleaseManifest.self, from: signedData)
-            guard let provisioning = try? JSONDecoder().decode(HelperInstallerProvisioningBundle.self, from: provisioningData) else {
-                throw Failure.provisioningInvalid
-            }
+            let provisioningVerifier = HelperProvisioningSignatureVerifier(
+                keys: anchors, checker: HelperEd25519SignatureChecker())
+            let provisioningStore = HelperTrustedProvisioningStore(
+                persistence: HelperRootOwnedProvisioningFileStore(directoryPath: base),
+                verifier: provisioningVerifier,
+                checkpointStore: try HelperProvisioningCheckpointStoreFactory.make())
+            let trustedBaseline: HelperVerifiedProvisioningBaseline
+            do { trustedBaseline = try provisioningStore.loadTrustedBaseline() }
+            catch { throw Failure.provisioningInvalid }
+            let provisioning = trustedBaseline.payload
             try provisioning.validate()
             guard provisioning.jbRootPath == jbRoot,
                   provisioning.tweakInjectPath == deploymentManifest.tweakInjectPath,

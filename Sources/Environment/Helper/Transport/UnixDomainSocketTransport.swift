@@ -373,6 +373,7 @@ final class UnixDomainSocketServer {
         case .invalidCDHash: return "peer_cdhash_invalid"
         case .cdHashNotAllowed: return "peer_cdhash_not_pinned"
         case .invalidPID: return "peer_pid_invalid"
+        case .codeSigningIdentityUnavailable: return "peer_code_signing_identity_unavailable"
         }
     }
 

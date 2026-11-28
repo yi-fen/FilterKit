@@ -87,6 +87,8 @@ enum HelperPeerIdentityBindingPolicy {
         hasKernelAuditTokenEvidence(identity) && identity.pid > 0 &&
         identity.pidVersion.map { $0 > 0 } == true
     }
+
+
 }
 
 /// A pure comparison policy so process-exit/PID-reuse races can be tested without

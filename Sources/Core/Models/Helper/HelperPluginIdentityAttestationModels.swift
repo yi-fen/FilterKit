@@ -60,8 +60,8 @@ struct HelperPluginIdentityAttestation: Codable, Equatable {
               let machOIdentitySHA256, HelperPolicy.isValidHash(machOIdentitySHA256),
               let hardBoundBundleIdentifier, Self.isValidBundleIdentifier(hardBoundBundleIdentifier),
               let softAssociations, softAssociations.allSatisfy({ Self.isValidBundleIdentifier($0.bundleIdentifier) }),
-              Set(softAssociations.map(\.bundleIdentifier)).count == softAssociations.count,
-              !softAssociations.contains(where: { $0.bundleIdentifier == hardBoundBundleIdentifier }),
+              HelperBundleIdentifierKey.set(softAssociations.map(\.bundleIdentifier)).count == softAssociations.count,
+              !softAssociations.contains(where: { HelperBundleIdentifierKey.make($0.bundleIdentifier) == HelperBundleIdentifierKey.make(hardBoundBundleIdentifier) }),
               filterConfiguration?.parseState == .valid else { return false }
         return pluginID != UUID(uuidString: "00000000-0000-0000-0000-000000000000")
     }
